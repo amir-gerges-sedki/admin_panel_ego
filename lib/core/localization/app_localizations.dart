@@ -1,0 +1,62 @@
+import 'package:flutter/material.dart';
+import 'ar.dart';
+import 'en.dart';
+
+/// App localizations handling English and Arabic dictionaries
+class AppLocalizations {
+  final Locale locale;
+  static AppLocalizations? _current;
+
+  AppLocalizations(this.locale) {
+    _current = this;
+  }
+
+  static AppLocalizations get current => _current ?? AppLocalizations(const Locale('en'));
+
+  static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
+
+  static final Map<String, Map<String, String>> _localizedValues = {
+    'en': en,
+    'ar': ar,
+  };
+
+  String translate(String key) {
+    final languageCode = locale.languageCode;
+    return _localizedValues[languageCode]?[key] ?? _localizedValues['en']?[key] ?? key;
+  }
+
+  static AppLocalizations of(BuildContext context) {
+    return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
+        AppLocalizations(const Locale('en'));
+  }
+}
+
+class _AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+  const _AppLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) => ['en', 'ar'].contains(locale.languageCode);
+
+  @override
+  Future<AppLocalizations> load(Locale locale) async {
+    return AppLocalizations(locale);
+  }
+
+  @override
+  bool shouldReload(_AppLocalizationsDelegate old) => true;
+}
+
+/// String extension for resolving localized keys: 'dashboard'.tr
+extension TransExtension on String {
+  String get tr => AppLocalizations.current.translate(this);
+
+  String trParams([Map<String, String>? params]) {
+    String text = AppLocalizations.current.translate(this);
+    if (params != null) {
+      params.forEach((key, value) {
+        text = text.replaceAll('{$key}', value);
+      });
+    }
+    return text;
+  }
+}
