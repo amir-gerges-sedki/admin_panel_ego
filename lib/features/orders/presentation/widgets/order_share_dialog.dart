@@ -231,8 +231,8 @@ class OrderShareDialog extends StatelessWidget {
                 HelperFun.showNotificationAlert(
                   title: 'WhatsApp',
                   message: launched
-                      ? 'تم فتح الواتساب ونسخ تفاصيل الطلب للحافظة'
-                      : 'تم نسخ نص الطلب للحافظة (يمكنك لصقه مباشرة في محادثة الواتساب)',
+                      ? 'whatsapp_copied_slip_msg'.tr
+                      : 'slip_copied_to_clipboard_msg'.tr,
                   context: context,
                 );
               }

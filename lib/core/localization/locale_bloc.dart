@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'app_localizations.dart';
 
 // Events
 abstract class LocaleEvent extends Equatable {
@@ -27,7 +28,9 @@ class LocaleState extends Equatable {
 // Bloc
 class LocaleBloc extends Bloc<LocaleEvent, LocaleState> {
   LocaleBloc() : super(const LocaleState(Locale('en'))) {
+    AppLocalizations.setLocale(const Locale('en'));
     on<ChangeLocaleEvent>((event, emit) {
+      AppLocalizations.setLocale(event.locale);
       emit(LocaleState(event.locale));
     });
   }

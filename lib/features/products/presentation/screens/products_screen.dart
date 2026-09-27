@@ -8,10 +8,12 @@ import '../../../../core/formatters/formatters.dart';
 import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/product_model.dart';
-import '../../../categories/presentation/cubit/category_cubit.dart';
 import '../cubit/product_cubit.dart';
+import '../widgets/product_barcode_print_dialog.dart';
 import '../widgets/product_creation_wizard.dart';
 import '../widgets/product_details_dialog.dart';
+import '../widgets/quick_restock_dialog.dart';
+import '../widgets/stock_movements_dialog.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -21,8 +23,6 @@ class ProductsScreen extends StatefulWidget {
 }
 
 class _ProductsScreenState extends State<ProductsScreen> {
-  String _activeTypeFilter = 'ALL';
-
   @override
   Widget build(BuildContext context) {
     final isDark = HelperFun.isDarkMode(context);
@@ -34,43 +34,87 @@ class _ProductsScreenState extends State<ProductsScreen> {
         }
 
         if (state is ProductLoaded) {
-          final allProducts = state.filteredProducts;
-          final products = _activeTypeFilter == 'ALL'
-              ? allProducts
-              : allProducts.where((p) {
-                  return p.categoryType.name.toLowerCase() == _activeTypeFilter.toLowerCase() ||
-                      p.categoryId.toLowerCase().contains(_activeTypeFilter.toLowerCase());
-                }).toList();
+          final products = state.filteredProducts;
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(AppSizes.lg),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // Folder-like Type Segment Selector
-                _buildFolderTypeTabs(context, state.products, isDark),
-                const SizedBox(height: AppSizes.md),
+            child: CustomDataTable(
+              title: 'products'.tr,
+              subtitle: 'products_subtitle'.tr,
+              searchHint: 'search_products_hint'.tr,
+              onSearchChanged: (q) => context.read<ProductCubit>().filterProducts(query: q),
+              filterWidget: Builder(
+                builder: (context) {
+                  final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+                  final List<DropdownMenuItem<String>> catItems = [
+                    DropdownMenuItem(value: 'ALL', child: Text('all_categories'.tr)),
+                    ...ProductCategoryType.visibleTypes.map(
+                      (t) => DropdownMenuItem(value: t.id, child: Text(isArabic ? t.arabicName : t.displayName)),
+                    ),
+                  ];
 
-                CustomDataTable(
-                  title: 'products'.tr,
-                  subtitle: 'products_subtitle'.tr,
-                  searchHint: 'search_products_hint'.tr,
-                  onSearchChanged: (q) => context.read<ProductCubit>().filterProducts(query: q),
-                  trailingHeaderAction: ElevatedButton.icon(
-                    onPressed: () {
-                      ProductCreationWizard.show(context);
-                    },
-                    icon: const Icon(Icons.add_rounded, size: 18),
-                    label: Text('add_product'.tr),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: AppSizes.sm + 2),
+                  final validValue = catItems.any((item) => item.value == state.selectedCategory)
+                      ? state.selectedCategory
+                      : 'ALL';
+
+                  return Container(
+                    height: 38,
+                    padding: const EdgeInsets.symmetric(horizontal: 10),
+                    decoration: BoxDecoration(
+                      color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.sort_rounded,
+                          size: 16,
+                          color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+                        ),
+                        const SizedBox(width: 6),
+                        DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: validValue,
+                            isDense: true,
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: isDark ? Colors.white : AppColor.textPrimaryLight,
+                            ),
+                            dropdownColor: isDark ? AppColor.darkCard : AppColor.lightCard,
+                            items: catItems,
+                            onChanged: (val) {
+                              if (val != null) {
+                                context.read<ProductCubit>().filterProducts(categoryId: val);
+                              }
+                            },
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              trailingHeaderAction: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () => StockMovementsDialog.show(context),
+                    icon: const Icon(Icons.history_rounded, size: 16),
+                    label: Text('stock_movements_btn'.tr),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: AppSizes.sm,
+                      ),
                     ),
                   ),
-                  emptyMessage: 'no_products_found'.tr,
-                  emptyIcon: Icons.inventory_2_outlined,
-                  emptyAction: ElevatedButton.icon(
+                  const SizedBox(width: 8),
+                  ElevatedButton.icon(
                     onPressed: () {
                       ProductCreationWizard.show(context);
                     },
@@ -79,47 +123,19 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColor.primary,
                       foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSizes.md,
+                        vertical: AppSizes.sm,
+                      ),
                     ),
                   ),
-                  filterWidget: BlocBuilder<CategoryCubit, CategoryState>(
-                    builder: (context, catState) {
-                      final List<DropdownMenuItem<String>> catItems = [
-                        DropdownMenuItem(value: 'ALL', child: Text('all_categories'.tr)),
-                      ];
-
-                      if (catState is CategoryLoaded) {
-                        for (final c in catState.categories) {
-                          if (c.name.isNotEmpty) {
-                            catItems.add(DropdownMenuItem(value: c.id, child: Text(c.name)));
-                          }
-                        }
-                      }
-
-                      final validValue = catItems.any((item) => item.value == state.selectedCategory)
-                          ? state.selectedCategory
-                          : 'ALL';
-
-                      return DropdownButton<String>(
-                        value: validValue,
-                        underline: const SizedBox.shrink(),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: HelperFun.isDarkMode(context) ? Colors.white : Colors.black,
-                        ),
-                        items: catItems,
-                        onChanged: (val) {
-                          if (val != null) {
-                            context.read<ProductCubit>().filterProducts(categoryId: val);
-                          }
-                        },
-                      );
-                    },
-                  ),
+                ],
+              ),
                   columns: [
                     DataTableColumn(label: 'product_title'.tr, width: 220),
                     DataTableColumn(label: 'product_type_col'.tr),
                     DataTableColumn(label: 'product_brand_col'.tr),
-                    DataTableColumn(label: 'product_price_col'.tr),
+                    DataTableColumn(label: 'product_price_col'.tr, width: 175),
                     DataTableColumn(label: 'product_stock_col'.tr),
                     DataTableColumn(label: 'product_vars_col'.tr),
                     DataTableColumn(label: 'product_actions_col'.tr),
@@ -128,7 +144,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     final typeColor = p.categoryType.accentColor;
                     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
                     final resolvedDisplayName = isArabic ? p.categoryType.arabicName : p.categoryType.displayName;
-                    final displayName = p.title.isNotEmpty ? p.title : (p.brand.name.isNotEmpty ? p.brand.name : 'Untitled');
+                    final displayName = p.displayTitle;
 
                     return DataRow(
                       cells: [
@@ -239,9 +255,108 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         ),
                         // Price
                         DataCell(
-                          Text(
-                            AppFormatters.formatEGP(p.salePrice),
-                            style: const TextStyle(fontWeight: FontWeight.w700),
+                          Builder(
+                            builder: (context) {
+                              final variations = p.productVariations;
+                              final List<double> effectivePrices = [];
+                              final List<double> regularPrices = [];
+
+                              if (variations.isNotEmpty) {
+                                for (final v in variations) {
+                                  final hasVarDisc = v.salePrice > 0 && v.salePrice < v.price;
+                                  final eff = hasVarDisc ? v.salePrice : (v.price > 0 ? v.price : v.salePrice);
+                                  final reg = v.price > 0 ? v.price : v.salePrice;
+                                  if (eff > 0) effectivePrices.add(eff);
+                                  if (reg > 0) regularPrices.add(reg);
+                                }
+                              }
+
+                              final double minEff = effectivePrices.isNotEmpty
+                                  ? effectivePrices.reduce((a, b) => a < b ? a : b)
+                                  : (p.salePrice > 0 && p.salePrice < p.price ? p.salePrice : (p.price > 0 ? p.price : p.salePrice));
+                              final double maxEff = effectivePrices.isNotEmpty
+                                  ? effectivePrices.reduce((a, b) => a > b ? a : b)
+                                  : minEff;
+
+                              final double minReg = regularPrices.isNotEmpty
+                                  ? regularPrices.reduce((a, b) => a < b ? a : b)
+                                  : (p.price > 0 ? p.price : p.salePrice);
+                              final double maxReg = regularPrices.isNotEmpty
+                                  ? regularPrices.reduce((a, b) => a > b ? a : b)
+                                  : minReg;
+
+                              final bool hasRange = minEff < maxEff;
+                              final bool hasAnyDiscount = variations.isNotEmpty
+                                  ? variations.any((v) => v.salePrice > 0 && v.salePrice < v.price)
+                                  : (p.salePrice > 0 && p.salePrice < p.price);
+
+                              if (hasRange) {
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${AppFormatters.formatEGP(minEff)} - ${AppFormatters.formatEGP(maxEff)}',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12.5,
+                                        color: hasAnyDiscount ? const Color(0xFF10B981) : null,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 1),
+                                    if (hasAnyDiscount && (minReg > minEff || maxReg > maxEff))
+                                      Text(
+                                        '${AppFormatters.formatEGP(minReg)} - ${AppFormatters.formatEGP(maxReg)}',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w500,
+                                          decoration: TextDecoration.lineThrough,
+                                          color: isDark ? Colors.white38 : Colors.black38,
+                                        ),
+                                      )
+                                    else
+                                      Text(
+                                        'min_max_price'.tr,
+                                        style: TextStyle(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+                                        ),
+                                      ),
+                                  ],
+                                );
+                              }
+
+                              if (hasAnyDiscount) {
+                                return Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      AppFormatters.formatEGP(minEff),
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF10B981),
+                                      ),
+                                    ),
+                                    Text(
+                                      AppFormatters.formatEGP(minReg),
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        fontWeight: FontWeight.w500,
+                                        decoration: TextDecoration.lineThrough,
+                                        color: isDark ? Colors.white38 : Colors.black38,
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              }
+
+                              return Text(
+                                AppFormatters.formatEGP(minEff),
+                                style: const TextStyle(fontWeight: FontWeight.w700),
+                              );
+                            },
                           ),
                         ),
                         // Stock
@@ -270,6 +385,16 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                 onPressed: () => ProductDetailsDialog.show(context, p),
                               ),
                               IconButton(
+                                icon: const Icon(Icons.qr_code_2_rounded, size: 18, color: Color(0xFFF97316)),
+                                tooltip: isArabic ? 'طباعة ملصقات الباركود' : 'Print Barcode Labels',
+                                onPressed: () => ProductBarcodePrintDialog.show(context, product: p),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.add_shopping_cart_rounded, size: 18, color: Color(0xFF10B981)),
+                                tooltip: isArabic ? 'إعادة توريد المخزون' : 'Quick Restock',
+                                onPressed: () => QuickRestockDialog.show(context, product: p),
+                              ),
+                              IconButton(
                                 icon: const Icon(Icons.edit_outlined, size: 18, color: AppColor.primary),
                                 tooltip: 'edit_product'.tr,
                                 onPressed: () {
@@ -292,11 +417,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       ],
                     );
                   }).toList(),
-                ),
-              ],
-            ),
-          );
-        }
+              ),
+            );
+          }
 
         return Center(
           child: ElevatedButton(
@@ -305,88 +428,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
           ),
         );
       },
-    );
-  }
-
-  Widget _buildFolderTypeTabs(BuildContext context, List<ProductModel> allProducts, bool isDark) {
-    final types = [
-      {'key': 'ALL', 'label': 'all_items'.tr, 'icon': Icons.apps_rounded, 'color': AppColor.primary},
-      {'key': 'liquid', 'label': 'type_liquid_short'.tr, 'icon': Icons.water_drop_rounded, 'color': const Color(0xFF0EA5E9)},
-      {'key': 'device', 'label': 'type_device_short'.tr, 'icon': Icons.vape_free_rounded, 'color': const Color(0xFF6366F1)},
-      {'key': 'pod', 'label': 'type_pod_short'.tr, 'icon': Icons.inventory_2_rounded, 'color': const Color(0xFF10B981)},
-      {'key': 'coil', 'label': 'type_coil_short'.tr, 'icon': Icons.flash_on_rounded, 'color': const Color(0xFFF59E0B)},
-      {'key': 'accessory', 'label': 'type_accessory_short'.tr, 'icon': Icons.handyman_rounded, 'color': const Color(0xFFEC4899)},
-    ];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: types.map((t) {
-          final key = t['key'] as String;
-          final isSelected = _activeTypeFilter == key;
-          final color = t['color'] as Color;
-
-          int count = 0;
-          if (key == 'ALL') {
-            count = allProducts.length;
-          } else {
-            count = allProducts.where((p) => p.categoryType.name.toLowerCase() == key).length;
-          }
-
-          return Padding(
-            padding: const EdgeInsetsDirectional.only(end: 8),
-            child: InkWell(
-              onTap: () => setState(() => _activeTypeFilter = key),
-              borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? color.withValues(alpha: isDark ? 0.2 : 0.1)
-                      : (isDark ? AppColor.darkCard : AppColor.lightCard),
-                  borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-                  border: Border.all(
-                    color: isSelected ? color : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
-                    width: isSelected ? 1.5 : 1,
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(t['icon'] as IconData, size: 16, color: isSelected ? color : null),
-                    const SizedBox(width: 8),
-                    Text(
-                      t['label'] as String,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                        color: isSelected ? color : null,
-                      ),
-                    ),
-                    const SizedBox(width: 6),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isSelected ? color : (isDark ? AppColor.darkChip : AppColor.lightChip),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        count.toString(),
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: isSelected ? Colors.white : (isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
-        }).toList(),
-      ),
     );
   }
 

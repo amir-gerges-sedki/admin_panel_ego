@@ -1,0 +1,125 @@
+import 'package:equatable/equatable.dart';
+
+/// Single product variation with unique SKU, price, stock, and attribute values.
+class ProductVariationModel extends Equatable {
+  final String id;
+  final String sku;
+  final double price;
+  final double salePrice;
+  final double costPrice;
+  final int stock;
+  final int? lowStockThreshold;
+  final String image;
+  final Map<String, String> attributeValues;
+
+  const ProductVariationModel({
+    required this.id,
+    required this.sku,
+    required this.price,
+    required this.salePrice,
+    this.costPrice = 0.0,
+    required this.stock,
+    this.lowStockThreshold,
+    this.image = '',
+    required this.attributeValues,
+  });
+
+  double get effectivePrice => salePrice > 0 ? salePrice : price;
+  double get profitPerUnit => (effectivePrice - costPrice).clamp(0.0, double.infinity);
+  double get profitMarginPercent => effectivePrice > 0 ? ((effectivePrice - costPrice) / effectivePrice) * 100 : 0.0;
+
+  factory ProductVariationModel.fromJson(Map<String, dynamic> json) {
+    final rawAttrs =
+        json['attributeValues'] ??
+        json['AttributeValues'] ??
+        json['attributes'] ??
+        {};
+    final Map<String, String> attrs = {};
+    if (rawAttrs is Map) {
+      rawAttrs.forEach((k, v) {
+        final keyStr = k.toString();
+        if (keyStr.toLowerCase() != 'wattage' &&
+            keyStr.toLowerCase() != 'watt') {
+          attrs[keyStr] = v.toString();
+        }
+      });
+    }
+
+    return ProductVariationModel(
+      id: json['id']?.toString() ?? json['Id']?.toString() ?? '',
+      sku:
+          json['sku']?.toString() ??
+          json['Sku']?.toString() ??
+          json['SKU']?.toString() ??
+          '',
+      price: (json['price'] ?? json['Price'] as num?)?.toDouble() ?? 0.0,
+      salePrice:
+          (json['salePrice'] ?? json['SalePrice'] ?? json['price'] as num?)
+              ?.toDouble() ??
+          0.0,
+      costPrice:
+          (json['costPrice'] ?? json['CostPrice'] ?? json['cost'] as num?)
+              ?.toDouble() ??
+          0.0,
+      stock:
+          (json['stock'] ??
+                  json['Stock'] ??
+                  json['quantity'] ??
+                  json['Quantity'] as num?)
+              ?.toInt() ??
+          0,
+      lowStockThreshold: (json['lowStockThreshold'] as num?)?.toInt(),
+      image: json['image']?.toString() ?? json['Image']?.toString() ?? '',
+      attributeValues: attrs,
+    );
+  }
+
+  ProductVariationModel copyWith({
+    String? id,
+    String? sku,
+    double? price,
+    double? salePrice,
+    double? costPrice,
+    int? stock,
+    int? lowStockThreshold,
+    String? image,
+    Map<String, String>? attributeValues,
+  }) {
+    return ProductVariationModel(
+      id: id ?? this.id,
+      sku: sku ?? this.sku,
+      price: price ?? this.price,
+      salePrice: salePrice ?? this.salePrice,
+      costPrice: costPrice ?? this.costPrice,
+      stock: stock ?? this.stock,
+      lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
+      image: image ?? this.image,
+      attributeValues: attributeValues ?? this.attributeValues,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'sku': sku,
+    'price': price,
+    'salePrice': salePrice,
+    'costPrice': costPrice,
+    'stock': stock,
+    if (lowStockThreshold != null) 'lowStockThreshold': lowStockThreshold,
+    'image': image,
+    'attributeValues': attributeValues,
+  };
+
+  @override
+  List<Object?> get props => [
+    id,
+    sku,
+    price,
+    salePrice,
+    costPrice,
+    stock,
+    lowStockThreshold,
+    image,
+    attributeValues,
+  ];
+}

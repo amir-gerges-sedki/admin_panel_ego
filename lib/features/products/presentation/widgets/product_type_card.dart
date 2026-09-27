@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/helper/helper_fun.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/product_model.dart';
 
+/// Compact, low-profile product category card ("حاجات صغيرة وبسيطة").
 class ProductTypeCard extends StatefulWidget {
   final ProductCategoryType type;
   final bool isSelected;
@@ -23,150 +25,174 @@ class ProductTypeCard extends StatefulWidget {
 class _ProductTypeCardState extends State<ProductTypeCard> {
   bool _isHovered = false;
 
+  String _getSubtitle() {
+    switch (widget.type) {
+      case ProductCategoryType.liquid:
+        return 'type_subtitle_liquid'.tr;
+      case ProductCategoryType.disposable:
+        return 'type_subtitle_disposable'.tr;
+      case ProductCategoryType.device:
+        return 'type_subtitle_device'.tr;
+      case ProductCategoryType.pod:
+      case ProductCategoryType.coil:
+        return 'type_subtitle_pod'.tr;
+      case ProductCategoryType.accessory:
+        return 'type_subtitle_accessory'.tr;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = HelperFun.isDarkMode(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final color = widget.type.accentColor;
+    final isSel = widget.isSelected;
+
+    final title = isArabic ? widget.type.arabicName : widget.type.displayName;
+    final subtitle = _getSubtitle();
 
     return MouseRegion(
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
+        duration: const Duration(milliseconds: 180),
         curve: Curves.easeOutCubic,
-        transform: Matrix4.translationValues(0.0, (_isHovered || widget.isSelected) ? -4.0 : 0.0, 0.0),
+        transform: Matrix4.translationValues(
+          0.0,
+          (_isHovered || isSel) ? -2.0 : 0.0,
+          0.0,
+        ),
         child: InkWell(
           onTap: widget.onSelect,
-          borderRadius: BorderRadius.circular(AppSizes.cardRadiusMd),
+          borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
           child: Container(
-            padding: const EdgeInsets.all(AppSizes.md),
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppSizes.md,
+              vertical: AppSizes.sm + 2,
+            ),
             decoration: BoxDecoration(
-              color: widget.isSelected
-                  ? color.withValues(alpha: isDark ? 0.15 : 0.08)
+              gradient: isSel
+                  ? LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        color.withValues(alpha: isDark ? 0.20 : 0.12),
+                        color.withValues(alpha: isDark ? 0.07 : 0.03),
+                      ],
+                    )
+                  : null,
+              color: isSel
+                  ? null
                   : (_isHovered
-                      ? (isDark ? AppColor.darkSubCard : AppColor.lightSubCard)
-                      : (isDark ? AppColor.darkCard : AppColor.lightCard)),
-              borderRadius: BorderRadius.circular(AppSizes.cardRadiusMd),
+                        ? (isDark ? AppColor.darkSubCard : AppColor.lightSubCard)
+                        : (isDark ? AppColor.darkCard : AppColor.lightCard)),
+              borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
               border: Border.all(
-                color: widget.isSelected
+                color: isSel
                     ? color
                     : (_isHovered
-                        ? color.withValues(alpha: 0.5)
-                        : (isDark ? AppColor.darkBorder : AppColor.lightBorder)),
-                width: widget.isSelected ? 2 : 1,
+                          ? color.withValues(alpha: 0.45)
+                          : (isDark ? AppColor.darkBorder : AppColor.lightBorder)),
+                width: isSel ? 1.8 : 1.0,
               ),
-              boxShadow: widget.isSelected || _isHovered
+              boxShadow: isSel || _isHovered
                   ? [
                       BoxShadow(
-                        color: color.withValues(alpha: 0.18),
-                        blurRadius: 14,
-                        offset: const Offset(0, 6),
+                        color: color.withValues(alpha: isSel ? 0.20 : 0.08),
+                        blurRadius: isSel ? 12 : 8,
+                        offset: const Offset(0, 3),
                       ),
                     ]
                   : [],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Row(
               children: [
-                // Top row: Icon with soft background and Selection Checkmark
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            color.withValues(alpha: 0.25),
-                            color.withValues(alpha: 0.08),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: color.withValues(alpha: 0.3)),
-                      ),
-                      child: Icon(
-                        widget.type.icon,
-                        color: color,
-                        size: 26,
-                      ),
+                // Compact Icon
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        color.withValues(alpha: isSel ? 0.35 : 0.18),
+                        color.withValues(alpha: isSel ? 0.15 : 0.06),
+                      ],
                     ),
-                    AnimatedOpacity(
-                      duration: const Duration(milliseconds: 200),
-                      opacity: widget.isSelected ? 1.0 : 0.0,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: BoxDecoration(
-                          color: color,
-                          shape: BoxShape.circle,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: color.withValues(alpha: isSel ? 0.45 : 0.2),
+                    ),
+                  ),
+                  child: Icon(
+                    widget.type.icon,
+                    color: color,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: AppSizes.sm + 2),
+
+                // Title & Localized Subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w700,
+                          color: isDark
+                              ? AppColor.textPrimaryDark
+                              : AppColor.textPrimaryLight,
                         ),
-                        child: const Icon(
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          color: isDark
+                              ? AppColor.textSecondaryDark
+                              : AppColor.textSecondaryLight,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+
+                // Selection check indicator
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    color: isSel ? color : Colors.transparent,
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSel
+                          ? color
+                          : (isDark
+                                ? Colors.white.withValues(alpha: 0.25)
+                                : Colors.black.withValues(alpha: 0.2)),
+                      width: isSel ? 1.5 : 1.2,
+                    ),
+                  ),
+                  child: isSel
+                      ? const Icon(
                           Icons.check_rounded,
                           color: Colors.white,
                           size: 14,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSizes.md),
-
-                // Center Title & Arabic subtitle
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.type.displayName,
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      widget.type.arabicName,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      widget.type.description,
-                      style: TextStyle(
-                        fontSize: 11,
-                        color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
-                        height: 1.3,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-
-                const SizedBox(height: AppSizes.sm),
-
-                // Bottom category tag
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
-                  ),
-                  child: Text(
-                    widget.type.id,
-                    style: TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: color,
-                      letterSpacing: 0.4,
-                    ),
-                  ),
+                        )
+                      : null,
                 ),
               ],
             ),
@@ -176,3 +202,4 @@ class _ProductTypeCardState extends State<ProductTypeCard> {
     );
   }
 }
+

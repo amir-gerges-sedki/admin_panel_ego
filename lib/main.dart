@@ -10,15 +10,19 @@ import 'core/services/firebase_service.dart';
 import 'core/theme/theme_cubit.dart';
 import 'features/badges/presentation/cubit/badge_cubit.dart';
 import 'features/banners/presentation/cubit/banner_cubit.dart';
-import 'features/categories/presentation/cubit/category_cubit.dart';
+import 'features/brands/presentation/cubit/brand_cubit.dart';
 import 'features/coupons/presentation/cubit/coupon_cubit.dart';
 import 'features/customers/presentation/cubit/customer_cubit.dart';
 import 'features/dashboard/presentation/cubit/dashboard_cubit.dart';
 import 'features/notifications/presentation/cubit/notification_cubit.dart';
 import 'features/orders/presentation/cubit/order_cubit.dart';
+import 'features/pos/presentation/cubit/pos_cubit.dart';
 import 'features/products/presentation/cubit/product_cubit.dart';
+import 'features/products/presentation/cubit/stock_movement_cubit.dart';
+import 'features/roles/presentation/cubit/auth_role_cubit.dart';
 import 'features/settings/presentation/cubit/settings_cubit.dart';
 import 'features/shell/presentation/screens/admin_main_shell.dart';
+import 'features/suppliers/presentation/cubit/supplier_cubit.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -41,14 +45,22 @@ class EgoAdminApp extends StatelessWidget {
       providers: [
         BlocProvider<ThemeCubit>(create: (_) => sl<ThemeCubit>()),
         BlocProvider<LocaleBloc>(create: (_) => sl<LocaleBloc>()),
+        BlocProvider<AuthRoleCubit>(create: (_) => sl<AuthRoleCubit>()),
         BlocProvider<DashboardCubit>(
           create: (_) => sl<DashboardCubit>()..loadDashboard(),
         ),
+        BlocProvider<PosCubit>(create: (_) => PosCubit()),
         BlocProvider<ProductCubit>(
           create: (_) => sl<ProductCubit>()..loadProducts(),
         ),
-        BlocProvider<CategoryCubit>(
-          create: (_) => sl<CategoryCubit>()..loadData(),
+        BlocProvider<StockMovementCubit>(
+          create: (_) => sl<StockMovementCubit>()..loadStockMovements(),
+        ),
+        BlocProvider<SupplierCubit>(
+          create: (_) => sl<SupplierCubit>()..loadSuppliersData(),
+        ),
+        BlocProvider<BrandCubit>(
+          create: (_) => sl<BrandCubit>()..loadBrands(),
         ),
         BlocProvider<BadgeCubit>(create: (_) => sl<BadgeCubit>()..loadBadges()),
         BlocProvider<OrderCubit>(create: (_) => sl<OrderCubit>()..loadOrders()),
@@ -87,8 +99,21 @@ class EgoAdminApp extends StatelessWidget {
                   GlobalWidgetsLocalizations.delegate,
                   GlobalCupertinoLocalizations.delegate,
                 ],
-                supportedLocales: const [Locale('en', ''), Locale('ar', '')],
-                home: const AdminMainShell(),
+                initialRoute: '/',
+                onGenerateInitialRoutes: (initialRoute) => [
+                  MaterialPageRoute(
+                    settings: RouteSettings(name: initialRoute),
+                    builder: (_) => const AdminMainShell(),
+                  ),
+                ],
+                onGenerateRoute: (settings) => MaterialPageRoute(
+                  settings: settings,
+                  builder: (_) => const AdminMainShell(),
+                ),
+                onUnknownRoute: (settings) => MaterialPageRoute(
+                  settings: settings,
+                  builder: (_) => const AdminMainShell(),
+                ),
               );
             },
           );

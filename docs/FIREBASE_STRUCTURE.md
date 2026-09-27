@@ -91,7 +91,6 @@
     "productsCount": 42
   },
   "categoryId": "CAT_POD_SYSTEMS",
-  "isFeatured": true,
   "productType": "variable",
   "productAttributes": [
     {"name": "Color", "values": ["Black", "Silver", "Midnight Blue"]},
@@ -131,7 +130,6 @@
     "productsCount": 28
   },
   "categoryId": "CAT_SALT_NIC",
-  "isFeatured": true,
   "productType": "variable",
   "productAttributes": [
     {"name": "Nicotine", "values": ["25mg", "50mg"]},
@@ -194,11 +192,29 @@
 
 ### 5. `Banners` Collection
 **Path**: `/Banners/{bannerId}`
+
+**Sponsored Product Banner Example:**
+```json
+{
+  "id": "BANNER_XROS_PROMO",
+  "title": "Vaporesso XROS 4 Special Deal",
+  "imageUrl": "https://...",
+  "targetScreen": "/productDetailsScreen",
+  "targetType": "product",
+  "productId": "PROD_XROS_4",
+  "productTitle": "Vaporesso XROS 4 Pod Kit",
+  "active": true
+}
+```
+
+**General / Category Banner Example:**
 ```json
 {
   "id": "BANNER_SALTNIC_DEAL",
+  "title": "Weekend Flavors Sale",
   "imageUrl": "https://...",
   "targetScreen": "/shop",
+  "targetType": "custom",
   "active": true
 }
 ```

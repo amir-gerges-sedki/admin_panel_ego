@@ -33,6 +33,7 @@ class _BroadcastComposerDialogState extends State<BroadcastComposerDialog> {
   final _imageUrlController = TextEditingController();
   final _targetScreenController = TextEditingController(text: '/shop');
   String _targetAudience = 'All Users';
+  String _type = 'alert';
 
   final List<String> _audiences = [
     'All Users',
@@ -48,6 +49,7 @@ class _BroadcastComposerDialogState extends State<BroadcastComposerDialog> {
       'body': 'Stock up on your favorite salt nic & freebase flavors before midnight with code VAPE25.',
       'route': '/category/CAT_SALT_NIC',
       'image': 'https://images.unsplash.com/photo-1527661591475-527312dd65f5?w=600&q=80',
+      'type': 'promo',
     },
     {
       'name': '⚡ New Arrivals',
@@ -55,6 +57,7 @@ class _BroadcastComposerDialogState extends State<BroadcastComposerDialog> {
       'body': 'Explore the newest pod systems and replacement coils now in stock at EGO Store.',
       'route': '/category/CAT_DEVICES',
       'image': 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=600&q=80',
+      'type': 'new_arrival',
     },
     {
       'name': '🚚 Free Shipping',
@@ -62,6 +65,7 @@ class _BroadcastComposerDialogState extends State<BroadcastComposerDialog> {
       'body': 'Fast same-day dispatch across Greater Cairo and express delivery to all governorates.',
       'route': '/shop',
       'image': '',
+      'type': 'offer',
     },
     {
       'name': '🔄 Restock Alert',
@@ -69,6 +73,7 @@ class _BroadcastComposerDialogState extends State<BroadcastComposerDialog> {
       'body': 'VGOD, Nasty Juice, and XROS 0.4 ohm cartridges are back in stock now.',
       'route': '/shop',
       'image': '',
+      'type': 'alert',
     },
   ];
 
@@ -102,6 +107,7 @@ class _BroadcastComposerDialogState extends State<BroadcastComposerDialog> {
       _bodyController.text = t['body'] ?? '';
       _targetScreenController.text = t['route'] ?? '/shop';
       _imageUrlController.text = t['image'] ?? '';
+      _type = t['type'] ?? 'alert';
     });
   }
 
@@ -111,6 +117,7 @@ class _BroadcastComposerDialogState extends State<BroadcastComposerDialog> {
       id: 'BCAST_${DateTime.now().millisecondsSinceEpoch}',
       title: _titleController.text.trim(),
       body: _bodyController.text.trim(),
+      type: _type,
       targetAudience: _targetAudience,
       imageUrl: _imageUrlController.text.trim(),
       targetScreen: _targetScreenController.text.trim().isNotEmpty

@@ -98,6 +98,7 @@ class _VariationMatrixGeneratorState extends State<VariationMatrixGenerator> {
   ];
   final List<String> _selectedResistances = ['0.6Ω Mesh', '0.8Ω Mesh', '1.2Ω MTL'];
   final List<String> _selectedPackSizes = ['Pack of 4', 'Pack of 5'];
+  final TextEditingController _customResistanceController = TextEditingController();
 
   late List<ProductVariationModel> _currentVariations;
 
@@ -115,6 +116,7 @@ class _VariationMatrixGeneratorState extends State<VariationMatrixGenerator> {
     _customNicotineController.dispose();
     _customSizeController.dispose();
     _customColorController.dispose();
+    _customResistanceController.dispose();
     _batchPriceController.dispose();
     _batchStockController.dispose();
     super.dispose();
@@ -214,7 +216,6 @@ class _VariationMatrixGeneratorState extends State<VariationMatrixGenerator> {
               attributeValues: {
                 'Flavour': _activeFlavor,
                 'Style': style,
-                'Type': style,
                 'Nicotine': nic,
                 'Size': size,
               },
@@ -314,6 +315,27 @@ class _VariationMatrixGeneratorState extends State<VariationMatrixGenerator> {
       'Coil Variations Added',
       'Added ${newVars.length} coil resistance variations.',
     );
+  }
+
+  void _addCustomResistance(String text) {
+    final raw = text.trim();
+    if (raw.isEmpty) return;
+    String formatted = raw;
+    if (!formatted.contains('Ω') && !formatted.toLowerCase().contains('ohm')) {
+      formatted = '$formattedΩ';
+    }
+    if (!_availableResistances.contains(formatted)) {
+      setState(() {
+        _availableResistances.add(formatted);
+        _selectedResistances.add(formatted);
+        _customResistanceController.clear();
+      });
+    } else if (!_selectedResistances.contains(formatted)) {
+      setState(() {
+        _selectedResistances.add(formatted);
+        _customResistanceController.clear();
+      });
+    }
   }
 
   int _calculatePotentialCombinations() {
@@ -822,6 +844,29 @@ class _VariationMatrixGeneratorState extends State<VariationMatrixGenerator> {
           // 3. COIL & POD TEMPLATE
           else ...[
             _buildChipSelector('⚡ Select Coil Resistances (Ω)', _availableResistances, _selectedResistances),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _customResistanceController,
+                    decoration: const InputDecoration(
+                      hintText: 'Add custom coil resistance (e.g. 0.7Ω Mesh / 0.3Ω)...',
+                      isDense: true,
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    ),
+                    onSubmitted: (text) => _addCustomResistance(text),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                OutlinedButton.icon(
+                  onPressed: () => _addCustomResistance(_customResistanceController.text),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Add Resistance (Ω)'),
+                  style: OutlinedButton.styleFrom(visualDensity: VisualDensity.compact),
+                ),
+              ],
+            ),
             const SizedBox(height: AppSizes.md),
             _buildChipSelector('📦 Packaging Options', ['Single Pod (1 pc)', 'Pack of 3', 'Pack of 4', 'Pack of 5'], _selectedPackSizes),
             const SizedBox(height: AppSizes.md),
@@ -953,13 +998,18 @@ class _VariationMatrixGeneratorState extends State<VariationMatrixGenerator> {
                               Wrap(
                                 spacing: 4,
                                 runSpacing: 4,
-                                children: v.attributeValues.entries.map((e) {
+                                children: v.attributeValues.entries
+                                    .where((e) {
+                                      final k = e.key.toLowerCase();
+                                      return k != 'type' && k != 'liquidtype';
+                                    })
+                                    .map((e) {
                                   Color badgeColor = AppColor.primary;
                                   final key = e.key.toLowerCase();
                                   final isColor = key.contains('color');
                                   if (key.contains('flavor') || key.contains('flavour')) {
                                     badgeColor = const Color(0xFF10B981); // emerald green
-                                  } else if (key.contains('type') || key.contains('dl') || key.contains('mtl')) {
+                                  } else if (key.contains('style') || key.contains('dl') || key.contains('mtl')) {
                                     badgeColor = const Color(0xFF8B5CF6); // purple
                                   } else if (isColor) {
                                     badgeColor = const Color(0xFF06B6D4); // cyan
@@ -986,7 +1036,7 @@ class _VariationMatrixGeneratorState extends State<VariationMatrixGenerator> {
                                           const SizedBox(width: 4),
                                         ],
                                         Text(
-                                          '${e.key}: ${e.value}',
+                                          isColor ? ColorUtils.getReadableColorName(e.value) : '${e.key}: ${e.value}',
                                           style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w600,
@@ -1135,7 +1185,10 @@ class _VariationMatrixGeneratorState extends State<VariationMatrixGenerator> {
             final isSel = selected.contains(opt);
             return FilterChip(
               avatar: isColor ? ColorUtils.buildColorIndicator(opt, size: 12) : null,
-              label: Text(opt, style: TextStyle(fontSize: 11, color: isSel ? Colors.white : null)),
+              label: Text(
+                isColor ? ColorUtils.getReadableColorName(opt) : opt,
+                style: TextStyle(fontSize: 11, color: isSel ? Colors.white : null),
+              ),
               selected: isSel,
               selectedColor: AppColor.primary,
               onSelected: (val) {

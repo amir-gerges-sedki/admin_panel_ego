@@ -3,6 +3,7 @@ import '../../../../common/widgets/dialogs/unified_modal_sheet.dart';
 import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/helper/helper_fun.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/product_model.dart';
 import '../cubit/product_form_cubit.dart';
 
@@ -29,8 +30,8 @@ class VariationImageDialog extends StatefulWidget {
   }) {
     UnifiedModalSheet.show(
       context: context,
-      title: 'صورة المتغير (${variation.sku})',
-      subtitle: 'أضف رابط صورة مخصصة لهذا المتغير أو اختر من صور المنتج',
+      title: 'variation_image_title'.trParams({'sku': variation.sku}),
+      subtitle: 'variation_image_subtitle'.tr,
       icon: Icons.add_photo_alternate_outlined,
       maxWidth: 540,
       content: VariationImageDialog(
@@ -73,8 +74,8 @@ class _VariationImageDialogState extends State<VariationImageDialog> {
     widget.cubit.setVariationImage(widget.variationIndex, _currentPreviewUrl);
     Navigator.of(context).pop();
     HelperFun.successSnackbar(
-      'تم تحديث الصورة',
-      'تم تعيين صورة المتغير ${widget.variation.sku} بنجاح.',
+      'image_updated_title'.tr,
+      'image_updated_msg'.trParams({'sku': widget.variation.sku}),
     );
   }
 
@@ -91,15 +92,15 @@ class _VariationImageDialogState extends State<VariationImageDialog> {
       widget.cubit.applyImageToColorVariations(color, _currentPreviewUrl);
       Navigator.of(context).pop();
       HelperFun.successSnackbar(
-        'تم التطبيق الجماعي',
-        'تم تطبيق الصورة على جميع متغيرات اللون "$color".',
+        'bulk_applied_title'.tr,
+        'applied_to_color_msg'.trParams({'color': color}),
       );
     } else if (flavor != null && flavor.isNotEmpty) {
       widget.cubit.applyImageToFlavorVariations(flavor, _currentPreviewUrl);
       Navigator.of(context).pop();
       HelperFun.successSnackbar(
-        'تم التطبيق الجماعي',
-        'تم تطبيق الصورة على جميع متغيرات نكهة "$flavor".',
+        'bulk_applied_title'.tr,
+        'applied_to_flavor_msg'.trParams({'flavor': flavor}),
       );
     } else {
       _applySingle();
@@ -110,8 +111,8 @@ class _VariationImageDialogState extends State<VariationImageDialog> {
     widget.cubit.applyImageToAllVariations(_currentPreviewUrl);
     Navigator.of(context).pop();
     HelperFun.successSnackbar(
-      'تم التطبيق على الكل',
-      'تم تطبيق هذه الصورة على جميع المتغيرات في المصفوفة.',
+      'applied_to_all_title'.tr,
+      'applied_to_all_msg'.tr,
     );
   }
 
@@ -154,18 +155,18 @@ class _VariationImageDialogState extends State<VariationImageDialog> {
                       _currentPreviewUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) =>
-                          const Column(
+                          Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
+                              const Icon(
                                 Icons.broken_image_rounded,
                                 size: 32,
                                 color: AppColor.error,
                               ),
-                              SizedBox(height: 4),
+                              const SizedBox(height: 4),
                               Text(
-                                'رابط غير صالح',
-                                style: TextStyle(
+                                'invalid_url_text'.tr,
+                                style: const TextStyle(
                                   fontSize: 10,
                                   color: AppColor.error,
                                 ),
@@ -186,12 +187,12 @@ class _VariationImageDialogState extends State<VariationImageDialog> {
                       ),
                       const SizedBox(height: 6),
                       Text(
-                        'لا توجد صورة محددة',
+                        'no_image_selected_text'.tr,
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark
-                              ? AppColor.textMutedDark
-                              : AppColor.textMutedLight,
+                                ? AppColor.textMutedDark
+                                : AppColor.textMutedLight,
                         ),
                       ),
                     ],
@@ -204,7 +205,7 @@ class _VariationImageDialogState extends State<VariationImageDialog> {
         TextFormField(
           controller: _urlController,
           decoration: InputDecoration(
-            labelText: 'رابط صورة المتغير (Image URL) *',
+            labelText: 'variation_image_url_label'.tr,
             hintText: 'https://example.com/device-color.png',
             prefixIcon: const Icon(Icons.link_rounded, size: 18),
             suffixIcon: _urlController.text.isNotEmpty
@@ -224,53 +225,52 @@ class _VariationImageDialogState extends State<VariationImageDialog> {
 
         // Quick Gallery from existing product images
         if (widget.existingProductImages.isNotEmpty) ...[
-          const Text(
-            'أو اختر من صور المنتج الحالية:',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+          Text(
+            'choose_from_existing_photos'.tr,
+            style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
-          SizedBox(
-            height: 56,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: widget.existingProductImages.length,
-              separatorBuilder: (context, index) => const SizedBox(width: 8),
-              itemBuilder: (context, i) {
-                final img = widget.existingProductImages[i];
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: widget.existingProductImages.map((img) {
                 final isSelected = _currentPreviewUrl == img;
 
-                return InkWell(
-                  onTap: () {
-                    _urlController.text = img;
-                    _onUrlChanged(img);
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: 56,
-                    height: 56,
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColor.primary
-                            : (isDark
-                                  ? AppColor.darkBorder
-                                  : AppColor.lightBorder),
-                        width: isSelected ? 2.5 : 1,
+                return Padding(
+                  padding: const EdgeInsets.only(left: 8),
+                  child: InkWell(
+                    onTap: () {
+                      _urlController.text = img;
+                      _onUrlChanged(img);
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected
+                              ? AppColor.primary
+                              : (isDark
+                                    ? AppColor.darkBorder
+                                    : AppColor.lightBorder),
+                          width: isSelected ? 2.5 : 1,
+                        ),
                       ),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(7),
-                      child: Image.network(
-                        img,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.broken_image_rounded, size: 16),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(7),
+                        child: Image.network(
+                          img,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.broken_image_rounded, size: 16),
+                        ),
                       ),
                     ),
                   ),
                 );
-              },
+              }).toList(),
             ),
           ),
           const SizedBox(height: AppSizes.md),
@@ -286,7 +286,7 @@ class _VariationImageDialogState extends State<VariationImageDialog> {
           children: [
             OutlinedButton(
               onPressed: () => Navigator.of(context).pop(),
-              child: const Text('إلغاء'),
+              child: Text('cancel'.tr),
             ),
             if (colorVal != null && colorVal.isNotEmpty)
               OutlinedButton.icon(
@@ -294,7 +294,7 @@ class _VariationImageDialogState extends State<VariationImageDialog> {
                     ? _applyToMatchingAttribute
                     : null,
                 icon: const Icon(Icons.color_lens_outlined, size: 16),
-                label: Text('تطبيق على كل ($colorVal)'),
+                label: Text('apply_to_all_color'.trParams({'color': colorVal})),
               )
             else if (flavorVal != null && flavorVal.isNotEmpty)
               OutlinedButton.icon(
@@ -302,17 +302,17 @@ class _VariationImageDialogState extends State<VariationImageDialog> {
                     ? _applyToMatchingAttribute
                     : null,
                 icon: const Icon(Icons.local_florist_outlined, size: 16),
-                label: Text('تطبيق على كل ($flavorVal)'),
+                label: Text('apply_to_all_flavor'.trParams({'flavor': flavorVal})),
               ),
             OutlinedButton.icon(
               onPressed: _currentPreviewUrl.isNotEmpty ? _applyToAll : null,
               icon: const Icon(Icons.copy_all_rounded, size: 16),
-              label: const Text('تطبيق على كل المتغيرات'),
+              label: Text('apply_to_all_variations'.tr),
             ),
             ElevatedButton.icon(
               onPressed: _applySingle,
               icon: const Icon(Icons.check_rounded, size: 16),
-              label: const Text('حفظ لهذا المتغير'),
+              label: Text('save_for_this_variation'.tr),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.primary,
                 foregroundColor: Colors.white,

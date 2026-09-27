@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../core/constant/app_colors.dart';
 import '../../../core/constant/app_sizes.dart';
+import '../../../core/localization/app_localizations.dart';
 
 enum StatusType {
   pending,
   processing,
   shipped,
   delivered,
+  returned,
   cancelled,
   inStock,
   lowStock,
@@ -27,16 +29,30 @@ class StatusChip extends StatelessWidget {
   });
 
   factory StatusChip.fromOrderStatus(String statusStr) {
-    switch (statusStr.toLowerCase()) {
+    switch (statusStr.toLowerCase().trim()) {
       case 'pending':
         return StatusChip(label: statusStr, status: StatusType.pending);
       case 'processing':
+      case 'in_progress':
         return StatusChip(label: statusStr, status: StatusType.processing);
       case 'shipped':
+      case 'dispatched':
+      case 'out_for_delivery':
         return StatusChip(label: statusStr, status: StatusType.shipped);
       case 'delivered':
+      case 'completed':
         return StatusChip(label: statusStr, status: StatusType.delivered);
+      case 'returned':
+      case 'refunded':
+      case 'return':
+      case 'partially_returned':
+      case 'مرتجع':
+      case 'إرجاع':
+        return StatusChip(label: statusStr.isEmpty ? 'Returned' : statusStr, status: StatusType.returned);
       case 'cancelled':
+      case 'canceled':
+      case 'rejected':
+      case 'ملغي':
         return StatusChip(label: statusStr, status: StatusType.cancelled);
       default:
         return StatusChip(label: statusStr, status: StatusType.processing);
@@ -45,19 +61,36 @@ class StatusChip extends StatelessWidget {
 
   factory StatusChip.fromStock(int stock) {
     if (stock <= 0) {
-      return const StatusChip(label: 'Out of Stock', status: StatusType.outOfStock);
+      return StatusChip(label: 'out_of_stock'.tr, status: StatusType.outOfStock);
     } else if (stock < 10) {
-      return StatusChip(label: 'Low Stock ($stock)', status: StatusType.lowStock);
+      return StatusChip(label: '${'low_stock'.tr} ($stock)', status: StatusType.lowStock);
     } else {
-      return StatusChip(label: 'In Stock ($stock)', status: StatusType.inStock);
+      return StatusChip(label: '${'in_stock'.tr} ($stock)', status: StatusType.inStock);
     }
   }
 
   factory StatusChip.fromActive(bool isActive) {
     return StatusChip(
-      label: isActive ? 'Active' : 'Inactive',
+      label: isActive ? 'active'.tr : 'inactive'.tr,
       status: isActive ? StatusType.active : StatusType.inactive,
     );
+  }
+
+  factory StatusChip.fromCoupon({
+    required bool isActive,
+    required bool isExpired,
+    bool isStarted = true,
+  }) {
+    if (!isActive) {
+      return StatusChip(label: 'inactive'.tr, status: StatusType.inactive);
+    }
+    if (isExpired) {
+      return StatusChip(label: 'expired'.tr, status: StatusType.cancelled);
+    }
+    if (!isStarted) {
+      return StatusChip(label: 'scheduled'.tr, status: StatusType.pending);
+    }
+    return StatusChip(label: 'active'.tr, status: StatusType.active);
   }
 
   Color _getColor() {
@@ -72,6 +105,8 @@ class StatusChip extends StatelessWidget {
       case StatusType.inStock:
       case StatusType.active:
         return AppColor.statusDelivered;
+      case StatusType.returned:
+        return const Color(0xFFF97316); // Vibrant orange/amber for returns
       case StatusType.lowStock:
         return AppColor.warning;
       case StatusType.cancelled:
@@ -111,13 +146,17 @@ class StatusChip extends StatelessWidget {
             ),
           ),
           const SizedBox(width: AppSizes.xs + 2),
-          Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 0.2,
+          Flexible(
+            child: Text(
+              label,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              style: TextStyle(
+                color: color,
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
             ),
           ),
         ],

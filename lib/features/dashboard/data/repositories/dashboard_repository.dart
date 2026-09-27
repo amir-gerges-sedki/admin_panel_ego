@@ -1,117 +1,149 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
-import '../../../../core/services/firebase_service.dart';
+import 'package:flutter/foundation.dart';
+import '../../../customers/data/models/customer_model.dart';
+import '../../../customers/data/repositories/customer_repository.dart';
+import '../../../orders/data/models/order_model.dart';
+import '../../../orders/data/repositories/order_repository.dart';
+import '../../../products/data/models/product_model.dart';
+import '../../../products/data/repositories/product_repository.dart';
+import '../../../settings/data/repositories/settings_repository.dart';
+import '../../../suppliers/data/models/supplier_model.dart';
+import '../../../suppliers/data/repositories/supplier_repository.dart';
+import '../../domain/calculators/catalog_analytics_calculator.dart';
+import '../../domain/calculators/order_analytics_calculator.dart';
 import '../models/dashboard_analytics_model.dart';
 
 abstract class DashboardRepository {
-  Future<DashboardAnalyticsModel> getDashboardAnalytics();
+  Future<DashboardAnalyticsModel> getDashboardAnalytics({
+    DashboardPeriodType periodType = DashboardPeriodType.allTime,
+    DateTime? customStartDate,
+    DateTime? customEndDate,
+  });
 }
 
 class DashboardRepositoryImpl implements DashboardRepository {
+  final OrderRepository orderRepository;
+  final CustomerRepository customerRepository;
+  final ProductRepository productRepository;
+  final SupplierRepository? supplierRepository;
+  final SettingsRepository? settingsRepository;
+  final OrderAnalyticsCalculator orderCalculator;
+  final CatalogAnalyticsCalculator catalogCalculator;
+
+  DashboardRepositoryImpl({
+    required this.orderRepository,
+    required this.customerRepository,
+    required this.productRepository,
+    this.supplierRepository,
+    this.settingsRepository,
+    this.orderCalculator = const OrderAnalyticsCalculator(),
+    this.catalogCalculator = const CatalogAnalyticsCalculator(),
+  });
+
   @override
-  Future<DashboardAnalyticsModel> getDashboardAnalytics() async {
+  Future<DashboardAnalyticsModel> getDashboardAnalytics({
+    DashboardPeriodType periodType = DashboardPeriodType.allTime,
+    DateTime? customStartDate,
+    DateTime? customEndDate,
+  }) async {
     try {
-      // 1. Fetch Orders from Firestore
-      final ordersDocs = await FirebaseService.getMultipleCollectionsDocs(['Orders', 'orders']);
-      double totalRevenue = 0.0;
-      int todayOrders = 0;
-      int pendingOrders = 0;
-      final now = DateTime.now();
-      final todayStart = DateTime(now.year, now.month, now.day);
-
-      // Map for weekly trend (last 7 days)
-      final Map<String, ({double revenue, int count})> weeklyMap = {};
-      for (int i = 6; i >= 0; i--) {
-        final d = now.subtract(Duration(days: i));
-        final label = DateFormat('E').format(d);
-        weeklyMap[label] = (revenue: 0.0, count: 0);
-      }
-
-      final Map<String, int> brandCountMap = {};
-
-      for (final doc in ordersDocs) {
-        final data = doc.data();
-        final total = (data['totalAmount'] ?? data['TotalAmount'] ?? data['total'] as num?)?.toDouble() ?? 0.0;
-        final status = (data['status'] ?? data['Status'] as String?)?.toLowerCase() ?? '';
-        final dateRaw = data['orderDate'] ?? data['OrderDate'] ?? data['createdAt'];
-        
-        DateTime date = now;
-        if (dateRaw is DateTime) {
-          date = dateRaw;
-        } else if (dateRaw is Timestamp) {
-          date = dateRaw.toDate();
-        } else if (dateRaw is String) {
-          date = DateTime.tryParse(dateRaw) ?? now;
-        }
-
-        totalRevenue += total;
-        if (status == 'pending') pendingOrders++;
-        if (date.isAfter(todayStart)) todayOrders++;
-
-        // Weekly trend
-        final dayLabel = DateFormat('E').format(date);
-        if (weeklyMap.containsKey(dayLabel)) {
-          final current = weeklyMap[dayLabel]!;
-          weeklyMap[dayLabel] = (revenue: current.revenue + total, count: current.count + 1);
-        }
-      }
-
-      // 2. Fetch Users from Firestore
-      final usersDocs = await FirebaseService.getMultipleCollectionsDocs(['Users', 'users', 'Customers', 'customers']);
-      final activeCustomers = usersDocs.length;
-
-      // 3. Fetch Products from Firestore
-      final productsDocs = await FirebaseService.getMultipleCollectionsDocs([
-        'Products',
-        'products',
-        'liquids',
-        'Liquids',
+      // 1. Fetch data directly from domain repositories in parallel
+      final results = await Future.wait([
+        orderRepository.getOrders(),
+        customerRepository.getCustomers(),
+        productRepository.getProducts(),
+        if (settingsRepository != null)
+          settingsRepository!.getSettings()
+        else
+          Future.value(null),
+        if (supplierRepository != null)
+          supplierRepository!.getSuppliers()
+        else
+          Future.value(<SupplierModel>[]),
       ]);
-      int lowStockCount = 0;
-      for (final doc in productsDocs) {
-        final data = doc.data();
-        final stock = (data['stock'] ?? data['Stock'] ?? data['quantity'] as num?)?.toInt() ?? 0;
-        if (stock <= 10) lowStockCount++;
 
-        final brandData = data['brand'] ?? data['Brand'] ?? data['line'] ?? data['Line'] ?? data['lineName'];
-        String brandName = 'Other';
-        if (brandData is Map) {
-          brandName = (brandData['name'] ?? brandData['Name'] ?? brandData['lineName'] as String?) ?? 'Other';
-        } else if (brandData is String && brandData.isNotEmpty) {
-          brandName = brandData;
-        }
-        brandCountMap[brandName] = (brandCountMap[brandName] ?? 0) + 1;
-      }
+      final orders = results[0] as List<OrderModel>;
+      final customers = results[1] as List<CustomerModel>;
+      final products = results[2] as List<ProductModel>;
+      final settings = results[3];
+      final suppliers = results[4] as List<SupplierModel>;
 
-      final weeklyTrend = weeklyMap.entries.map((e) {
-        return RevenuePoint(
-          label: e.key,
-          revenue: e.value.revenue,
-          ordersCount: e.value.count,
-        );
-      }).toList();
+      final int threshold = (settings != null && (settings as dynamic).lowStockThreshold is int)
+          ? (settings as dynamic).lowStockThreshold as int
+          : 10;
 
-      final totalProducts = productsDocs.isEmpty ? 1 : productsDocs.length;
-      final brandShares = brandCountMap.entries.map((e) {
-        return BrandShareData(
-          brandName: e.key,
-          sharePercentage: (e.value / totalProducts) * 100,
-          totalSold: e.value,
-        );
-      }).toList();
+      // 2. Compute metrics cleanly via type-safe calculators with selected date period
+      final orderMetrics = orderCalculator.calculate(
+        orders: orders,
+        products: products,
+        periodType: periodType,
+        customStartDate: customStartDate,
+        customEndDate: customEndDate,
+      );
+      final productMetrics = catalogCalculator.calculate(
+        products: products,
+        lowStockThreshold: threshold,
+      );
+
+      final totalRevenue = orderMetrics.totalRevenue;
+      final int activeCount = orderMetrics.combinedMetrics.count;
+      final avgOrderValue = activeCount > 0 ? (totalRevenue / activeCount) : 0.0;
+
+      // 3. Compute Supplier Financial Metrics (Purchases Cost, Paid, Balance Due / Accounts Payable)
+      final double totalSupplierPurchases =
+          suppliers.fold(0.0, (acc, s) => acc + s.totalPurchases);
+      final double totalSupplierPaid =
+          suppliers.fold(0.0, (acc, s) => acc + s.totalPaid);
+      final double totalSupplierBalanceDue =
+          suppliers.fold(0.0, (acc, s) => acc + s.balanceDue);
+      final int activeSuppliersCount =
+          suppliers.where((s) => s.isActive).length;
+
+      final dueList = suppliers
+          .where((s) => s.balanceDue > 0)
+          .toList()
+        ..sort((a, b) => b.balanceDue.compareTo(a.balanceDue));
+
+      final topSuppliersDue = dueList
+          .take(5)
+          .map((s) => SupplierDueSummary(
+                id: s.id,
+                name: s.name,
+                totalPurchases: s.totalPurchases,
+                totalPaid: s.totalPaid,
+                balanceDue: s.balanceDue,
+                phone: s.phone,
+              ))
+          .toList();
 
       return DashboardAnalyticsModel(
         totalRevenue: totalRevenue,
-        todayOrders: todayOrders,
-        activeCustomers: activeCustomers,
-        avgOrderValue: ordersDocs.isNotEmpty ? (totalRevenue / ordersDocs.length) : 0.0,
-        lowStockAlertsCount: lowStockCount,
-        pendingOrdersCount: pendingOrders,
-        weeklyTrend: weeklyTrend,
+        totalCost: orderMetrics.totalCost,
+        netProfit: orderMetrics.netProfit,
+        profitMargin: orderMetrics.profitMargin,
+        todayOrders: orderMetrics.todayOrders,
+        activeCustomers: customers.length,
+        avgOrderValue: avgOrderValue,
+        lowStockAlertsCount: productMetrics.lowStockAlertsCount,
+        pendingOrdersCount: orderMetrics.pendingOrders,
+        weeklyTrend: orderMetrics.weeklyTrend,
         categorySales: const [],
-        brandShares: brandShares,
+        brandShares: productMetrics.brandShares,
+        onlineMetrics: orderMetrics.onlineMetrics,
+        posMetrics: orderMetrics.posMetrics,
+        combinedMetrics: orderMetrics.combinedMetrics,
+        productSales: orderMetrics.productSales,
+        periodType: orderMetrics.periodType,
+        filterStartDate: orderMetrics.filterStartDate,
+        filterEndDate: orderMetrics.filterEndDate,
+        periodLabel: orderMetrics.periodLabel,
+        totalSupplierPurchases: totalSupplierPurchases,
+        totalSupplierPaid: totalSupplierPaid,
+        totalSupplierBalanceDue: totalSupplierBalanceDue,
+        activeSuppliersCount: activeSuppliersCount,
+        topSuppliersDue: topSuppliersDue,
       );
-    } catch (_) {
+    } catch (e) {
+      debugPrint('DashboardRepositoryImpl getDashboardAnalytics error: $e');
       return DashboardAnalyticsModel.empty();
     }
   }

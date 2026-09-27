@@ -1,5 +1,6 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import '../../../../core/services/firebase_service.dart';
+import 'package:flutter/foundation.dart';
+import '../datasources/settings_remote_data_source.dart';
+import '../models/governorate_delivery_model.dart';
 import '../models/store_settings_model.dart';
 
 abstract class SettingsRepository {
@@ -8,29 +9,39 @@ abstract class SettingsRepository {
 }
 
 class SettingsRepositoryImpl implements SettingsRepository {
+  final SettingsRemoteDataSource remoteDataSource;
+
+  SettingsRepositoryImpl({SettingsRemoteDataSource? remoteDataSource})
+      : remoteDataSource =
+            remoteDataSource ?? SettingsRemoteDataSourceImpl();
+
   @override
   Future<StoreSettingsModel> getSettings() async {
     try {
-      final doc = await FirebaseService.contactInfoDoc.get();
-      if (doc.exists && doc.data() != null) {
-        return StoreSettingsModel.fromJson(doc.data()!);
+      final settings = await remoteDataSource.getSettings();
+      if (settings != null) {
+        return settings;
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('Firestore settings fetch note: $e');
+    }
 
-    return const StoreSettingsModel(
+    return StoreSettingsModel(
       phoneNumber: '',
       whatsNumber: '',
       email: '',
       address: '',
       enforceAgeVerification: true,
       showNicotineWarningBanner: true,
-      flatDeliveryFee: 60.0,
-      freeShippingThreshold: 2000.0,
+      flatDeliveryFee: 0.0,
+      freeShippingThreshold: 0.0,
+      estimatedDeliveryTime: '24-48 Hours',
+      governorates: GovernorateDeliveryModel.defaultGovernorates(),
     );
   }
 
   @override
   Future<void> updateSettings(StoreSettingsModel settings) async {
-    await FirebaseService.contactInfoDoc.set(settings.toJson(), SetOptions(merge: true));
+    await remoteDataSource.updateSettings(settings);
   }
 }

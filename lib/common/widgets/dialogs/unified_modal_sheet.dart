@@ -3,6 +3,7 @@ import '../../../core/constant/app_colors.dart';
 import '../../../core/constant/app_sizes.dart';
 import '../../../core/helper/helper_fun.dart';
 import '../../../core/helper/responsive_helper.dart';
+import '../../../core/localization/app_localizations.dart';
 
 /// Unified Modal / Dialog container adhering to UI_DESIGN_SYSTEM.md
 class UnifiedModalSheet {
@@ -81,7 +82,10 @@ class UnifiedModalSheet {
           ),
         ),
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth, maxHeight: 720),
+          constraints: BoxConstraints(
+            maxWidth: maxWidth,
+            maxHeight: MediaQuery.sizeOf(context).height * 0.88,
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -90,7 +94,7 @@ class UnifiedModalSheet {
               const Divider(height: 1),
               Flexible(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(AppSizes.lg),
+                  padding: const EdgeInsets.all(AppSizes.md),
                   child: content,
                 ),
               ),
@@ -98,8 +102,8 @@ class UnifiedModalSheet {
                 const Divider(height: 1),
                 Padding(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.lg,
-                    vertical: AppSizes.md,
+                    horizontal: AppSizes.md,
+                    vertical: AppSizes.sm + 4,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
@@ -123,8 +127,8 @@ class UnifiedModalSheet {
   ) {
     return Padding(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppSizes.lg,
-        vertical: AppSizes.md,
+        horizontal: AppSizes.md,
+        vertical: AppSizes.sm + 4,
       ),
       child: Row(
         children: [
@@ -146,9 +150,12 @@ class UnifiedModalSheet {
               children: [
                 Text(
                   title,
+                  maxLines: 1,
+                  softWrap: false,
+                  overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
                     color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
                   ),
                 ),
@@ -156,8 +163,11 @@ class UnifiedModalSheet {
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: 11.5,
                       color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
                     ),
                   ),
@@ -167,7 +177,12 @@ class UnifiedModalSheet {
           ),
           IconButton(
             icon: const Icon(Icons.close_rounded, size: 20),
-            onPressed: () => Navigator.of(context).pop(),
+            tooltip: 'close'.tr,
+            onPressed: () {
+              if (Navigator.of(context).canPop()) {
+                Navigator.of(context).pop();
+              }
+            },
           ),
         ],
       ),

@@ -1,65 +1,33 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/models/coupon_model.dart';
 import '../../data/repositories/coupon_repository.dart';
+import 'coupon_state.dart';
 
-abstract class CouponState extends Equatable {
-  const CouponState();
-  @override
-  List<Object?> get props => [];
-}
-
-class CouponInitial extends CouponState {}
-class CouponLoading extends CouponState {}
-class CouponLoaded extends CouponState {
-  final List<CouponModel> coupons;
-  final List<CouponModel>? _filteredCoupons;
-  final String? _searchQuery;
-
-  List<CouponModel> get filteredCoupons => _filteredCoupons ?? coupons;
-  String get searchQuery => _searchQuery ?? '';
-
-  const CouponLoaded({
-    this.coupons = const [],
-    List<CouponModel>? filteredCoupons,
-    String? searchQuery,
-  })  : _filteredCoupons = filteredCoupons ?? coupons,
-        _searchQuery = searchQuery ?? '';
-
-  CouponLoaded copyWith({
-    List<CouponModel>? coupons,
-    List<CouponModel>? filteredCoupons,
-    String? searchQuery,
-  }) {
-    final c = coupons ?? this.coupons;
-    return CouponLoaded(
-      coupons: c,
-      filteredCoupons: filteredCoupons ?? _filteredCoupons ?? c,
-      searchQuery: searchQuery ?? _searchQuery ?? '',
-    );
-  }
-
-  @override
-  List<Object?> get props => [coupons, filteredCoupons, searchQuery];
-}
-
-class CouponError extends CouponState {
-  final String message;
-  const CouponError(this.message);
-  @override
-  List<Object?> get props => [message];
-}
+export 'coupon_state.dart';
 
 class CouponCubit extends Cubit<CouponState> {
   final CouponRepository couponRepository;
 
-  CouponCubit(this.couponRepository) : super(CouponInitial());
+  CouponCubit(this.couponRepository) : super(const CouponInitial());
 
   Future<void> loadCoupons() async {
-    emit(CouponLoading());
+    emit(const CouponLoading());
     try {
       final coupons = await couponRepository.getCoupons();
-      emit(CouponLoaded(coupons: coupons, filteredCoupons: coupons));
+      final updatedCoupons = <CouponModel>[];
+
+      for (final c in coupons) {
+        if (c.isActive && c.isExpired) {
+          final deactivated = c.copyWith(isActive: false);
+          // Persist the inactive status to Firestore asynchronously
+          couponRepository.updateCoupon(deactivated).ignore();
+          updatedCoupons.add(deactivated);
+        } else {
+          updatedCoupons.add(c);
+        }
+      }
+
+      emit(CouponLoaded(coupons: updatedCoupons, filteredCoupons: updatedCoupons));
     } catch (e) {
       emit(CouponError(e.toString()));
     }

@@ -1,76 +1,43 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/algorithms/search_indexer.dart';
 import '../../data/models/product_model.dart';
 import '../../data/repositories/product_repository.dart';
+import 'product_form_cubit.dart';
+import 'product_state.dart';
 
-abstract class ProductState extends Equatable {
-  const ProductState();
-  @override
-  List<Object?> get props => [];
-}
-
-class ProductInitial extends ProductState {}
-class ProductLoading extends ProductState {}
-class ProductLoaded extends ProductState {
-  final List<ProductModel> products;
-  final List<ProductModel>? _filteredProducts;
-  final String? _searchQuery;
-  final String? _selectedCategory;
-  final String? _selectedBrand;
-
-  List<ProductModel> get filteredProducts => _filteredProducts ?? products;
-  String get searchQuery => _searchQuery ?? '';
-  String get selectedCategory => _selectedCategory ?? 'ALL';
-  String get selectedBrand => _selectedBrand ?? 'ALL';
-
-  const ProductLoaded({
-    this.products = const [],
-    List<ProductModel>? filteredProducts,
-    String? searchQuery,
-    String? selectedCategory,
-    String? selectedBrand,
-  })  : _filteredProducts = filteredProducts ?? products,
-        _searchQuery = searchQuery ?? '',
-        _selectedCategory = selectedCategory ?? 'ALL',
-        _selectedBrand = selectedBrand ?? 'ALL';
-
-  ProductLoaded copyWith({
-    List<ProductModel>? products,
-    List<ProductModel>? filteredProducts,
-    String? searchQuery,
-    String? selectedCategory,
-    String? selectedBrand,
-  }) {
-    final p = products ?? this.products;
-    return ProductLoaded(
-      products: p,
-      filteredProducts: filteredProducts ?? _filteredProducts ?? p,
-      searchQuery: searchQuery ?? _searchQuery ?? '',
-      selectedCategory: selectedCategory ?? _selectedCategory ?? 'ALL',
-      selectedBrand: selectedBrand ?? _selectedBrand ?? 'ALL',
-    );
-  }
-
-  @override
-  List<Object?> get props => [products, filteredProducts, searchQuery, selectedCategory, selectedBrand];
-}
-
-class ProductError extends ProductState {
-  final String message;
-  const ProductError(this.message);
-  @override
-  List<Object?> get props => [message];
-}
+export 'product_state.dart';
 
 class ProductCubit extends Cubit<ProductState> {
   final ProductRepository productRepository;
+  final SearchIndexer<ProductModel> _searchIndexer;
 
-  ProductCubit(this.productRepository) : super(ProductInitial());
+  ProductCubit(this.productRepository)
+      : _searchIndexer = SearchIndexer<ProductModel>(
+          tokenExtractor: (p) => [
+            p.id,
+            p.title,
+            p.brand.name,
+            p.description,
+            p.categoryId,
+            p.categoryType.name,
+            p.categoryType.displayName,
+            p.categoryType.arabicName,
+            p.badgeId,
+            ...p.flavors,
+            ...p.productVariations.map((v) => v.sku),
+            ...p.productVariations.expand((v) => v.attributeValues.values),
+          ],
+        ),
+        super(const ProductInitial());
 
   Future<void> loadProducts() async {
-    emit(ProductLoading());
+    emit(const ProductLoading());
     try {
       final products = await productRepository.getProducts();
+      _searchIndexer.indexAll(products);
+      GlobalFlavorsPool.harvestFromProducts(products);
+      GlobalDeviceSpecsPool.harvestFromProducts(products);
+      GlobalDisposableSpecsPool.harvestFromProducts(products);
       emit(ProductLoaded(products: products, filteredProducts: products));
     } catch (e) {
       emit(ProductError(e.toString()));
@@ -83,30 +50,20 @@ class ProductCubit extends Cubit<ProductState> {
     required String categoryId,
     required String brandName,
   }) {
-    final q = query.trim().toLowerCase();
+    final q = query.trim();
     final cat = categoryId;
     final br = brandName;
 
-    return source.where((p) {
-      final matchesQuery = q.isEmpty ||
-          p.title.toLowerCase().contains(q) ||
-          p.brand.name.toLowerCase().contains(q) ||
-          p.description.toLowerCase().contains(q) ||
-          p.id.toLowerCase().contains(q) ||
-          p.categoryId.toLowerCase().contains(q) ||
-          p.categoryType.name.toLowerCase().contains(q) ||
-          p.categoryType.displayName.toLowerCase().contains(q) ||
-          p.categoryType.arabicName.toLowerCase().contains(q) ||
-          p.badgeId.toLowerCase().contains(q) ||
-          p.flavors.any((f) => f.toLowerCase().contains(q)) ||
-          p.productVariations.any((v) =>
-              v.sku.toLowerCase().contains(q) ||
-              v.attributeValues.values.any((val) => val.toLowerCase().contains(q)));
+    // Use fast inverted index for query matches when available on source
+    final List<ProductModel> candidates = q.isNotEmpty
+        ? _searchIndexer.search(q)
+        : source;
 
+    return candidates.where((p) {
       final matchesCategory = cat == 'ALL' || p.categoryId == cat;
-      final matchesBrand = br == 'ALL' || p.brand.name.toLowerCase() == br.toLowerCase();
-
-      return matchesQuery && matchesCategory && matchesBrand;
+      final matchesBrand = br == 'ALL' ||
+          p.brand.name.toLowerCase() == br.toLowerCase();
+      return matchesCategory && matchesBrand;
     }).toList();
   }
 
@@ -134,9 +91,13 @@ class ProductCubit extends Cubit<ProductState> {
   }
 
   Future<void> addProduct(ProductModel product) async {
+    GlobalFlavorsPool.harvestFromProducts([product]);
+    GlobalDeviceSpecsPool.harvestFromProducts([product]);
+    GlobalDisposableSpecsPool.harvestFromProducts([product]);
     if (state is ProductLoaded) {
       final current = (state as ProductLoaded).products;
       final updatedList = [product, ...current.where((p) => p.id != product.id)];
+      _searchIndexer.indexAll(updatedList);
       final currentState = state as ProductLoaded;
       final filtered = _filterList(
         source: updatedList,
@@ -149,6 +110,7 @@ class ProductCubit extends Cubit<ProductState> {
         filteredProducts: filtered,
       ));
     } else {
+      _searchIndexer.indexItem(product);
       emit(ProductLoaded(products: [product], filteredProducts: [product]));
     }
 
@@ -160,9 +122,13 @@ class ProductCubit extends Cubit<ProductState> {
   }
 
   Future<void> updateProduct(ProductModel product) async {
+    GlobalFlavorsPool.harvestFromProducts([product]);
+    GlobalDeviceSpecsPool.harvestFromProducts([product]);
+    GlobalDisposableSpecsPool.harvestFromProducts([product]);
     if (state is ProductLoaded) {
       final current = (state as ProductLoaded).products;
       final updatedList = current.map((p) => p.id == product.id ? product : p).toList();
+      _searchIndexer.indexAll(updatedList);
       final currentState = state as ProductLoaded;
       final filtered = _filterList(
         source: updatedList,
@@ -175,6 +141,7 @@ class ProductCubit extends Cubit<ProductState> {
         filteredProducts: filtered,
       ));
     } else {
+      _searchIndexer.indexItem(product);
       emit(ProductLoaded(products: [product], filteredProducts: [product]));
     }
 
@@ -189,6 +156,7 @@ class ProductCubit extends Cubit<ProductState> {
     if (state is ProductLoaded) {
       final current = (state as ProductLoaded).products;
       final updatedList = current.where((p) => p.id != productId).toList();
+      _searchIndexer.indexAll(updatedList);
       final currentState = state as ProductLoaded;
       final filtered = _filterList(
         source: updatedList,
@@ -201,6 +169,7 @@ class ProductCubit extends Cubit<ProductState> {
         filteredProducts: filtered,
       ));
     } else {
+      _searchIndexer.clear();
       emit(const ProductLoaded(products: [], filteredProducts: []));
     }
 

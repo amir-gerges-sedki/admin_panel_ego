@@ -21,6 +21,7 @@ class HelperFun {
     required String title,
     required String message,
     String? imageUrl,
+    VoidCallback? onTap,
     BuildContext? context,
     int durationSeconds = 4,
   }) {
@@ -36,10 +37,12 @@ class HelperFun {
         title: title,
         message: message,
         imageUrl: imageUrl,
+        onTap: onTap,
         duration: Duration(seconds: durationSeconds),
       );
       return;
     }
+
 
     // 3. Fallback to floating SnackBar if navigator context is not available
     messengerKey.currentState?.hideCurrentSnackBar();

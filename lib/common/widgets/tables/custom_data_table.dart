@@ -8,11 +8,15 @@ class DataTableColumn {
   final String label;
   final bool isNumeric;
   final double? width;
+  final void Function(int columnIndex, bool ascending)? onSort;
+  final String? tooltip;
 
   const DataTableColumn({
     required this.label,
     this.isNumeric = false,
     this.width,
+    this.onSort,
+    this.tooltip,
   });
 }
 
@@ -30,6 +34,10 @@ class CustomDataTable extends StatefulWidget {
   final String? emptyMessage;
   final IconData? emptyIcon;
   final Widget? emptyAction;
+  final int? sortColumnIndex;
+  final bool sortAscending;
+  final bool? showCheckboxColumn;
+  final ValueChanged<bool?>? onSelectAll;
 
   const CustomDataTable({
     super.key,
@@ -45,6 +53,10 @@ class CustomDataTable extends StatefulWidget {
     this.emptyMessage,
     this.emptyIcon,
     this.emptyAction,
+    this.sortColumnIndex,
+    this.sortAscending = true,
+    this.showCheckboxColumn,
+    this.onSelectAll,
   });
 
   @override
@@ -120,43 +132,13 @@ class _CustomDataTableState extends State<CustomDataTable> {
           // Header Bar
           Padding(
             padding: const EdgeInsets.all(AppSizes.md),
-            child: Wrap(
-              spacing: AppSizes.md,
-              runSpacing: AppSizes.md,
-              alignment: WrapAlignment.spaceBetween,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      widget.title,
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
-                      ),
-                    ),
-                    if (widget.subtitle != null) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        widget.subtitle!,
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-                Wrap(
-                  spacing: AppSizes.sm,
-                  runSpacing: AppSizes.sm,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    if (widget.onSearchChanged != null)
-                      SizedBox(
-                        width: 250,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isCompact = constraints.maxWidth < 680;
+
+                final searchWidget = widget.onSearchChanged != null
+                    ? SizedBox(
+                        width: isCompact ? null : (constraints.maxWidth > 950 ? 220 : 170),
                         height: 38,
                         child: TextField(
                           controller: _searchController,
@@ -184,12 +166,96 @@ class _CustomDataTableState extends State<CustomDataTable> {
                             isDense: true,
                           ),
                         ),
-                      ),
-                    if (widget.filterWidget != null) widget.filterWidget!,
-                    if (widget.trailingHeaderAction != null) widget.trailingHeaderAction!,
+                      )
+                    : null;
+
+                final actions = Row(
+                  mainAxisSize: isCompact ? MainAxisSize.max : MainAxisSize.min,
+                  children: [
+                    if (searchWidget != null)
+                      isCompact ? Expanded(child: searchWidget) : searchWidget,
+                    if (widget.filterWidget != null) ...[
+                      const SizedBox(width: AppSizes.sm),
+                      widget.filterWidget!,
+                    ],
+                    if (widget.trailingHeaderAction != null) ...[
+                      const SizedBox(width: AppSizes.sm),
+                      widget.trailingHeaderAction!,
+                    ],
                   ],
-                ),
-              ],
+                );
+
+                if (isCompact) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.title,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
+                            ),
+                          ),
+                          if (widget.subtitle != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              widget.subtitle!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: AppSizes.sm),
+                      actions,
+                    ],
+                  );
+                }
+
+                return Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            widget.title,
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (widget.subtitle != null) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              widget.subtitle!,
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: AppSizes.md),
+                    actions,
+                  ],
+                );
+              },
             ),
           ),
           const Divider(height: 1),
@@ -238,32 +304,60 @@ class _CustomDataTableState extends State<CustomDataTable> {
               ),
             )
           else
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: ConstrainedBox(
-                constraints: BoxConstraints(
-                  minWidth: MediaQuery.sizeOf(context).width - 320,
-                ),
-                child: DataTable(
-                  headingRowHeight: 48,
-                  dataRowMinHeight: 52,
-                  dataRowMaxHeight: 56,
-                  horizontalMargin: AppSizes.md,
-                  columnSpacing: AppSizes.lg,
-                  headingTextStyle: TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                    color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final availableWidth = constraints.maxWidth;
+
+                // Dynamically distribute column spacing to gracefully fill available page width
+                final columnCount = widget.columns.length;
+                final dynamicSpacing = columnCount > 1
+                    ? ((availableWidth - (columnCount * 80)) / (columnCount + 1))
+                        .clamp(AppSizes.md, 70.0)
+                    : AppSizes.lg;
+
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(
+                      minWidth: availableWidth,
+                    ),
+                    child: DataTable(
+                      showCheckboxColumn: widget.showCheckboxColumn ?? (widget.onSelectAll != null),
+                      onSelectAll: widget.onSelectAll,
+                      headingRowHeight: 48,
+                      dataRowMinHeight: 52,
+                      dataRowMaxHeight: 56,
+                      horizontalMargin: AppSizes.md,
+                      columnSpacing: dynamicSpacing,
+                      sortColumnIndex: widget.sortColumnIndex,
+                      sortAscending: widget.sortAscending,
+                      headingTextStyle: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+                      ),
+                      headingRowColor: WidgetStateProperty.all(
+                        isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
+                      ),
+                      columns: widget.columns.map((c) {
+                        return DataColumn(
+                          label: Flexible(
+                            child: Text(
+                              c.label,
+                              overflow: TextOverflow.ellipsis,
+                              maxLines: 1,
+                            ),
+                          ),
+                          numeric: c.isNumeric,
+                          onSort: c.onSort,
+                          tooltip: c.tooltip,
+                        );
+                      }).toList(),
+                      rows: currentRows,
+                    ),
                   ),
-                  headingRowColor: WidgetStateProperty.all(
-                    isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
-                  ),
-                  columns: widget.columns
-                      .map((c) => DataColumn(label: Text(c.label), numeric: c.isNumeric))
-                      .toList(),
-                  rows: currentRows,
-                ),
-              ),
+                );
+              },
             ),
 
           const Divider(height: 1),
@@ -285,32 +379,45 @@ class _CustomDataTableState extends State<CustomDataTable> {
                     color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
                   ),
                 ),
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.chevron_left_rounded, size: 20),
-                      onPressed: _currentPage > 0
-                          ? () => setState(() => _currentPage--)
-                          : null,
-                    ),
-                    Text(
-                      'page_x_of_y'.trParams({
-                        'page': '${_currentPage + 1}',
-                        'total': '$totalPages',
-                      }),
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.chevron_right_rounded, size: 20),
-                      onPressed: _currentPage < totalPages - 1
-                          ? () => setState(() => _currentPage++)
-                          : null,
-                    ),
-                  ],
+                Builder(
+                  builder: (context) {
+                    final isRtl = Directionality.of(context) == TextDirection.rtl;
+                    return Row(
+                      children: [
+                        IconButton(
+                          icon: Icon(
+                            isRtl ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
+                            size: 20,
+                          ),
+                          tooltip: 'previous_page'.tr,
+                          onPressed: _currentPage > 0
+                              ? () => setState(() => _currentPage--)
+                              : null,
+                        ),
+                        Text(
+                          'page_x_of_y'.trParams({
+                            'page': '${_currentPage + 1}',
+                            'total': '$totalPages',
+                          }),
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+                          ),
+                        ),
+                        IconButton(
+                          icon: Icon(
+                            isRtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+                            size: 20,
+                          ),
+                          tooltip: 'next_page'.tr,
+                          onPressed: _currentPage < totalPages - 1
+                              ? () => setState(() => _currentPage++)
+                              : null,
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),

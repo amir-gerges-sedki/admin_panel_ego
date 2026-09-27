@@ -4,7 +4,9 @@ class BroadcastModel extends Equatable {
   final String id;
   final String title;
   final String body;
-  final String targetAudience; // 'All Users', 'SaltNic Vapers', 'Hardware Deals Seekers'
+  final String type; // 'alert', 'promo', 'offer', 'new_arrival'
+  final String
+  targetAudience; // 'All Users', 'SaltNic Vapers', 'Hardware Deals Seekers'
   final String imageUrl;
   final String targetScreen;
   final String topic; // 'all_users'
@@ -15,10 +17,11 @@ class BroadcastModel extends Equatable {
     this.id = '',
     this.title = '',
     this.body = '',
-    this.targetAudience = 'All Users',
+    this.type = 'alert',
+    this.targetAudience = '',
     this.imageUrl = '',
-    this.targetScreen = '/shop',
-    this.topic = 'all_users',
+    this.targetScreen = '',
+    this.topic = '',
     required this.sentAt,
     this.successCount = 1890,
   });
@@ -28,47 +31,50 @@ class BroadcastModel extends Equatable {
     if (json['sentAt'] is DateTime) {
       parsedDate = json['sentAt'];
     } else {
-      final str = json['sentAt']?.toString() ?? json['createdAt']?.toString() ?? '';
+      final str =
+          json['sentAt']?.toString() ?? json['createdAt']?.toString() ?? '';
       parsedDate = DateTime.tryParse(str) ?? DateTime.now();
     }
 
     return BroadcastModel(
       id: json['id']?.toString() ?? '',
-      title: json['title']?.toString() ?? json['notification']?['title']?.toString() ?? '',
-      body: json['body']?.toString() ?? json['notification']?['body']?.toString() ?? '',
-      targetAudience: json['targetAudience']?.toString() ?? 'All Users',
-      imageUrl: json['imageUrl']?.toString() ?? json['image']?.toString() ?? json['notification']?['image']?.toString() ?? '',
-      targetScreen: json['targetScreen']?.toString() ?? json['route']?.toString() ?? json['data']?['screen']?.toString() ?? '/shop',
-      topic: json['topic']?.toString() ?? 'all_users',
+      title: json['title']?.toString() ?? '',
+      body: json['body']?.toString() ?? '',
+      type: json['type']?.toString() ?? '',
+      targetAudience: json['targetAudience']?.toString() ?? '',
+      imageUrl: json['imageUrl']?.toString() ?? '',
+      targetScreen: json['targetScreen']?.toString() ?? '',
+      topic: json['topic']?.toString() ?? '',
       sentAt: parsedDate,
       successCount: (json['successCount'] as num?)?.toInt() ?? 1890,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'title': title,
-        'body': body,
-        'targetAudience': targetAudience,
-        'imageUrl': imageUrl,
-        'targetScreen': targetScreen,
-        'topic': topic,
-        'sentAt': sentAt.toIso8601String(),
-        'successCount': successCount,
-        'isBroadcast': true,
-        'createdAt': sentAt.toIso8601String(),
-      };
+    'title': title,
+    'body': body,
+    'type': type,
+    'targetAudience': targetAudience,
+    'imageUrl': imageUrl,
+    'targetScreen': targetScreen,
+    'topic': topic,
+    'sentAt': sentAt.toIso8601String(),
+    'successCount': successCount,
+    'isBroadcast': true,
+    'createdAt': sentAt.toIso8601String(),
+  };
 
   @override
   List<Object?> get props => [
-        id,
-        title,
-        body,
-        targetAudience,
-        imageUrl,
-        targetScreen,
-        topic,
-        sentAt,
-        successCount,
-      ];
+    id,
+    title,
+    body,
+    type,
+    targetAudience,
+    imageUrl,
+    targetScreen,
+    topic,
+    sentAt,
+    successCount,
+  ];
 }

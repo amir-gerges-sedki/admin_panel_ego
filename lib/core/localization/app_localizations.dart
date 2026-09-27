@@ -11,6 +11,10 @@ class AppLocalizations {
     _current = this;
   }
 
+  static void setLocale(Locale locale) {
+    _current = AppLocalizations(locale);
+  }
+
   static AppLocalizations get current => _current ?? AppLocalizations(const Locale('en'));
 
   static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();

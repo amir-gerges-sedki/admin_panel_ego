@@ -4,130 +4,45 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../../core/formatters/formatters.dart';
 import '../../../core/helper/helper_fun.dart';
 import '../../../core/localization/app_localizations.dart';
 import '../data/models/order_model.dart';
 import 'stub_url_launcher.dart'
     if (dart.library.js_interop) 'web_url_launcher.dart' as web_launcher;
 
+import '../domain/share_formatter_strategy.dart';
+
 class OrderShareHelper {
   OrderShareHelper._();
 
+  static const _courierSlipStrategy = CourierSlipShareStrategy();
+
   /// Build direct Google Maps search URL from shipping address
   static String buildGoogleMapsUrl(ShippingAddressModel addr) {
-    final queryParts = <String>[];
-    if (addr.street.isNotEmpty) queryParts.add(addr.street);
-    if (addr.landmark.isNotEmpty) queryParts.add(addr.landmark);
-    if (addr.city.isNotEmpty) queryParts.add(addr.city);
-    if (addr.governorate.isNotEmpty && addr.governorate.toLowerCase() != addr.city.toLowerCase()) {
-      queryParts.add(addr.governorate);
-    }
-    if (addr.country.isNotEmpty) queryParts.add(addr.country);
-
-    final query = queryParts.isNotEmpty ? queryParts.join(', ') : 'Cairo, Egypt';
-    return 'https://www.google.com/maps/search/?api=1&query=${Uri.encodeComponent(query)}';
+    return CourierSlipShareStrategy.buildGoogleMapsUrl(addr);
   }
 
   /// Generates clean, well-formatted plain text ready for delivery couriers
   static String generateCourierSlipText(OrderModel order) {
-    final addr = order.shippingAddress;
+    return _courierSlipStrategy.format(order);
+  }
+
+  /// Generates consolidated, well-formatted plain text for multiple orders ready for delivery couriers
+  static String generateBulkCourierSlipsText(List<OrderModel> orders) {
+    if (orders.isEmpty) return '';
     final buffer = StringBuffer();
-
-    // 1. Header
-    buffer.writeln('📦 *طلب توصيل - EGO VAPE STORE*');
-    buffer.writeln('━━━━━━━━━━━━━━━━━━━━');
-    buffer.writeln('🆔 *رقم الطلب:* #${order.id}');
-    buffer.writeln('📅 *التاريخ:* ${AppFormatters.formatDateTime(order.orderDate)}');
-    buffer.writeln('');
-
-    // 2. Customer details
-    buffer.writeln('👤 *بيانات العميل:*');
-    buffer.writeln('• الاسم: ${addr.name.isNotEmpty ? addr.name : "عميل إيجو ستور"}');
-    if (addr.phoneNumber.isNotEmpty) {
-      buffer.writeln('• رقم الهاتف: ${addr.phoneNumber}');
+    buffer.writeln('📦 كشف شحنات مجمعة - متجر EGO Store');
+    buffer.writeln('عدد الشحنات: ${orders.length}');
+    buffer.writeln('تاريخ التجهيز: ${DateTime.now().toString().split('.')[0]}');
+    buffer.writeln('═' * 38);
+    for (int i = 0; i < orders.length; i++) {
+      buffer.writeln('\n[شحنة #${i + 1}]');
+      buffer.writeln(generateCourierSlipText(orders[i]));
+      buffer.writeln('-' * 32);
     }
-    if (addr.alternatePhone.isNotEmpty) {
-      buffer.writeln('• هاتف إضافي: ${addr.alternatePhone}');
-    }
-    buffer.writeln('');
-
-    // 3. Detailed Address
-    buffer.writeln('📍 *عنوان التوصيل:*');
-    final govCity = addr.governorate.isNotEmpty && addr.city.isNotEmpty && addr.governorate.toLowerCase() != addr.city.toLowerCase()
-        ? '${addr.governorate} - ${addr.city}'
-        : (addr.governorate.isNotEmpty ? addr.governorate : addr.city);
-    if (govCity.isNotEmpty) {
-      buffer.writeln('• المحافظة / المنطقة: $govCity');
-    }
-    if (addr.street.isNotEmpty) {
-      buffer.writeln('• الشارع: ${addr.street}');
-    }
-    if (addr.building.isNotEmpty || addr.floor.isNotEmpty || addr.apartment.isNotEmpty) {
-      final buildingParts = <String>[];
-      if (addr.building.isNotEmpty) buildingParts.add('عمارة/مبنى: ${addr.building}');
-      if (addr.floor.isNotEmpty) buildingParts.add('طابق: ${addr.floor}');
-      if (addr.apartment.isNotEmpty) buildingParts.add('شقة: ${addr.apartment}');
-      buffer.writeln('• تفاصيل المبنى: ${buildingParts.join(' | ')}');
-    }
-    if (addr.landmark.isNotEmpty) {
-      buffer.writeln('• علامة مميزة: ${addr.landmark}');
-    }
-
-    // Google Maps link
-    final mapsUrl = buildGoogleMapsUrl(addr);
-    buffer.writeln('🗺️ *موقع الخريطة (GPS):*');
-    buffer.writeln(mapsUrl);
-    buffer.writeln('');
-
-    // 4. Customer Notes (if any)
-    if (order.orderNotes.isNotEmpty) {
-      buffer.writeln('📝 *ملاحظات خاصة بالتوصيل:*');
-      buffer.writeln(order.orderNotes);
-      buffer.writeln('');
-    }
-
-    // 5. Ordered Items
-    buffer.writeln('🛍️ *الأصناف والمنتجات (${order.items.length}):*');
-    if (order.items.isEmpty) {
-      buffer.writeln('• تفاصيل الأصناف مسجلة بالنظام');
-    } else {
-      for (int i = 0; i < order.items.length; i++) {
-        final itm = order.items[i];
-        final varString = itm.selectedVariation.isNotEmpty
-            ? ' (${itm.selectedVariation.entries.map((e) => '${e.key}: ${e.value}').join(', ')})'
-            : '';
-        final itemTitle = itm.formattedTitleWithBrand;
-        buffer.writeln('${i + 1}. ${itm.quantity}x $itemTitle$varString');
-      }
-
-    }
-    buffer.writeln('');
-
-    // 6. Financial Summary & Collection Amount
-    buffer.writeln('💰 *المبلغ والحساب المطلوب تحصيله:*');
-    buffer.writeln('• قيمة المنتجات: ${AppFormatters.formatEGP(order.subTotal)}');
-    buffer.writeln('• مصاريف التوصيل: ${order.shippingCost == 0 ? "مجاني" : AppFormatters.formatEGP(order.shippingCost)}');
-    if (order.discount > 0) {
-      buffer.writeln('• الخصم: -${AppFormatters.formatEGP(order.discount)}');
-    }
-
-    final isPaid = order.paymentStatus.toLowerCase() == 'paid' ||
-        order.paymentMethod.toLowerCase().contains('card') ||
-        order.paymentMethod.toLowerCase().contains('visa') ||
-        order.paymentMethod.toLowerCase().contains('wallet');
-
-    if (isPaid) {
-      buffer.writeln('💵 *المطلوب تحصيله:* *0.00 ج.م* (✅ مدفوع مسبقاً إلكترونياً - لا يتم تحصيل مبلغ)');
-    } else {
-      buffer.writeln('💵 *المطلوب تحصيله من العميل:* *${AppFormatters.formatEGP(order.totalAmount)}* (الدفع عند الاستلام - COD)');
-    }
-
-    buffer.writeln('━━━━━━━━━━━━━━━━━━━━');
-    buffer.write('⚡ *EGO Vape Store Management*');
-
     return buffer.toString();
   }
+
 
   /// Launch WhatsApp with pre-filled courier message across Web, Desktop, and Mobile
   static Future<bool> launchWhatsApp({

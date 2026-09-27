@@ -1,36 +1,17 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/models/store_settings_model.dart';
 import '../../data/repositories/settings_repository.dart';
+import 'settings_state.dart';
 
-abstract class SettingsState extends Equatable {
-  const SettingsState();
-  @override
-  List<Object?> get props => [];
-}
-
-class SettingsInitial extends SettingsState {}
-class SettingsLoading extends SettingsState {}
-class SettingsLoaded extends SettingsState {
-  final StoreSettingsModel settings;
-  const SettingsLoaded(this.settings);
-  @override
-  List<Object?> get props => [settings];
-}
-class SettingsError extends SettingsState {
-  final String message;
-  const SettingsError(this.message);
-  @override
-  List<Object?> get props => [message];
-}
+export 'settings_state.dart';
 
 class SettingsCubit extends Cubit<SettingsState> {
   final SettingsRepository settingsRepository;
 
-  SettingsCubit(this.settingsRepository) : super(SettingsInitial());
+  SettingsCubit(this.settingsRepository) : super(const SettingsInitial());
 
   Future<void> loadSettings() async {
-    emit(SettingsLoading());
+    emit(const SettingsLoading());
     try {
       final settings = await settingsRepository.getSettings();
       emit(SettingsLoaded(settings));

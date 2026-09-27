@@ -27,29 +27,37 @@ class FirebaseService {
     }
   }
 
-  /// Helper to get docs from multiple possible collection names (e.g. ['Lines', 'Brands'], ['Products', 'products'])
+  /// Helper to get docs from multiple possible collection names in parallel (e.g. ['Lines', 'Brands'], ['Products', 'products'])
   static Future<List<QueryDocumentSnapshot<Map<String, dynamic>>>> getMultipleCollectionsDocs(
     List<String> collectionNames,
   ) async {
     final List<QueryDocumentSnapshot<Map<String, dynamic>>> allDocs = [];
     final Set<String> seenIds = {};
 
-    for (final name in collectionNames) {
-      try {
-        final snapshot = await firestore.collection(name).get();
-        for (final doc in snapshot.docs) {
-          if (!seenIds.contains(doc.id)) {
-            seenIds.add(doc.id);
-            allDocs.add(doc);
-          }
+    final snapshots = await Future.wait(
+      collectionNames.map((name) async {
+        try {
+          return await firestore.collection(name).get();
+        } catch (e) {
+          debugPrint('Firestore fetch note for $name: $e');
+          return null;
         }
-      } catch (e) {
-        debugPrint('Firestore fetch note for $name: $e');
+      }),
+    );
+
+    for (final snapshot in snapshots) {
+      if (snapshot == null) continue;
+      for (final doc in snapshot.docs) {
+        if (!seenIds.contains(doc.id)) {
+          seenIds.add(doc.id);
+          allDocs.add(doc);
+        }
       }
     }
 
     return allDocs;
   }
+
 
   /// Helper to get docs supporting both PascalCase and lowercase collection names
   static Future<QuerySnapshot<Map<String, dynamic>>> getDocsSafely(
@@ -115,6 +123,6 @@ class FirebaseService {
   static CollectionReference<Map<String, dynamic>> get couponsCollection =>
       firestore.collection('Coupons');
 
-  static DocumentReference<Map<String, dynamic>> get contactInfoDoc =>
-      firestore.collection('ContactInfo').doc('support');
+  static DocumentReference<Map<String, dynamic>> get settingsDoc =>
+      firestore.collection('Settings').doc('store_settings');
 }

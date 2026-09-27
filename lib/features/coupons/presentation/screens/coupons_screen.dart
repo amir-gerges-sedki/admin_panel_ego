@@ -5,7 +5,9 @@ import '../../../../common/widgets/tables/custom_data_table.dart';
 import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/formatters/formatters.dart';
+import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../data/models/coupon_model.dart';
 import '../cubit/coupon_cubit.dart';
 import '../widgets/coupon_form_dialog.dart';
 
@@ -67,9 +69,10 @@ class CouponsScreen extends StatelessWidget {
                   columns: [
                     DataTableColumn(label: 'coupon_code'.tr),
                     DataTableColumn(label: 'discount_percentage'.tr),
-                    DataTableColumn(label: 'min_cart_requirement'.tr),
+                    DataTableColumn(label: 'min_purchase_amount'.tr),
                     DataTableColumn(label: 'redemptions'.tr),
-                    DataTableColumn(label: 'expiry_date'.tr),
+                    DataTableColumn(label: 'start_date'.tr),
+                    DataTableColumn(label: 'end_date'.tr),
                     DataTableColumn(label: 'status'.tr),
                     DataTableColumn(label: 'actions'.tr),
                   ],
@@ -98,15 +101,22 @@ class CouponsScreen extends StatelessWidget {
                         ),
                         DataCell(Text(c.minOrderAmount > 0 ? AppFormatters.formatEGP(c.minOrderAmount) : 'no_minimum'.tr)),
                         DataCell(Text('times_used'.trParams({'count': '${c.usageCount}'}))),
+                        DataCell(Text(AppFormatters.formatDate(c.startDate))),
                         DataCell(Text(AppFormatters.formatDate(c.expiryDate))),
-                        DataCell(StatusChip.fromActive(c.isActive)),
+                        DataCell(
+                          StatusChip.fromCoupon(
+                            isActive: c.isActive,
+                            isExpired: c.isExpired,
+                            isStarted: c.isStarted,
+                          ),
+                        ),
                         DataCell(
                           Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               IconButton(
                                 icon: const Icon(Icons.edit_outlined, size: 18, color: AppColor.primary),
-                                tooltip: 'edit'.tr,
+                                tooltip: 'edit_coupon'.tr,
                                 onPressed: () {
                                   CouponFormDialog.show(
                                     context,
@@ -117,8 +127,8 @@ class CouponsScreen extends StatelessWidget {
                               ),
                               IconButton(
                                 icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColor.error),
-                                tooltip: 'delete'.tr,
-                                onPressed: () => context.read<CouponCubit>().deleteCoupon(c.id),
+                                tooltip: 'delete_coupon'.tr,
+                                onPressed: () => _confirmDelete(context, c),
                               ),
                             ],
                           ),
@@ -139,6 +149,72 @@ class CouponsScreen extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  void _confirmDelete(BuildContext context, CouponModel coupon) {
+    final isDark = HelperFun.isDarkMode(context);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: isDark ? AppColor.darkDialog : AppColor.lightDialog,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppSizes.cardRadiusLg),
+          side: BorderSide(
+            color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
+          ),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColor.error.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.delete_outline_rounded, color: AppColor.error, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'delete_coupon_title'.tr,
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          coupon.code.trim().isNotEmpty
+              ? 'delete_coupon_confirm_with_code'.trParams({'code': coupon.code})
+              : 'delete_coupon_confirm'.tr,
+          style: TextStyle(
+            fontSize: 13,
+            color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+            height: 1.5,
+          ),
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actions: [
+          OutlinedButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('cancel'.tr),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColor.error,
+              foregroundColor: Colors.white,
+            ),
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              context.read<CouponCubit>().deleteCoupon(coupon.id);
+              HelperFun.successSnackbar('success'.tr, 'item_deleted'.tr);
+            },
+            icon: const Icon(Icons.delete_rounded, size: 16),
+            label: Text('delete'.tr),
+          ),
+        ],
+      ),
     );
   }
 }

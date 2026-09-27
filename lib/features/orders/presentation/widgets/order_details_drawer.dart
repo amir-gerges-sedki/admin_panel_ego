@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../../../../common/widgets/badges/status_chip.dart';
@@ -9,8 +7,12 @@ import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/formatters/formatters.dart';
 import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../pos/data/models/pos_sale_model.dart';
+import '../../../pos/utils/pos_receipt_printer.dart';
 import '../../data/models/order_model.dart';
+import '../../utils/order_invoice_printer.dart';
 import '../../utils/order_share_helper.dart';
+import 'order_return_dialog.dart';
 import 'order_share_dialog.dart';
 import 'order_status_dispatcher.dart';
 
@@ -30,7 +32,7 @@ class OrderDetailsDrawer extends StatelessWidget {
       title: 'order_number'.trParams({'id': order.id}),
       subtitle: '${AppFormatters.formatDateTime(order.orderDate)} • ${order.paymentMethod}',
       icon: Icons.receipt_long_rounded,
-      maxWidth: 720,
+      maxWidth: 960,
       content: OrderDetailsDrawer(order: order, onStatusChanged: onStatusChanged),
     );
   }
@@ -39,45 +41,84 @@ class OrderDetailsDrawer extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = HelperFun.isDarkMode(context);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 1. Top Quick Info & Status Header
-        _buildStatusHeader(context, isDark),
-        const SizedBox(height: AppSizes.md),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isWide = constraints.maxWidth >= 640;
 
-        // 2. Customer & Delivery Address Card
-        _buildCustomerAndAddressCard(context, isDark),
-        const SizedBox(height: AppSizes.md),
+        if (isWide) {
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Left Column: Dispatcher, Customer Details & Actions
+              Expanded(
+                flex: 5,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildStatusHeader(context, isDark),
+                    if (order.isReturned || order.returnHistory.isNotEmpty) ...[
+                      const SizedBox(height: AppSizes.sm + 2),
+                      _buildReturnAuditBanner(context, isDark),
+                    ],
+                    const SizedBox(height: AppSizes.sm + 2),
+                    _buildCustomerAndAddressCard(context, isDark),
+                    if (order.orderNotes.isNotEmpty) ...[
+                      const SizedBox(height: AppSizes.sm + 2),
+                      _buildCustomerNotesCard(context, isDark),
+                    ],
+                    const SizedBox(height: AppSizes.sm + 2),
+                    _buildActionToolbar(context, isDark),
+                  ],
+                ),
+              ),
+              const SizedBox(width: AppSizes.md),
 
-        // 3. Customer Special Notes (if any)
-        if (order.orderNotes.isNotEmpty) ...[
-          _buildCustomerNotesCard(context, isDark),
-          const SizedBox(height: AppSizes.md),
-        ],
+              // Right Column: Ordered Items & Financial Invoice
+              Expanded(
+                flex: 6,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildOrderedItemsCard(context, isDark),
+                    const SizedBox(height: AppSizes.sm + 2),
+                    _buildFinancialBreakdownCard(context, isDark),
+                  ],
+                ),
+              ),
+            ],
+          );
+        }
 
-        // 4. Ordered Items Section
-        _buildOrderedItemsCard(context, isDark),
-        const SizedBox(height: AppSizes.md),
-
-        // 5. Financial Invoice Breakdown
-        _buildFinancialBreakdownCard(context, isDark),
-        const SizedBox(height: AppSizes.md),
-
-        // 6. Action Toolbar (Print Invoice / Export)
-        _buildActionToolbar(context, isDark),
-        const SizedBox(height: AppSizes.md),
-
-        // 7. Collapsible Technical Data Inspector (Firestore Payload)
-        _buildRawDataInspector(context, isDark),
-      ],
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            _buildStatusHeader(context, isDark),
+            if (order.isReturned || order.returnHistory.isNotEmpty) ...[
+              const SizedBox(height: AppSizes.sm + 2),
+              _buildReturnAuditBanner(context, isDark),
+            ],
+            const SizedBox(height: AppSizes.sm + 2),
+            _buildCustomerAndAddressCard(context, isDark),
+            if (order.orderNotes.isNotEmpty) ...[
+              const SizedBox(height: AppSizes.sm + 2),
+              _buildCustomerNotesCard(context, isDark),
+            ],
+            const SizedBox(height: AppSizes.sm + 2),
+            _buildOrderedItemsCard(context, isDark),
+            const SizedBox(height: AppSizes.sm + 2),
+            _buildFinancialBreakdownCard(context, isDark),
+            const SizedBox(height: AppSizes.sm + 2),
+            _buildActionToolbar(context, isDark),
+          ],
+        );
+      },
     );
   }
 
   // --- 1. STATUS HEADER & DISPATCHER ---
   Widget _buildStatusHeader(BuildContext context, bool isDark) {
     return Container(
-      padding: const EdgeInsets.all(AppSizes.md),
+      padding: const EdgeInsets.all(AppSizes.sm + 4),
       decoration: BoxDecoration(
         color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
         borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
@@ -92,76 +133,49 @@ class OrderDetailsDrawer extends StatelessWidget {
               Wrap(
                 crossAxisAlignment: WrapCrossAlignment.center,
                 spacing: 8,
+                runSpacing: 4,
                 children: [
                   Text(
                     '${'current_status'.tr}: ',
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
                   ),
                   StatusChip.fromOrderStatus(order.status),
                 ],
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  InkWell(
-                    onTap: () {
-                      Clipboard.setData(ClipboardData(text: order.id));
-                      HelperFun.showNotificationAlert(
-                        title: 'copy_order_id'.tr,
-                        message: '${'copied_to_clipboard'.tr}: #${order.id}',
-                      );
-                    },
-                    borderRadius: BorderRadius.circular(4),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.copy_rounded, size: 14, color: AppColor.primary),
-                          const SizedBox(width: 4),
-                          Text(
-                            '#${order.id}',
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: AppColor.primary,
-                            ),
+              InkWell(
+                onTap: () {
+                  Clipboard.setData(ClipboardData(text: order.id));
+                  HelperFun.showNotificationAlert(
+                    title: 'copy_order_id'.tr,
+                    message: '${'copied_to_clipboard'.tr}: #${order.id}',
+                  );
+                },
+                borderRadius: BorderRadius.circular(4),
+                child: Tooltip(
+                  message: 'copy_order_id'.tr,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.copy_rounded, size: 13, color: AppColor.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          '#${order.id}',
+                          maxLines: 1,
+                          softWrap: false,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: AppColor.primary,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 6),
-                  InkWell(
-                    onTap: () => OrderShareDialog.show(context, order),
-                    borderRadius: BorderRadius.circular(6),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: AppColor.primary.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: AppColor.primary.withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.share_rounded, size: 13, color: AppColor.primary),
-                          const SizedBox(width: 4),
-                          Text(
-                            'share_order'.tr,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: AppColor.primary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
+                ),
               ),
-
             ],
           ),
           const SizedBox(height: 6),
@@ -181,14 +195,54 @@ class OrderDetailsDrawer extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: AppSizes.md),
-          OrderStatusDispatcher(
-            currentStatus: order.status,
-            onStatusSelected: (newStatus) {
-              onStatusChanged?.call(newStatus);
-              Navigator.of(context).pop();
-            },
-          ),
+          if (order.isPosSale) ...[
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF8B5CF6).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+                border: Border.all(color: const Color(0xFF8B5CF6).withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.storefront_rounded, size: 22, color: Color(0xFF8B5CF6)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'معاملة بيع كاشير مباشرة (In-Store POS)',
+                          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF8B5CF6)),
+                        ),
+                        Text(
+                          order.cashierName.isNotEmpty
+                              ? 'تم التحصيل والتسليم بالفرع بواسطة: ${order.cashierName}'
+                              : 'تم التحصيل والتسليم بالفرع فورياً بدون الحاجة للشحن.',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: AppSizes.md),
+            OrderStatusDispatcher(
+              currentStatus: order.status,
+              onStatusSelected: (newStatus) {
+                onStatusChanged?.call(newStatus);
+                if (Navigator.of(context).canPop()) {
+                  Navigator.of(context).pop();
+                }
+              },
+            ),
+          ],
         ],
       ),
     );
@@ -311,7 +365,9 @@ class OrderDetailsDrawer extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 8),
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 6,
                       children: [
                         InkWell(
                           onTap: () => OrderShareHelper.launchGoogleMaps(addr),
@@ -335,7 +391,6 @@ class OrderDetailsDrawer extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 10),
                         InkWell(
                           onTap: () => OrderShareDialog.show(context, order),
                           borderRadius: BorderRadius.circular(4),
@@ -347,7 +402,7 @@ class OrderDetailsDrawer extends StatelessWidget {
                                 const Icon(Icons.share_rounded, size: 13, color: Color(0xFF10B981)),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'share_with_courier'.tr,
+                                  'share_order'.tr,
                                   style: const TextStyle(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
@@ -696,106 +751,231 @@ class OrderDetailsDrawer extends StatelessWidget {
     );
   }
 
-  // --- 6. ACTION TOOLBAR (SHARE FOR DELIVERY & PRINT INVOICE) ---
+  // --- 6. ACTION TOOLBAR (SHARE FOR DELIVERY, RETURN / REFUND & PRINT INVOICE) ---
   Widget _buildActionToolbar(BuildContext context, bool isDark) {
-    return Row(
-      children: [
-        Expanded(
-          flex: 5,
-          child: ElevatedButton.icon(
-            onPressed: () => OrderShareDialog.show(context, order),
-            icon: const Icon(Icons.share_rounded, size: 16),
-            label: Text('share_with_courier'.tr, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColor.primary,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd)),
-              elevation: 0,
-            ),
+    if (order.isPosSale) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                flex: 5,
+                child: ElevatedButton.icon(
+                  onPressed: () => PosReceiptPrinter.printThermalReceipt(PosSaleModel.fromOrder(order)),
+                  icon: const Icon(Icons.receipt_long_rounded, size: 16),
+                  label: const Text('طباعة إيصال حراري (POS)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8B5CF6),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 4,
+                child: OutlinedButton.icon(
+                  onPressed: () => OrderInvoicePrinter.showOrderInvoicePreview(context, order),
+                  icon: const Icon(Icons.print_outlined, size: 16),
+                  label: Text('print_invoice'.tr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    side: BorderSide(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd)),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-        const SizedBox(width: AppSizes.sm + 4),
-        Expanded(
-          flex: 4,
-          child: OutlinedButton.icon(
-            onPressed: () => _showPrintableInvoiceDialog(context),
-            icon: const Icon(Icons.print_outlined, size: 16),
-            label: Text('print_invoice'.tr, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700)),
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: () async {
+              final returned = await OrderReturnDialog.show(context, order);
+              if (returned == true && context.mounted) {
+                Navigator.of(context).pop();
+              }
+            },
+            icon: const Icon(Icons.assignment_return_rounded, size: 16, color: Color(0xFFF97316)),
+            label: const Text(
+              'تسجيل مرتجع / استرداد للأصناف',
+              style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFFF97316)),
+            ),
             style: OutlinedButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 10),
-              side: BorderSide(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+              side: BorderSide(color: const Color(0xFFF97316).withValues(alpha: 0.5)),
+              backgroundColor: const Color(0xFFF97316).withValues(alpha: 0.08),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd)),
             ),
+          ),
+        ],
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              flex: 4,
+              child: ElevatedButton.icon(
+                onPressed: () => OrderShareDialog.show(context, order),
+                icon: const Icon(Icons.share_rounded, size: 15),
+                label: Text('share_order'.tr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColor.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              flex: 4,
+              child: ElevatedButton.icon(
+                onPressed: () => OrderInvoicePrinter.printThermalOrderReceipt(order),
+                icon: const Icon(Icons.receipt_rounded, size: 15),
+                label: const Text('إيصال حراري', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFF97316),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd)),
+                  elevation: 0,
+                ),
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              flex: 3,
+              child: OutlinedButton.icon(
+                onPressed: () => OrderInvoicePrinter.showOrderInvoicePreview(context, order),
+                icon: const Icon(Icons.print_outlined, size: 15),
+                label: Text('print_invoice'.tr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  side: BorderSide(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd)),
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        OutlinedButton.icon(
+          onPressed: () async {
+            final returned = await OrderReturnDialog.show(context, order);
+            if (returned == true && context.mounted) {
+              Navigator.of(context).pop();
+            }
+          },
+          icon: const Icon(Icons.assignment_return_rounded, size: 16, color: Color(0xFFF97316)),
+          label: const Text(
+            'تسجيل مرتجع / استرداد للأصناف (Return Items)',
+            style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFFF97316)),
+          ),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            side: BorderSide(color: const Color(0xFFF97316).withValues(alpha: 0.5)),
+            backgroundColor: const Color(0xFFF97316).withValues(alpha: 0.08),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd)),
           ),
         ),
       ],
     );
   }
 
-
-  // --- 7. RAW DATA INSPECTOR (COLLAPSIBLE) ---
-  Widget _buildRawDataInspector(BuildContext context, bool isDark) {
-    if (order.rawDocData.isEmpty) return const SizedBox.shrink();
-
-    final formattedJson = _safeFormatJson(order.rawDocData);
-
-    return Theme(
-      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
-      child: ExpansionTile(
-        tilePadding: EdgeInsets.zero,
-        leading: const Icon(Icons.code_rounded, size: 18, color: AppColor.primary),
-        title: Text(
-          'raw_data_inspector'.tr,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
-          ),
-        ),
+  Widget _buildReturnAuditBanner(BuildContext context, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.sm + 4),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF97316).withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+        border: Border.all(color: const Color(0xFFF97316).withValues(alpha: 0.35)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(AppSizes.sm + 4),
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF0F172A) : const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-            ),
-            child: SelectableText(
-              formattedJson,
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 11,
-                color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0369A1),
+          Row(
+            children: [
+              const Icon(Icons.assignment_return_rounded, size: 18, color: Color(0xFFF97316)),
+              const SizedBox(width: 6),
+              const Text(
+                'سجل المرتجعات والاسترداد:',
+                style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Color(0xFFEA580C)),
               ),
-            ),
+              const Spacer(),
+              if (order.refundedAmount > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF97316).withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'إجمالي المسترد: ${AppFormatters.formatEGP(order.refundedAmount)}',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFEA580C)),
+                  ),
+                ),
+            ],
           ),
+          if (order.returnReason.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              'السبب: ${order.returnReason}',
+              style: TextStyle(fontSize: 11.5, color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
+            ),
+          ],
+          if (order.returnHistory.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            ...order.returnHistory.map((ret) {
+              final items = ret['items'] is List ? ret['items'] as List : [];
+              final refund = ret['refundAmount'] ?? 0.0;
+              final dateStr = ret['timestamp']?.toString() ?? '';
+              final performedBy = ret['performedBy']?.toString() ?? '';
+
+              return Container(
+                margin: const EdgeInsets.only(top: 4),
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: isDark ? AppColor.darkCard : Colors.white,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'عملية إرجاع (${items.length} صنف)${performedBy.isNotEmpty ? " • بواسطة: $performedBy" : ""}',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                        ),
+                        Text(
+                          'مسترد: ${AppFormatters.formatEGP((refund as num).toDouble())}',
+                          style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w800, color: Color(0xFFEA580C)),
+                        ),
+                      ],
+                    ),
+                    if (dateStr.isNotEmpty)
+                      Text(
+                        AppFormatters.formatDateTime(DateTime.tryParse(dateStr) ?? DateTime.now()),
+                        style: TextStyle(fontSize: 9.5, color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+                      ),
+                  ],
+                ),
+              );
+            }),
+          ],
         ],
       ),
     );
-  }
-
-  String _safeFormatJson(Map<String, dynamic> data) {
-    try {
-      final encoder = JsonEncoder.withIndent('  ', (dynamic item) {
-        if (item is Timestamp) {
-          return item.toDate().toIso8601String();
-        }
-        if (item is DateTime) {
-          return item.toIso8601String();
-        }
-        if (item is DocumentReference) {
-          return item.path;
-        }
-        if (item is GeoPoint) {
-          return {'latitude': item.latitude, 'longitude': item.longitude};
-        }
-        return item.toString();
-      });
-      return encoder.convert(data);
-    } catch (e) {
-      return data.toString();
-    }
   }
 
   Widget _buildPriceRow(String label, String value, {bool isTotal = false, bool isFree = false, bool isDiscount = false}) {
@@ -823,134 +1003,6 @@ class OrderDetailsDrawer extends StatelessWidget {
           ),
         ),
       ],
-    );
-  }
-
-  void _showPrintableInvoiceDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) {
-        final isDark = HelperFun.isDarkMode(ctx);
-        return Dialog(
-          backgroundColor: isDark ? AppColor.darkDialog : AppColor.lightDialog,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.cardRadiusLg)),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 580, maxHeight: 680),
-            child: Padding(
-              padding: const EdgeInsets.all(AppSizes.lg),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Invoice Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'EGO VAPE STORE',
-                            style: TextStyle(fontSize: 18, fontWeight: FontWeight.w900, color: AppColor.primary),
-                          ),
-                          Text('invoice_title'.tr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Text('#${order.id}', style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13)),
-                          Text(AppFormatters.formatDate(order.orderDate), style: const TextStyle(fontSize: 11)),
-                        ],
-                      ),
-                    ],
-                  ),
-                  const Divider(height: 24),
-
-                  // Customer Summary
-                  Text(
-                    '${'customer'.tr}: ${order.shippingAddress.name} (${order.shippingAddress.phoneNumber})',
-                    style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
-                  ),
-                  Text(
-                    '${'shipping_address'.tr}: ${order.shippingAddress.formattedFullAddress}',
-                    style: const TextStyle(fontSize: 11),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Items Table
-                  Expanded(
-                    child: SingleChildScrollView(
-                      child: Table(
-                        columnWidths: const {
-                          0: FlexColumnWidth(4),
-                          1: FlexColumnWidth(1.2),
-                          2: FlexColumnWidth(1.8),
-                          3: FlexColumnWidth(2),
-                        },
-                        children: [
-                          TableRow(
-                            decoration: BoxDecoration(
-                              color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
-                            ),
-                            children: const [
-                              Padding(padding: EdgeInsets.all(6), child: Text('Item', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11))),
-                              Padding(padding: EdgeInsets.all(6), child: Text('Qty', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11))),
-                              Padding(padding: EdgeInsets.all(6), child: Text('Price', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11))),
-                              Padding(padding: EdgeInsets.all(6), child: Text('Total', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 11))),
-                            ],
-                          ),
-                          ...order.items.map((itm) => TableRow(
-                                children: [
-                                  Padding(
-                                    padding: const EdgeInsets.all(6),
-                                    child: Text(
-                                      itm.selectedVariation.isNotEmpty
-                                          ? '${itm.title} (${itm.selectedVariation.values.join(', ')})'
-                                          : itm.title,
-                                      style: const TextStyle(fontSize: 11),
-                                    ),
-                                  ),
-                                  Padding(padding: const EdgeInsets.all(6), child: Text('${itm.quantity}', style: const TextStyle(fontSize: 11))),
-                                  Padding(padding: const EdgeInsets.all(6), child: Text(AppFormatters.formatEGP(itm.price), style: const TextStyle(fontSize: 11))),
-                                  Padding(padding: const EdgeInsets.all(6), child: Text(AppFormatters.formatEGP(itm.totalItemPrice), style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700))),
-                                ],
-                              )),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const Divider(height: 16),
-
-                  // Totals
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('${'payment'.tr}: ${order.paymentMethod}', style: const TextStyle(fontSize: 12)),
-                      Text(
-                        '${'grand_total'.tr}: ${AppFormatters.formatEGP(order.totalAmount)}',
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: AppColor.primary),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Close button
-                  ElevatedButton(
-                    onPressed: () => Navigator.of(ctx).pop(),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColor.primary,
-                      foregroundColor: Colors.white,
-                    ),
-                    child: Text('confirm'.tr),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }

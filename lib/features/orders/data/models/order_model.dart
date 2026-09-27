@@ -296,31 +296,6 @@ class OrderItemModel extends Equatable {
           1,
     );
 
-    final title = json['title']?.toString() ??
-        json['Title']?.toString() ??
-        json['name']?.toString() ??
-        json['Name']?.toString() ??
-        json['productName']?.toString() ??
-        json['ProductName']?.toString() ??
-        json['productTitle']?.toString() ??
-        json['itemTitle']?.toString() ??
-        json['itemName']?.toString() ??
-        prodMap?['title']?.toString() ??
-        prodMap?['name']?.toString() ??
-        prodMap?['productName']?.toString() ??
-        'Item';
-
-    final productId = json['productId']?.toString() ??
-        json['ProductId']?.toString() ??
-        json['product_id']?.toString() ??
-        json['id']?.toString() ??
-        json['Id']?.toString() ??
-        json['prodId']?.toString() ??
-        json['itemId']?.toString() ??
-        prodMap?['id']?.toString() ??
-        prodMap?['productId']?.toString() ??
-        '';
-
     String brand = '';
     final rawBrand = json['brand'] ??
         json['Brand'] ??
@@ -351,6 +326,35 @@ class OrderItemModel extends Equatable {
         brand = str;
       }
     }
+
+    final rawTitle = json['title']?.toString() ??
+        json['Title']?.toString() ??
+        json['name']?.toString() ??
+        json['Name']?.toString() ??
+        json['productName']?.toString() ??
+        json['ProductName']?.toString() ??
+        json['productTitle']?.toString() ??
+        json['itemTitle']?.toString() ??
+        json['itemName']?.toString() ??
+        prodMap?['title']?.toString() ??
+        prodMap?['name']?.toString() ??
+        prodMap?['productName']?.toString() ??
+        '';
+
+    final String title = (rawTitle.trim().isNotEmpty && !rawTitle.toLowerCase().contains('untitled'))
+        ? rawTitle.trim()
+        : (flavorVal ?? (brand.isNotEmpty ? brand : 'Item'));
+
+    final productId = json['productId']?.toString() ??
+        json['ProductId']?.toString() ??
+        json['product_id']?.toString() ??
+        json['id']?.toString() ??
+        json['Id']?.toString() ??
+        json['prodId']?.toString() ??
+        json['itemId']?.toString() ??
+        prodMap?['id']?.toString() ??
+        prodMap?['productId']?.toString() ??
+        '';
 
     final sku = json['sku']?.toString() ??
         json['Sku']?.toString() ??
@@ -708,6 +712,9 @@ class OrderModel extends Equatable {
   final String orderNotes;
   final String trackingNumber;
   final String shippingCarrier;
+  final List<Map<String, dynamic>> returnHistory;
+  final double refundedAmount;
+  final String returnReason;
   final Map<String, dynamic> rawDocData;
 
   const OrderModel({
@@ -730,6 +737,9 @@ class OrderModel extends Equatable {
     this.orderNotes = '',
     this.trackingNumber = '',
     this.shippingCarrier = '',
+    this.returnHistory = const [],
+    this.refundedAmount = 0.0,
+    this.returnReason = '',
     this.rawDocData = const {},
   });
 
@@ -753,6 +763,9 @@ class OrderModel extends Equatable {
     String? orderNotes,
     String? trackingNumber,
     String? shippingCarrier,
+    List<Map<String, dynamic>>? returnHistory,
+    double? refundedAmount,
+    String? returnReason,
     Map<String, dynamic>? rawDocData,
   }) {
     return OrderModel(
@@ -775,6 +788,9 @@ class OrderModel extends Equatable {
       orderNotes: orderNotes ?? this.orderNotes,
       trackingNumber: trackingNumber ?? this.trackingNumber,
       shippingCarrier: shippingCarrier ?? this.shippingCarrier,
+      returnHistory: returnHistory ?? this.returnHistory,
+      refundedAmount: refundedAmount ?? this.refundedAmount,
+      returnReason: returnReason ?? this.returnReason,
       rawDocData: rawDocData ?? this.rawDocData,
     );
   }
@@ -1068,6 +1084,26 @@ class OrderModel extends Equatable {
         json['shippingCompany']?.toString() ??
         '';
 
+    // Parse return history and metadata
+    final List<Map<String, dynamic>> parsedReturnHistory = [];
+    final rawReturns = json['returnHistory'] ?? json['returns'] ?? json['returnedItems'];
+    if (rawReturns is List) {
+      for (final r in rawReturns) {
+        if (r is Map) {
+          parsedReturnHistory.add(Map<String, dynamic>.from(r));
+        }
+      }
+    }
+
+    final double refundedAmount = _parseDouble(
+      json['refundedAmount'] ?? json['refundAmount'] ?? json['totalRefunded'],
+    );
+
+    final String returnReason = json['returnReason']?.toString() ??
+        json['refundReason']?.toString() ??
+        json['cancelReason']?.toString() ??
+        '';
+
     return OrderModel(
       id: id.isNotEmpty ? id : 'ORD_${DateTime.now().millisecondsSinceEpoch}',
       userId: userId,
@@ -1097,10 +1133,12 @@ class OrderModel extends Equatable {
       discount: discount,
       couponCode: couponCode,
       totalAmount: finalTotal,
-
       orderNotes: orderNotes,
       trackingNumber: trackingNumber,
       shippingCarrier: shippingCarrier,
+      returnHistory: parsedReturnHistory,
+      refundedAmount: refundedAmount,
+      returnReason: returnReason,
       rawDocData: json,
     );
   }
@@ -1125,6 +1163,9 @@ class OrderModel extends Equatable {
         if (orderNotes.isNotEmpty) 'orderNotes': orderNotes,
         if (trackingNumber.isNotEmpty) 'trackingNumber': trackingNumber,
         if (shippingCarrier.isNotEmpty) 'shippingCarrier': shippingCarrier,
+        if (returnHistory.isNotEmpty) 'returnHistory': returnHistory,
+        if (refundedAmount > 0) 'refundedAmount': refundedAmount,
+        if (returnReason.isNotEmpty) 'returnReason': returnReason,
       };
 
   @override
@@ -1148,5 +1189,37 @@ class OrderModel extends Equatable {
         orderNotes,
         trackingNumber,
         shippingCarrier,
+        returnHistory,
+        refundedAmount,
+        returnReason,
       ];
+
+  /// Returns whether this record originated from in-store POS cashier register
+  bool get isPosSale =>
+      rawDocData['source'] == 'pos' ||
+      rawDocData['orderType'] == 'in_store' ||
+      rawDocData['isPosSale'] == true ||
+      paymentMethod.toLowerCase().startsWith('pos_') ||
+      id.toUpperCase().startsWith('POS-') ||
+      (rawDocData['orderNumber']?.toString().toUpperCase().startsWith('POS-') ?? false) ||
+      userId == 'pos_cashier';
+
+  /// Returns whether this record is an online delivery order from mobile customer app
+  bool get isOnlineOrder => !isPosSale;
+
+  /// Returns whether this order is fully or partially returned
+  bool get isReturned =>
+      status.toLowerCase() == 'returned' ||
+      status.toLowerCase() == 'refunded' ||
+      status.toLowerCase() == 'partially_returned' ||
+      returnHistory.isNotEmpty;
+
+  /// Returns true if only a subset of items was returned
+  bool get hasPartialReturn => returnHistory.isNotEmpty && status.toLowerCase() != 'returned';
+
+  /// Human readable cashier name if this is an in-store transaction
+  String get cashierName => rawDocData['cashierName']?.toString() ?? '';
+
+  /// Source label formatted for Arabic/English display
+  String get sourceDisplayLabel => isPosSale ? 'كاشير الفرع (POS)' : 'تطبيق أونلاين (App)';
 }

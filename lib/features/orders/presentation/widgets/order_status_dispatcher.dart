@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
-import '../../../../core/helper/helper_fun.dart';
+import '../../../../core/domain/state_machine/order_state_machine.dart';
 
 class OrderStatusDispatcher extends StatelessWidget {
   final String currentStatus;
@@ -13,16 +12,10 @@ class OrderStatusDispatcher extends StatelessWidget {
     required this.onStatusSelected,
   });
 
-  static const List<Map<String, dynamic>> _statuses = [
-    {'name': 'Pending', 'color': AppColor.statusPending, 'icon': Icons.hourglass_top_rounded},
-    {'name': 'Processing', 'color': AppColor.statusProcessing, 'icon': Icons.sync_rounded},
-    {'name': 'Shipped', 'color': AppColor.statusShipped, 'icon': Icons.local_shipping_rounded},
-    {'name': 'Delivered', 'color': AppColor.statusDelivered, 'icon': Icons.check_circle_rounded},
-    {'name': 'Cancelled', 'color': AppColor.statusCancelled, 'icon': Icons.cancel_rounded},
-  ];
-
   @override
   Widget build(BuildContext context) {
+    final current = OrderStatus.fromString(currentStatus);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -34,23 +27,20 @@ class OrderStatusDispatcher extends StatelessWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: _statuses.map((s) {
-            final isCurrent = currentStatus.toLowerCase() == (s['name'] as String).toLowerCase();
-            final color = s['color'] as Color;
+          children: OrderStatus.values.map((status) {
+            final isCurrent = current == status;
+            final color = status.color;
+            final canTransition = OrderStatusStateMachine.canTransition(current, status);
 
             return OutlinedButton.icon(
-              onPressed: isCurrent
+              onPressed: (isCurrent || !canTransition)
                   ? null
-                  : () {
-                      onStatusSelected(s['name'] as String);
-                      HelperFun.successSnackbar(
-                        'Order Updated',
-                        'Status shifted to ${s['name']}. FCM notification dispatched to user phone.',
-                      );
-                    },
-              icon: Icon(s['icon'] as IconData, size: 16, color: isCurrent ? color : null),
-              label: Text(s['name'] as String),
+                  : () => onStatusSelected(status.displayName),
+              icon: Icon(status.icon, size: 14, color: isCurrent ? color : null),
+              label: Text(status.displayName, style: const TextStyle(fontSize: 11.5)),
               style: OutlinedButton.styleFrom(
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 foregroundColor: isCurrent ? color : null,
                 side: BorderSide(
                   color: isCurrent ? color : color.withValues(alpha: 0.35),

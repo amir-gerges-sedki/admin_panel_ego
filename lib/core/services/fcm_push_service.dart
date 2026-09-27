@@ -58,6 +58,7 @@ class FcmPushService {
     required String topic,
     required String title,
     required String body,
+    String? type,
     String? imageUrl,
     String? targetScreen,
     String? broadcastId,
@@ -78,10 +79,14 @@ class FcmPushService {
         'screen': targetScreen ?? '/shop',
         'targetScreen': targetScreen ?? '/shop',
         'id': broadcastId ?? 'BCAST_${DateTime.now().millisecondsSinceEpoch}',
+        'broadcastId':
+            broadcastId ?? 'BCAST_${DateTime.now().millisecondsSinceEpoch}',
         'title': title,
         'body': body,
         'message': body,
+        'type': type ?? 'alert',
         if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
+        if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
       };
 
       if (extraData != null) {
@@ -147,6 +152,7 @@ class FcmPushService {
     required String deviceToken,
     required String title,
     required String body,
+    String? type,
     String? imageUrl,
     String? targetScreen,
     String? broadcastId,
@@ -161,10 +167,14 @@ class FcmPushService {
         'screen': targetScreen ?? '/shop',
         'targetScreen': targetScreen ?? '/shop',
         'id': broadcastId ?? 'BCAST_${DateTime.now().millisecondsSinceEpoch}',
+        'broadcastId':
+            broadcastId ?? 'BCAST_${DateTime.now().millisecondsSinceEpoch}',
         'title': title,
         'body': body,
         'message': body,
+        'type': type ?? 'alert',
         if (imageUrl != null && imageUrl.isNotEmpty) 'image': imageUrl,
+        if (imageUrl != null && imageUrl.isNotEmpty) 'imageUrl': imageUrl,
       };
 
       if (extraData != null) {
@@ -224,6 +234,7 @@ class FcmPushService {
     required List<String> tokens,
     required String title,
     required String body,
+    String? type,
     String? imageUrl,
     String? targetScreen,
     String? broadcastId,
@@ -235,6 +246,7 @@ class FcmPushService {
         deviceToken: token,
         title: title,
         body: body,
+        type: type,
         imageUrl: imageUrl,
         targetScreen: targetScreen,
         broadcastId: broadcastId,

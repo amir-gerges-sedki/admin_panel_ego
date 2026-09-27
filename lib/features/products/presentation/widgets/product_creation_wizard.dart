@@ -1,3 +1,5 @@
+import '../../../../core/localization/app_localizations.dart';
+import '../../../badges/presentation/widgets/badges_management_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../common/widgets/dialogs/unified_modal_sheet.dart';
@@ -11,11 +13,12 @@ import '../../../badges/data/repositories/badge_repository.dart';
 import '../../../badges/presentation/cubit/badge_cubit.dart';
 import '../../../badges/presentation/cubit/badge_state.dart';
 import '../../../badges/presentation/widgets/badge_form_dialog.dart';
-import '../../../categories/data/repositories/category_repository.dart';
-import '../../../categories/presentation/cubit/category_cubit.dart';
-import '../../../categories/presentation/widgets/brand_form_dialog.dart';
+import '../../../brands/data/repositories/brand_repository.dart';
+import '../../../brands/presentation/cubit/brand_cubit.dart';
+import '../../../brands/presentation/widgets/brand_form_dialog.dart';
 import '../../data/models/product_model.dart';
 import '../../data/repositories/product_repository.dart';
+import '../../domain/variation_matrix_engine.dart';
 import '../cubit/product_cubit.dart';
 import '../cubit/product_form_cubit.dart';
 import 'dynamic_type_forms.dart';
@@ -33,15 +36,28 @@ class ProductCreationWizard extends StatelessWidget {
     ProductModel? initialProduct,
     ValueChanged<ProductModel>? onSave,
   }) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    // Harvest existing catalog flavors from ProductCubit if available
+    try {
+      final productCubit = context.read<ProductCubit>();
+      if (productCubit.state is ProductLoaded) {
+        final loaded = productCubit.state as ProductLoaded;
+        GlobalFlavorsPool.harvestFromProducts(loaded.products);
+        GlobalDeviceSpecsPool.harvestFromProducts(loaded.products);
+        GlobalDisposableSpecsPool.harvestFromProducts(loaded.products);
+      }
+    } catch (_) {}
     UnifiedModalSheet.show(
       context: context,
       title: initialProduct == null
-          ? 'إضافة صنف جديد (Add Vape Product)'
-          : 'تعديل الصنف (Edit Product)',
-      subtitle:
-          'فلو متكامل واحترافي لاختيار نوع المنتج، المواصفات الديناميكية، ومصفوفة المتغيرات',
+          ? (isArabic ? 'إضافة صنف جديد' : 'Add New Product')
+          : (isArabic ? 'تعديل الصنف' : 'Edit Product'),
+      subtitle: isArabic
+          ? 'معالج متكامل لاختيار نوع المنتج، المواصفات الديناميكية، ومصفوفة المتغيرات'
+          : 'Streamlined wizard for product category, dynamic specs, and variations matrix',
       icon: Icons.inventory_2_outlined,
-      maxWidth: 900,
+      maxWidth: 1020,
       content: MultiBlocProvider(
         providers: [
           BlocProvider<ProductFormCubit>(
@@ -61,16 +77,16 @@ class ProductCreationWizard extends StatelessWidget {
               return cubit;
             },
           ),
-          BlocProvider<CategoryCubit>(
+          BlocProvider<BrandCubit>(
             create: (ctx) {
-              final cubit = sl.isRegistered<CategoryCubit>()
-                  ? sl<CategoryCubit>()
-                  : CategoryCubit(
-                      sl.isRegistered<CategoryRepository>()
-                          ? sl<CategoryRepository>()
-                          : CategoryRepositoryImpl(),
+              final cubit = sl.isRegistered<BrandCubit>()
+                  ? sl<BrandCubit>()
+                  : BrandCubit(
+                      sl.isRegistered<BrandRepository>()
+                          ? sl<BrandRepository>()
+                          : BrandRepositoryImpl(),
                     );
-              return cubit..loadData();
+              return cubit..loadBrands();
             },
           ),
           BlocProvider<BadgeCubit>(
@@ -103,16 +119,18 @@ class ProductCreationWizard extends StatelessWidget {
           if (onSave != null) {
             onSave!(product);
           } else {
-            // Also notify ProductCubit & CategoryCubit
+            // Also notify ProductCubit & BrandCubit
             context.read<ProductCubit>().loadProducts();
-            if (sl.isRegistered<CategoryCubit>()) {
-              sl<CategoryCubit>().loadData();
+            if (sl.isRegistered<BrandCubit>()) {
+              sl<BrandCubit>().loadBrands();
             }
           }
-          Navigator.of(context).pop();
+          if (Navigator.of(context).canPop()) {
+            Navigator.of(context).pop();
+          }
           HelperFun.successSnackbar(
             'تم حفظ الصنف بنجاح',
-            'تم حفظ "${product.title}" في كتالوج المتجر وقاعدة البيانات.',
+            'تم حفظ "${product.displayTitle}" في كتالوج المتجر وقاعدة البيانات.',
           );
         }
         if (state.errorMessage != null) {
@@ -133,10 +151,7 @@ class ProductCreationWizard extends StatelessWidget {
             const SizedBox(height: AppSizes.md),
 
             // 2. Active Step Content
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              child: _buildCurrentStepView(context, state, cubit),
-            ),
+            _buildCurrentStepView(context, state, cubit),
             const SizedBox(height: AppSizes.lg),
 
             // 3. Navigation Controls Bar
@@ -153,38 +168,41 @@ class ProductCreationWizard extends StatelessWidget {
     ProductFormCubit cubit,
   ) {
     final isDark = HelperFun.isDarkMode(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     final steps = [
       {
         'index': 0,
-        'title': '١. نوع المنتج',
-        'subtitle': 'Category Type',
+        'title': isArabic ? '١. نوع المنتج' : '1. Product Type',
+        'subtitle': isArabic ? 'التصنيف الرئيسي' : 'Category Type',
         'icon': Icons.category_rounded,
       },
       {
         'index': 1,
-        'title': '٢. المواصفات الديناميكية',
-        'subtitle': 'Dynamic Specs',
+        'title': isArabic ? '٢. المواصفات الديناميكية' : '2. Dynamic Specs',
+        'subtitle': isArabic ? 'الخصائص والمواصفات' : 'Attributes & Specs',
         'icon': Icons.tune_rounded,
       },
       {
         'index': 2,
-        'title': '٣. مصفوفة المتغيرات',
-        'subtitle': 'Variations Matrix',
+        'title': isArabic ? '٣. مصفوفة المتغيرات' : '3. Variations Matrix',
+        'subtitle': isArabic ? 'الأسعار والمخزون' : 'Pricing & Inventory',
         'icon': Icons.hub_rounded,
       },
       {
         'index': 3,
-        'title': '٤. المراجعة والحفظ',
-        'subtitle': 'Review & Save',
+        'title': isArabic ? '٤. المراجعة والحفظ' : '4. Review & Save',
+        'subtitle': isArabic ? 'المعاينة والاعتماد' : 'Review & Confirm',
         'icon': Icons.check_circle_outline_rounded,
       },
     ];
 
+    final progressValue = (currentStep + 1) / steps.length;
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizes.md,
-        vertical: AppSizes.sm,
+        vertical: AppSizes.sm + 2,
       ),
       decoration: BoxDecoration(
         color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
@@ -193,97 +211,168 @@ class ProductCreationWizard extends StatelessWidget {
           color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
         ),
       ),
-      child: Row(
-        children: steps.map((step) {
-          final idx = step['index'] as int;
-          final isCurrent = idx == currentStep;
-          final isPassed = idx < currentStep;
-
-          Color stepColor = isCurrent
-              ? AppColor.primary
-              : (isPassed
-                    ? AppColor.success
-                    : (isDark
-                          ? AppColor.textMutedDark
-                          : AppColor.textMutedLight));
-
-          return Expanded(
-            child: InkWell(
-              onTap: () {
-                // Allow clicking passed steps or current
-                if (idx <= currentStep || idx == currentStep + 1) {
-                  cubit.setStep(idx);
-                }
-              },
-              borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
-                decoration: BoxDecoration(
-                  color: isCurrent
-                      ? AppColor.primary.withValues(alpha: 0.12)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: stepColor.withValues(alpha: 0.18),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        isPassed
-                            ? Icons.check_rounded
-                            : (step['icon'] as IconData),
-                        size: 14,
-                        color: stepColor,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            step['title'] as String,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: isCurrent
-                                  ? FontWeight.w700
-                                  : FontWeight.w600,
-                              color: isCurrent
-                                  ? AppColor.primary
-                                  : (isDark
-                                        ? AppColor.textPrimaryDark
-                                        : AppColor.textPrimaryLight),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                          Text(
-                            step['subtitle'] as String,
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isDark
-                                  ? AppColor.textMutedDark
-                                  : AppColor.textMutedLight,
-                            ),
-                            maxLines: 1,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+      child: Column(
+        children: [
+          // Sleek Progress Line
+          ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: LinearProgressIndicator(
+              value: progressValue,
+              minHeight: 3,
+              backgroundColor: isDark
+                  ? Colors.white.withValues(alpha: 0.08)
+                  : Colors.black.withValues(alpha: 0.06),
+              valueColor: const AlwaysStoppedAnimation<Color>(AppColor.primary),
             ),
-          );
-        }).toList(),
+          ),
+          const SizedBox(height: 8),
+
+          // Stepper Items
+          Row(
+            children: steps.map((step) {
+              final idx = step['index'] as int;
+              final isCurrent = idx == currentStep;
+              final isPassed = idx < currentStep;
+
+              Color stepColor = isCurrent
+                  ? AppColor.primary
+                  : (isPassed
+                        ? AppColor.success
+                        : (isDark
+                              ? AppColor.textMutedDark
+                              : AppColor.textMutedLight));
+
+              return Expanded(
+                child: InkWell(
+                  onTap: () {
+                    // Allow clicking passed steps or current
+                    if (idx <= currentStep || idx == currentStep + 1) {
+                      cubit.setStep(idx);
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 6,
+                      horizontal: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isCurrent
+                          ? AppColor.primary.withValues(alpha: 0.12)
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(
+                        AppSizes.borderRadiusSm,
+                      ),
+                      border: isCurrent
+                          ? Border.all(
+                              color: AppColor.primary.withValues(alpha: 0.35),
+                            )
+                          : null,
+                    ),
+                    child: Row(
+                      children: [
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 200),
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isCurrent
+                                ? AppColor.primary
+                                : (isPassed
+                                      ? AppColor.success.withValues(alpha: 0.2)
+                                      : (isDark
+                                            ? Colors.white.withValues(alpha: 0.08)
+                                            : Colors.black.withValues(alpha: 0.05))),
+                            boxShadow: isCurrent
+                                ? [
+                                    BoxShadow(
+                                      color: AppColor.primary.withValues(
+                                        alpha: 0.35,
+                                      ),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : [],
+                          ),
+                          child: Center(
+                            child: isPassed
+                                ? const Icon(
+                                    Icons.check_rounded,
+                                    size: 14,
+                                    color: AppColor.success,
+                                  )
+                                : (isCurrent
+                                      ? Text(
+                                          '${idx + 1}',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 11,
+                                          ),
+                                        )
+                                      : Icon(
+                                          step['icon'] as IconData,
+                                          size: 13,
+                                          color: stepColor,
+                                        )),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                step['title'] as String,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: isCurrent
+                                      ? FontWeight.w800
+                                      : (isPassed
+                                            ? FontWeight.w700
+                                            : FontWeight.w600),
+                                  color: isCurrent
+                                      ? AppColor.primary
+                                      : (isPassed
+                                            ? (isDark
+                                                  ? Colors.white
+                                                  : Colors.black87)
+                                            : (isDark
+                                                  ? AppColor.textMutedDark
+                                                  : AppColor.textMutedLight)),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                step['subtitle'] as String,
+                                style: TextStyle(
+                                  fontSize: 9.5,
+                                  color: isDark
+                                      ? AppColor.textMutedDark
+                                      : AppColor.textMutedLight,
+                                ),
+                                maxLines: 1,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
+
 
   Widget _buildCurrentStepView(
     BuildContext context,
@@ -313,6 +402,7 @@ class ProductCreationWizard extends StatelessWidget {
     ProductFormCubit cubit,
   ) {
     final isDark = HelperFun.isDarkMode(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return Column(
       key: const ValueKey('step_1_types'),
@@ -340,7 +430,9 @@ class ProductCreationWizard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'اختر نوع المنتج للبدء (Select Vape Product Category)',
+                      isArabic
+                          ? 'اختر نوع المنتج للبدء'
+                          : 'Select Product Category to Begin',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -351,7 +443,9 @@ class ProductCreationWizard extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'سيتم تخصيص شاشة المواصفات ومصفوفة المتغيرات بدقة وفقاً لنوع المنتج لتجنب أي حقول غير ضرورية',
+                      isArabic
+                          ? 'سيتم تخصيص شاشة المواصفات ومصفوفة المتغيرات بدقة وفقاً لنوع المنتج لتجنب أي حقول غير ضرورية'
+                          : 'Specifications and variations matrix will adapt precisely to the selected product type.',
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark
@@ -367,18 +461,30 @@ class ProductCreationWizard extends StatelessWidget {
         ),
         const SizedBox(height: AppSizes.lg),
 
-        // Grid of 4 Core Product Types (2x2 Balanced Layout)
+        // Grid of 4 Core Product Types (Compact & responsive layout)
         LayoutBuilder(
           builder: (context, constraints) {
-            final crossAxisCount = constraints.maxWidth > 600 ? 2 : 1;
+            final int crossAxisCount;
+            final double childAspectRatio;
+
+            if (constraints.maxWidth > 860) {
+              crossAxisCount = 4;
+              childAspectRatio = 2.4;
+            } else if (constraints.maxWidth > 520) {
+              crossAxisCount = 2;
+              childAspectRatio = 3.2;
+            } else {
+              crossAxisCount = 1;
+              childAspectRatio = 4.0;
+            }
 
             return GridView.count(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               crossAxisCount: crossAxisCount,
-              crossAxisSpacing: AppSizes.md,
-              mainAxisSpacing: AppSizes.md,
-              childAspectRatio: constraints.maxWidth > 600 ? 1.6 : 1.35,
+              crossAxisSpacing: AppSizes.sm + 4,
+              mainAxisSpacing: AppSizes.sm + 4,
+              childAspectRatio: childAspectRatio,
               children: ProductCategoryType.visibleTypes.map((type) {
                 return ProductTypeCard(
                   type: type,
@@ -402,511 +508,223 @@ class ProductCreationWizard extends StatelessWidget {
     ProductFormCubit cubit,
   ) {
     final isDark = HelperFun.isDarkMode(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
-    return BlocBuilder<CategoryCubit, CategoryState>(
+    return BlocBuilder<BrandCubit, BrandState>(
       key: const ValueKey('step_2_specs'),
-      builder: (context, catState) {
+      builder: (context, brandState) {
         final List<String> brandsList = [];
 
-        if (catState is CategoryLoaded) {
-          for (final b in catState.brands) {
+        if (brandState is BrandLoaded) {
+          for (final b in brandState.brands) {
             final name = b.name.trim();
             if (name.isNotEmpty && !brandsList.contains(name)) {
               brandsList.add(name);
             }
           }
         }
-        if (catState is CategoryInitial) {
+        if (brandState is BrandInitial) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            context.read<CategoryCubit>().loadData();
+            context.read<BrandCubit>().loadBrands();
           });
         }
 
         if (state.brandName.isEmpty && brandsList.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            cubit.updateBasicInfo(brandName: brandsList.first);
+            final firstBrand = (brandState is BrandLoaded && brandState.brands.isNotEmpty)
+                ? brandState.brands.first
+                : null;
+            cubit.updateBasicInfo(
+              brandId: firstBrand?.id ?? '',
+              brandName: firstBrand?.name ?? brandsList.first,
+            );
           });
         }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Type indicator & change button
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: state.categoryType.accentColor.withValues(
-                          alpha: 0.15,
-                        ),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Icon(
-                        state.categoryType.icon,
-                        color: state.categoryType.accentColor,
-                        size: 20,
-                      ),
+            // Top Category Indicator & Quick Change Button
+            Container(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSizes.md,
+                vertical: AppSizes.sm + 2,
+              ),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    state.categoryType.accentColor.withValues(
+                      alpha: isDark ? 0.16 : 0.08,
                     ),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'المواصفات الأساسية للصنف: ${state.categoryType.arabicName}',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: isDark
-                                ? AppColor.textPrimaryDark
-                                : AppColor.textPrimaryLight,
-                          ),
-                        ),
-                        Text(
-                          state.categoryType.description,
-                          style: TextStyle(
-                            fontSize: 11,
-                            color: isDark
-                                ? AppColor.textMutedDark
-                                : AppColor.textMutedLight,
-                          ),
-                        ),
-                      ],
+                    state.categoryType.accentColor.withValues(
+                      alpha: isDark ? 0.04 : 0.01,
                     ),
                   ],
                 ),
-                TextButton.icon(
-                  onPressed: () => cubit.setStep(0),
-                  icon: const Icon(Icons.swap_horiz_rounded, size: 16),
-                  label: const Text(
-                    'تغيير نوع المنتج',
-                    style: TextStyle(fontSize: 12),
-                  ),
+                borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+                border: Border.all(
+                  color: state.categoryType.accentColor.withValues(alpha: 0.25),
                 ),
-              ],
-            ),
-            const SizedBox(height: AppSizes.md),
+              ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isCompact = constraints.maxWidth < 560;
 
-            // Product Classification / Title & Brand Row
-            Row(
-              children: [
-                Expanded(
-                  flex: 6,
-                  child: state.categoryType == ProductCategoryType.liquid
-                      ? Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColor.darkSubCard
-                                : AppColor.lightSubCard,
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.borderRadiusSm,
-                            ),
-                            border: Border.all(
-                              color: const Color(
-                                0xFF0EA5E9,
-                              ).withValues(alpha: 0.35),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(
-                                Icons.water_drop_rounded,
-                                size: 18,
-                                color: Color(0xFF0EA5E9),
-                              ),
-                              const SizedBox(width: 6),
-                              const Text(
-                                'نوع الليكويد:',
-                                style: TextStyle(
-                                  fontWeight: FontWeight.w700,
-                                  fontSize: 12,
-                                ),
-                              ),
-                              const Spacer(),
-                              ChoiceChip(
-                                avatar: const Text(
-                                  '🇪🇬',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                                label: const Text(
-                                  'Local Liquid',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                selected: state.liquidOrigin == 'Local',
-                                selectedColor: const Color(
-                                  0xFF0EA5E9,
-                                ).withValues(alpha: 0.25),
-                                onSelected: (selected) {
-                                  if (selected) cubit.setLiquidOrigin('Local');
-                                },
-                              ),
-                              const SizedBox(width: 6),
-                              ChoiceChip(
-                                avatar: const Text(
-                                  '🌍',
-                                  style: TextStyle(fontSize: 12),
-                                ),
-                                label: const Text(
-                                  'Premium Liquid',
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    fontSize: 11,
-                                  ),
-                                ),
-                                selected: state.liquidOrigin == 'Premium',
-                                selectedColor: const Color(
-                                  0xFF0EA5E9,
-                                ).withValues(alpha: 0.25),
-                                onSelected: (selected) {
-                                  if (selected) cubit.setLiquidOrigin('Premium');
-                                },
-                              ),
-                            ],
-                          ),
-                        )
-                      : TextFormField(
-                          initialValue: state.title,
-                          decoration: const InputDecoration(
-                            labelText: 'اسم الصنف / العنوان *',
-                            hintText: 'e.g. Pod Kit / Box Mod / Coil',
-                            prefixIcon: Icon(
-                              Icons.label_outline_rounded,
-                              size: 18,
-                            ),
-                          ),
-                          onChanged: (v) => cubit.updateBasicInfo(title: v),
-                        ),
-                ),
-                const SizedBox(width: AppSizes.md),
-                Expanded(
-                  flex: 5,
-                  child: Row(
+                  final infoWidget = Row(
                     children: [
-                      Expanded(
-                        child: catState is CategoryLoading
-                            ? Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 12,
-                                  vertical: 14,
-                                ),
-                                decoration: BoxDecoration(
-                                  borderRadius: BorderRadius.circular(
-                                    AppSizes.borderRadiusSm,
-                                  ),
-                                  border: Border.all(
-                                    color: isDark
-                                        ? AppColor.darkBorder
-                                        : AppColor.lightBorder,
-                                  ),
-                                ),
-                                child: const Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 14,
-                                      height: 14,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                      ),
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'جاري جلب قائمة الماركات...',
-                                      style: TextStyle(fontSize: 12),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : (brandsList.isEmpty
-                                  ? TextFormField(
-                                      initialValue: state.brandName,
-                                      decoration: const InputDecoration(
-                                        labelText: 'الماركة المصنعة (Brand) *',
-                                        hintText: 'اكتب اسم الماركة...',
-                                        prefixIcon: Icon(
-                                          Icons.business_rounded,
-                                          size: 18,
-                                        ),
-                                      ),
-                                      onChanged: (val) =>
-                                          cubit.updateBasicInfo(brandName: val),
-                                    )
-                                  : DropdownButtonFormField<String>(
-                                      initialValue:
-                                          brandsList.contains(state.brandName)
-                                          ? state.brandName
-                                          : brandsList.first,
-                                      decoration: const InputDecoration(
-                                        labelText: 'الماركة المصنعة (Brand) *',
-                                        prefixIcon: Icon(
-                                          Icons.business_rounded,
-                                          size: 18,
-                                        ),
-                                      ),
-                                      items: brandsList
-                                          .map(
-                                            (b) => DropdownMenuItem(
-                                              value: b,
-                                              child: Text(
-                                                b,
-                                                style: const TextStyle(
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ),
-                                          )
-                                          .toList(),
-                                      onChanged: (val) {
-                                        if (val != null) {
-                                          cubit.updateBasicInfo(brandName: val);
-                                        }
-                                      },
-                                    )),
-                      ),
-                      const SizedBox(width: 4),
-                      IconButton(
-                        icon: const Icon(
-                          Icons.add_business_rounded,
-                          size: 22,
-                          color: AppColor.primary,
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: state.categoryType.accentColor.withValues(
+                            alpha: 0.2,
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: state.categoryType.accentColor.withValues(
+                              alpha: 0.35,
+                            ),
+                          ),
                         ),
-                        tooltip: 'إضافة ماركة جديدة إلى فايربيس (Add Brand)',
-                        onPressed: () {
-                          BrandFormDialog.show(
-                            context,
-                            onSave: (brand) {
-                              context.read<CategoryCubit>().addBrand(brand);
-                              cubit.updateBasicInfo(brandName: brand.name);
-                            },
-                          );
-                        },
+                        child: Icon(
+                          state.categoryType.icon,
+                          color: state.categoryType.accentColor,
+                          size: 20,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    isArabic
+                                        ? 'المواصفات الأساسية للصنف: ${state.categoryType.arabicName}'
+                                        : 'Core Specs: ${state.categoryType.displayName}',
+                                    style: TextStyle(
+                                      fontSize: 13.5,
+                                      fontWeight: FontWeight.w800,
+                                      color: isDark
+                                          ? AppColor.textPrimaryDark
+                                          : AppColor.textPrimaryLight,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: state.categoryType.accentColor
+                                        .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    state.categoryType.displayName,
+                                    style: TextStyle(
+                                      fontSize: 10,
+                                      fontWeight: FontWeight.w700,
+                                      color: state.categoryType.accentColor,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              state.categoryType.description,
+                              style: TextStyle(
+                                fontSize: 11,
+                                color: isDark
+                                    ? AppColor.textMutedDark
+                                    : AppColor.textMutedLight,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
                       ),
                     ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSizes.md),
+                  );
 
-            // Description
-            TextFormField(
-              initialValue: state.description,
-              maxLines: 2,
-              decoration: const InputDecoration(
-                labelText: 'وصف المنتج ومميزاته (Description)',
-                hintText: 'اكتب مواصفات وتفاصيل الفيب ومحتويات العلبة...',
-                prefixIcon: Icon(Icons.notes_rounded, size: 18),
-              ),
-              onChanged: (v) => cubit.updateBasicInfo(description: v),
-            ),
-            const SizedBox(height: AppSizes.md),
-
-            // Base Price & Sale Price & Base Stock & SKU Prefix
-            Row(
-              children: [
-                Expanded(
-                  child: TextFormField(
-                    initialValue: state.basePrice.toStringAsFixed(0),
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'السعر الأساسي (ج.م) *',
-                      prefixIcon: Icon(
-                        Icons.monetization_on_outlined,
-                        size: 18,
-                      ),
+                  final actionButton = OutlinedButton.icon(
+                    onPressed: () => cubit.setStep(0),
+                    icon: const Icon(Icons.swap_horiz_rounded, size: 16),
+                    label: Text(
+                      isArabic ? 'تغيير نوع المنتج' : 'Change Product Type',
+                      style: const TextStyle(fontSize: 12),
                     ),
-                    onChanged: (v) {
-                      final p = double.tryParse(v) ?? 0.0;
-                      cubit.updateBasicInfo(basePrice: p);
-                    },
-                  ),
-                ),
-                const SizedBox(width: AppSizes.sm),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: state.salePrice.toStringAsFixed(0),
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'سعر العرض (ج.م)',
-                      prefixIcon: Icon(Icons.discount_outlined, size: 18),
-                    ),
-                    onChanged: (v) {
-                      final p = double.tryParse(v) ?? 0.0;
-                      cubit.updateBasicInfo(salePrice: p);
-                    },
-                  ),
-                ),
-                const SizedBox(width: AppSizes.sm),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: state.baseStock.toString(),
-                    keyboardType: TextInputType.number,
-                    decoration: const InputDecoration(
-                      labelText: 'المخزون الافتراضي *',
-                      prefixIcon: Icon(Icons.inventory_rounded, size: 18),
-                    ),
-                    onChanged: (v) {
-                      final s = int.tryParse(v) ?? 0;
-                      cubit.updateBasicInfo(baseStock: s);
-                    },
-                  ),
-                ),
-                const SizedBox(width: AppSizes.sm),
-                Expanded(
-                  child: TextFormField(
-                    initialValue: state.baseSku,
-                    decoration: const InputDecoration(
-                      labelText: 'بادئة الـ SKU *',
-                      prefixIcon: Icon(Icons.qr_code_rounded, size: 18),
-                    ),
-                    onChanged: (v) => cubit.updateBasicInfo(baseSku: v),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSizes.md),
-
-            // Visual Thumbnail & Main Image Card
-            Container(
-              padding: const EdgeInsets.all(AppSizes.md),
-              decoration: BoxDecoration(
-                color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
-                borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-                border: Border.all(
-                  color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
-                ),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // Live Image Preview box
-                  Container(
-                    width: 72,
-                    height: 72,
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColor.darkCard : AppColor.lightCard,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
-                      ),
-                    ),
-                    clipBehavior: Clip.antiAlias,
-                    child: state.thumbnail.isNotEmpty
-                        ? Image.network(
-                            state.thumbnail,
-                            fit: BoxFit.cover,
-                            errorBuilder:
-                                (context, error, stackTrace) => const Center(
-                              child: Icon(Icons.broken_image_rounded, size: 24, color: AppColor.error),
-                            ),
-                          )
-                        : const Center(
-                            child: Icon(Icons.image_outlined, size: 28, color: Colors.grey),
-                          ),
-                  ),
-                  const SizedBox(width: AppSizes.md),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        TextFormField(
-                          key: ValueKey('thumb_${state.thumbnail}'),
-                          initialValue: state.thumbnail,
-                          decoration: const InputDecoration(
-                            labelText: 'رابط صورة المنتج الرئيسية (Thumbnail Image URL)',
-                            hintText: 'https://example.com/image.jpg',
-                            prefixIcon: Icon(Icons.link_rounded, size: 18),
-                            isDense: true,
-                          ),
-                          onChanged: (v) => cubit.updateBasicInfo(thumbnail: v.trim()),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: state.categoryType.accentColor,
+                      side: BorderSide(
+                        color: state.categoryType.accentColor.withValues(
+                          alpha: 0.4,
                         ),
-                        if (state.variations.any((v) => v.image.isNotEmpty)) ...[
-                          const SizedBox(height: 6),
-                          Wrap(
-                            spacing: 6,
-                            runSpacing: 4,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              const Text(
-                                'اختر من صور المتغيرات:',
-                                style: TextStyle(fontSize: 10, color: Colors.grey),
-                              ),
-                              ...state.variations
-                                  .where((v) => v.image.isNotEmpty)
-                                  .map((v) => InkWell(
-                                        onTap: () => cubit.setThumbnail(v.image),
-                                        borderRadius: BorderRadius.circular(4),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                          decoration: BoxDecoration(
-                                            color: AppColor.primary.withValues(alpha: 0.1),
-                                            borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(
-                                              color: AppColor.primary.withValues(alpha: 0.3),
-                                            ),
-                                          ),
-                                          child: Text(
-                                            v.sku,
-                                            style: const TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w600,
-                                              color: AppColor.primary,
-                                            ),
-                                          ),
-                                        ),
-                                      )),
-                            ],
-                          ),
-                        ],
-                      ],
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                     ),
-                  ),
-                ],
+                  );
+
+                  if (isCompact) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        infoWidget,
+                        const SizedBox(height: 10),
+                        Align(
+                          alignment: AlignmentDirectional.centerEnd,
+                          child: actionButton,
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(child: infoWidget),
+                      const SizedBox(width: 12),
+                      actionButton,
+                    ],
+                  );
+                },
               ),
             ),
             const SizedBox(height: AppSizes.md),
 
-            // Featured Switch
-            Container(
-              decoration: BoxDecoration(
-                color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
-                borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-                border: Border.all(
-                  color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
-                ),
-              ),
-              child: SwitchListTile(
-                title: const Text(
-                  'منتج مميز بالرئيسية (Featured on Homepage)',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                subtitle: const Text(
-                  'إبراز المنتج في قسم العروض والمنتجات المميزة بالصفحة الرئيسية',
-                  style: TextStyle(fontSize: 11, color: Colors.grey),
-                ),
-                value: state.isFeatured,
-                activeThumbColor: AppColor.primary,
-                onChanged: (v) => cubit.updateBasicInfo(isFeatured: v),
-              ),
+            // CARD 1: IDENTITY & BRAND
+            _buildIdentityCard(
+              context,
+              state,
+              cubit,
+              isDark,
+              brandState,
+              brandsList,
             ),
             const SizedBox(height: AppSizes.md),
 
-            // HOMEPAGE BADGE SECTION (هوم بيج باتش)
-            _buildHomepageBadgeSection(context, state, cubit, isDark),
+            // CARD 2: MEDIA & LIVE THUMBNAIL
+            _buildMediaCard(context, state, cubit, isDark),
+            const SizedBox(height: AppSizes.md),
 
+            // CARD 3: MARKETING & HOMEPAGE PROMO BADGES
+            _buildMarketingCard(context, state, cubit, isDark),
             const SizedBox(height: AppSizes.lg),
+
             const Divider(height: 1),
             const SizedBox(height: AppSizes.lg),
 
@@ -919,7 +737,665 @@ class ProductCreationWizard extends StatelessWidget {
   }
 
   // ----------------------------------------------------------------------
-  // HOMEPAGE BADGE SECTION (هوم بيج باتش)
+  // HELPER WIDGETS
+  // ----------------------------------------------------------------------
+  Widget _buildWizardOriginButton({
+    required BuildContext context,
+    required String title,
+    required String emoji,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    final isDark = HelperFun.isDarkMode(context);
+    const activeColor = Color(0xFF0EA5E9);
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? activeColor
+              : (isDark
+                    ? Colors.white.withValues(alpha: 0.04)
+                    : Colors.black.withValues(alpha: 0.03)),
+          borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
+          border: Border.all(
+            color: isSelected
+                ? const Color(0xFF38BDF8)
+                : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+            width: isSelected ? 1.6 : 1.0,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: 0.35),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : [],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(emoji, style: const TextStyle(fontSize: 12)),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  color: isSelected
+                      ? Colors.white
+                      : (isDark
+                            ? AppColor.textSecondaryDark
+                            : AppColor.textSecondaryLight),
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              isSelected
+                  ? Icons.check_circle_rounded
+                  : Icons.radio_button_unchecked_rounded,
+              size: 13,
+              color: isSelected
+                  ? Colors.white
+                  : (isDark
+                        ? Colors.white.withValues(alpha: 0.3)
+                        : Colors.black.withValues(alpha: 0.25)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ----------------------------------------------------------------------
+  // CARD 1: IDENTITY & BRAND
+  // ----------------------------------------------------------------------
+  Widget _buildIdentityCard(
+    BuildContext context,
+    ProductFormState state,
+    ProductFormCubit cubit,
+    bool isDark,
+    BrandState brandState,
+    List<String> brandsList,
+  ) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.md),
+      decoration: BoxDecoration(
+        color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
+        borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+        border: Border.all(
+          color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCardHeader(
+            title: isArabic ? 'هوية الصنف والماركة المصنعة' : 'Product Identity & Brand',
+            icon: Icons.badge_outlined,
+            color: AppColor.primary,
+          ),
+          const SizedBox(height: AppSizes.md),
+
+          // Title & Brand Row
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final isStacked = constraints.maxWidth < 620;
+
+              final titleWidget = state.categoryType == ProductCategoryType.liquid
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColor.darkCard : AppColor.lightCard,
+                        borderRadius: BorderRadius.circular(
+                          AppSizes.borderRadiusSm,
+                        ),
+                        border: Border.all(
+                          color: const Color(0xFF0EA5E9).withValues(
+                            alpha: 0.35,
+                          ),
+                        ),
+                      ),
+                      child: LayoutBuilder(
+                        builder: (context, originConstraints) {
+                          final isNarrow = originConstraints.maxWidth < 410;
+
+                          final label = Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.water_drop_rounded,
+                                size: 18,
+                                color: Color(0xFF0EA5E9),
+                              ),
+                              const SizedBox(width: 6),
+                              Text(
+                                isArabic ? 'مصدر الليكويد:' : 'Liquid Origin:',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ],
+                          );
+
+                          final buttons = Row(
+                            mainAxisSize: isNarrow ? MainAxisSize.max : MainAxisSize.min,
+                            children: [
+                              isNarrow
+                                  ? Expanded(
+                                      child: _buildWizardOriginButton(
+                                        context: context,
+                                        title: isArabic ? 'سائل محلي' : 'Local Liquid',
+                                        emoji: '🇪🇬',
+                                        isSelected: state.liquidOrigin == 'Local',
+                                        onTap: () => cubit.setLiquidOrigin('Local'),
+                                      ),
+                                    )
+                                  : _buildWizardOriginButton(
+                                      context: context,
+                                      title: isArabic ? 'سائل محلي' : 'Local Liquid',
+                                      emoji: '🇪🇬',
+                                      isSelected: state.liquidOrigin == 'Local',
+                                      onTap: () => cubit.setLiquidOrigin('Local'),
+                                    ),
+                              const SizedBox(width: 6),
+                              isNarrow
+                                  ? Expanded(
+                                      child: _buildWizardOriginButton(
+                                        context: context,
+                                        title: isArabic ? 'مستورد بريميوم' : 'Premium Liquid',
+                                        emoji: '🌍',
+                                        isSelected: state.liquidOrigin == 'Premium',
+                                        onTap: () => cubit.setLiquidOrigin('Premium'),
+                                      ),
+                                    )
+                                  : _buildWizardOriginButton(
+                                      context: context,
+                                      title: isArabic ? 'مستورد بريميوم' : 'Premium Liquid',
+                                      emoji: '🌍',
+                                      isSelected: state.liquidOrigin == 'Premium',
+                                      onTap: () => cubit.setLiquidOrigin('Premium'),
+                                    ),
+                            ],
+                          );
+
+                          if (isNarrow) {
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                label,
+                                const SizedBox(height: 6),
+                                buttons,
+                              ],
+                            );
+                          }
+
+                          return Row(
+                            children: [
+                              label,
+                              const Spacer(),
+                              buttons,
+                            ],
+                          );
+                        },
+                      ),
+                    )
+                  : state.categoryType == ProductCategoryType.disposable
+                      ? Container(
+                          height: 48,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 6,
+                          ),
+                          decoration: BoxDecoration(
+                            color: isDark ? AppColor.darkCard : AppColor.lightCard,
+                            borderRadius: BorderRadius.circular(
+                              AppSizes.borderRadiusSm,
+                            ),
+                            border: Border.all(
+                              color: const Color(0xFFF59E0B).withValues(
+                                alpha: 0.35,
+                              ),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(
+                                Icons.cloud_queue_rounded,
+                                size: 20,
+                                color: Color(0xFFF59E0B),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      isArabic
+                                          ? 'سحبة جاهزة (Disposable Vape)'
+                                          : 'Disposable Vape',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    Text(
+                                      isArabic
+                                          ? 'يُحدد الاسم تلقائياً في المتجر من النكهة والماركة'
+                                          : 'Title auto-resolved from Flavor & Brand in storefront',
+                                      style: TextStyle(
+                                        fontSize: 10.5,
+                                        color: isDark
+                                            ? AppColor.textSecondaryDark
+                                            : AppColor.textSecondaryLight,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : TextFormField(
+                          initialValue: state.title,
+                          decoration: InputDecoration(
+                            labelText: isArabic ? 'اسم الصنف / العنوان *' : 'Product Title *',
+                            hintText: isArabic ? 'مثال: Pod Kit / Box Mod / Coil' : 'e.g. Pod Kit / Box Mod / Coil',
+                            prefixIcon: const Icon(
+                              Icons.label_outline_rounded,
+                              size: 18,
+                            ),
+                          ),
+                          onChanged: (v) => cubit.updateBasicInfo(title: v),
+                        );
+
+              final brandWidget = Row(
+                children: [
+                  Expanded(
+                    child: brandState is BrandLoading
+                        ? Container(
+                            height: 48,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                            ),
+                            decoration: BoxDecoration(
+                              color: isDark
+                                  ? AppColor.darkCard
+                                  : AppColor.lightCard,
+                              borderRadius: BorderRadius.circular(
+                                AppSizes.borderRadiusSm,
+                              ),
+                              border: Border.all(
+                                color: isDark
+                                    ? AppColor.darkBorder
+                                    : AppColor.lightBorder,
+                              ),
+                            ),
+                            child: Row(
+                              children: [
+                                const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  isArabic ? 'جاري جلب قائمة الماركات...' : 'Loading brands...',
+                                  style: const TextStyle(fontSize: 12),
+                                ),
+                              ],
+                            ),
+                          )
+                        : (brandsList.isEmpty
+                              ? TextFormField(
+                                  initialValue: state.brandName,
+                                  decoration: InputDecoration(
+                                    labelText: isArabic ? 'الماركة المصنعة *' : 'Brand Name *',
+                                    hintText: isArabic ? 'اكتب اسم الماركة...' : 'Enter brand name...',
+                                    prefixIcon: const Icon(
+                                      Icons.business_rounded,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  onChanged: (val) =>
+                                      cubit.updateBasicInfo(brandName: val),
+                                )
+                              : DropdownButtonFormField<String>(
+                                  isExpanded: true,
+                                  initialValue:
+                                      brandsList.contains(state.brandName)
+                                      ? state.brandName
+                                      : brandsList.first,
+                                  decoration: InputDecoration(
+                                    labelText: isArabic ? 'الماركة المصنعة *' : 'Brand Name *',
+                                    prefixIcon: const Icon(
+                                      Icons.business_rounded,
+                                      size: 18,
+                                    ),
+                                  ),
+                                  items: brandsList
+                                      .map(
+                                        (b) => DropdownMenuItem(
+                                          value: b,
+                                          child: Text(
+                                            b,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ),
+                                      )
+                                      .toList(),
+                                  onChanged: (val) {
+                                    if (val != null) {
+                                      final matched =
+                                          (brandState is BrandLoaded)
+                                          ? brandState.brands
+                                              .where((b) => b.name == val)
+                                              .firstOrNull
+                                          : null;
+                                      cubit.updateBasicInfo(
+                                        brandId: matched?.id ?? '',
+                                        brandName: val,
+                                      );
+                                    }
+                                  },
+                                )),
+                  ),
+                  const SizedBox(width: 4),
+                  IconButton(
+                    icon: const Icon(
+                      Icons.add_business_rounded,
+                      size: 22,
+                      color: AppColor.primary,
+                    ),
+                    tooltip: isArabic ? 'إضافة ماركة جديدة' : 'Add New Brand',
+                    onPressed: () {
+                      BrandFormDialog.show(
+                        context,
+                        onSave: (brand) {
+                          context.read<BrandCubit>().addBrand(brand);
+                          cubit.updateBasicInfo(
+                            brandId: brand.id,
+                            brandName: brand.name,
+                          );
+                        },
+                      );
+                    },
+                  ),
+                ],
+              );
+
+              if (isStacked) {
+                return Column(
+                  children: [
+                    titleWidget,
+                    const SizedBox(height: AppSizes.md),
+                    brandWidget,
+                  ],
+                );
+              }
+
+              return Row(
+                children: [
+                  Expanded(flex: 6, child: titleWidget),
+                  const SizedBox(width: AppSizes.md),
+                  Expanded(flex: 4, child: brandWidget),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: AppSizes.md),
+
+          // Description
+          TextFormField(
+            initialValue: state.description,
+            maxLines: 2,
+            decoration: InputDecoration(
+              labelText: isArabic ? 'وصف المنتج ومميزاته' : 'Product Description',
+              hintText: isArabic
+                  ? 'اكتب مواصفات وتفاصيل الفيب ومحتويات العلبة...'
+                  : 'Enter vape specifications, details, and box contents...',
+              prefixIcon: const Icon(Icons.notes_rounded, size: 18),
+            ),
+            onChanged: (v) => cubit.updateBasicInfo(description: v),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ----------------------------------------------------------------------
+  // CARD 2: MEDIA & LIVE THUMBNAIL
+  // ----------------------------------------------------------------------
+  Widget _buildMediaCard(
+    BuildContext context,
+    ProductFormState state,
+    ProductFormCubit cubit,
+    bool isDark,
+  ) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.md),
+      decoration: BoxDecoration(
+        color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
+        borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+        border: Border.all(
+          color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _buildCardHeader(
+            title: isArabic ? 'الصورة الرئيسية للمنتج' : 'Main Product Image',
+            icon: Icons.image_outlined,
+            color: const Color(0xFF6366F1),
+          ),
+          const SizedBox(height: AppSizes.md),
+
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Live Image Preview box with subtle elevation
+              Container(
+                width: 76,
+                height: 76,
+                decoration: BoxDecoration(
+                  color: isDark ? AppColor.darkCard : AppColor.lightCard,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: state.thumbnail.isNotEmpty
+                        ? const Color(0xFF6366F1).withValues(alpha: 0.4)
+                        : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+                    width: state.thumbnail.isNotEmpty ? 1.5 : 1,
+                  ),
+                  boxShadow: state.thumbnail.isNotEmpty
+                      ? [
+                          BoxShadow(
+                            color: const Color(
+                              0xFF6366F1,
+                            ).withValues(alpha: 0.15),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ]
+                      : [],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: state.thumbnail.isNotEmpty
+                    ? Image.network(
+                        state.thumbnail,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Center(
+                              child: Icon(
+                                Icons.broken_image_rounded,
+                                size: 24,
+                                color: AppColor.error,
+                              ),
+                            ),
+                      )
+                    : const Center(
+                        child: Icon(
+                          Icons.image_outlined,
+                          size: 28,
+                          color: Colors.grey,
+                        ),
+                      ),
+              ),
+              const SizedBox(width: AppSizes.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    TextFormField(
+                      key: ValueKey('thumb_${state.thumbnail.isEmpty ? "empty" : "filled"}'),
+                      initialValue: state.thumbnail,
+                      decoration: InputDecoration(
+                        labelText: isArabic
+                            ? 'رابط صورة المنتج الرئيسية'
+                            : 'Main Product Image URL',
+                        hintText: 'https://example.com/image.jpg',
+                        prefixIcon: const Icon(Icons.link_rounded, size: 18),
+                        suffixIcon: state.thumbnail.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(
+                                  Icons.clear_rounded,
+                                  size: 16,
+                                ),
+                                tooltip: isArabic ? 'مسح الرابط' : 'Clear URL',
+                                onPressed: () =>
+                                    cubit.updateBasicInfo(thumbnail: ''),
+                              )
+                            : null,
+                        isDense: true,
+                      ),
+                      onChanged: (v) =>
+                          cubit.updateBasicInfo(thumbnail: v.trim()),
+                    ),
+                    if (state.variations.any((v) => v.image.isNotEmpty)) ...[
+                      const SizedBox(height: 6),
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          const Text(
+                            'اختر من صور المتغيرات:',
+                            style: TextStyle(fontSize: 10, color: Colors.grey),
+                          ),
+                          ...state.variations
+                              .where((v) => v.image.isNotEmpty)
+                              .map(
+                                (v) => InkWell(
+                                  onTap: () => cubit.setThumbnail(v.image),
+                                  borderRadius: BorderRadius.circular(4),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColor.primary.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: AppColor.primary.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      v.sku,
+                                      style: const TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColor.primary,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ----------------------------------------------------------------------
+  // CARD 3: MARKETING & HOMEPAGE BADGES
+  // ----------------------------------------------------------------------
+  Widget _buildMarketingCard(
+    BuildContext context,
+    ProductFormState state,
+    ProductFormCubit cubit,
+    bool isDark,
+  ) {
+    return _buildHomepageBadgeSection(context, state, cubit, isDark);
+  }
+
+  Widget _buildCardHeader({
+    required String title,
+    required IconData icon,
+    required Color color,
+  }) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(5),
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.15),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Icon(icon, color: color, size: 16),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ----------------------------------------------------------------------
+  // HOMEPAGE BADGE SECTION (شارة الصفحة الرئيسية)
   // ----------------------------------------------------------------------
   Widget _buildHomepageBadgeSection(
     BuildContext context,
@@ -927,6 +1403,8 @@ class ProductCreationWizard extends StatelessWidget {
     ProductFormCubit cubit,
     bool isDark,
   ) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+
     return Container(
       padding: const EdgeInsets.all(AppSizes.md),
       decoration: BoxDecoration(
@@ -946,47 +1424,56 @@ class ProductCreationWizard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: const Icon(
-                      Icons.stars_rounded,
-                      color: Color(0xFFF59E0B),
-                      size: 20,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'هوم بيج باتش (Homepage Badge)',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: isDark
-                              ? AppColor.textPrimaryDark
-                              : AppColor.textPrimaryLight,
-                        ),
+              Expanded(
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                      Text(
-                        'تفعيل شارة ترويجية (مثل: SALE / NEW / POPULAR) تظهر على كارت المنتج بالصفحة الرئيسية',
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDark
-                              ? AppColor.textSecondaryDark
-                              : AppColor.textSecondaryLight,
-                        ),
+                      child: const Icon(
+                        Icons.stars_rounded,
+                        color: Color(0xFFF59E0B),
+                        size: 20,
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            isArabic ? 'شارة الصفحة الرئيسية' : 'Homepage Badge',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: isDark
+                                  ? AppColor.textPrimaryDark
+                                  : AppColor.textPrimaryLight,
+                            ),
+                          ),
+                          Text(
+                            isArabic
+                                ? 'تفعيل شارة ترويجية (مثل: SALE / NEW / HOT DEAL) لعرض الصنف وتمييزه بالصفحة الرئيسية'
+                                : 'Enable promotional badge (e.g. SALE / NEW / HOT DEAL) to feature product on homepage',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: isDark
+                                  ? AppColor.textSecondaryDark
+                                  : AppColor.textSecondaryLight,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               Switch(
                 value: state.isBadgeEnabled,
                 activeThumbColor: const Color(0xFFF59E0B),
@@ -999,6 +1486,49 @@ class ProductCreationWizard extends StatelessWidget {
             const SizedBox(height: AppSizes.md),
             const Divider(height: 1),
             const SizedBox(height: AppSizes.md),
+
+            // Live Badge Preview
+            if (state.badgeId.isNotEmpty) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                  ),
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.stars_rounded,
+                      size: 14,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      'معاينة شارة المتجر: ${state.badgeId}',
+                      style: const TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: AppSizes.sm),
+            ],
 
             // Dynamic Firebase Badge selector (Clean text: SALE, NEW, POPULAR)
             BlocBuilder<BadgeCubit, BadgeState>(
@@ -1112,11 +1642,13 @@ class ProductCreationWizard extends StatelessWidget {
                   children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
+                        isExpanded: true,
                         initialValue: selectedValue,
-                        decoration: const InputDecoration(
-                          labelText:
-                              'نوع الباتش (Badge Type: SALE, NEW, POPULAR...) *',
-                          prefixIcon: Icon(Icons.stars_rounded, size: 18),
+                        decoration: InputDecoration(
+                          labelText: isArabic
+                              ? 'نوع الشارة (SALE, NEW, POPULAR...) *'
+                              : 'Badge Type (SALE, NEW, POPULAR...) *',
+                          prefixIcon: const Icon(Icons.stars_rounded, size: 18),
                         ),
                         items: badges.map((b) {
                           return DropdownMenuItem<String>(
@@ -1129,6 +1661,7 @@ class ProductCreationWizard extends StatelessWidget {
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
                               ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           );
                         }).toList(),
@@ -1157,6 +1690,15 @@ class ProductCreationWizard extends StatelessWidget {
                         );
                       },
                     ),
+                    IconButton(
+                      icon: const Icon(
+                        Icons.settings_outlined,
+                        size: 22,
+                        color: Color(0xFFF59E0B),
+                      ),
+                      tooltip: 'manage_badges'.tr,
+                      onPressed: () => BadgesManagementDialog.show(context),
+                    ),
                   ],
                 );
               },
@@ -1179,7 +1721,7 @@ class ProductCreationWizard extends StatelessWidget {
   }
 
   // ----------------------------------------------------------------------
-  // STEP 4: REVIEW & CONFIRMATION
+  // STEP 4: REVIEW & CONFIRMATION (WITH REALISTIC STOREFRONT PREVIEW)
   // ----------------------------------------------------------------------
   Widget _buildStep4Review(
     BuildContext context,
@@ -1187,214 +1729,527 @@ class ProductCreationWizard extends StatelessWidget {
     ProductFormCubit cubit,
   ) {
     final isDark = HelperFun.isDarkMode(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final color = state.categoryType.accentColor;
 
-    return Container(
+    // Resolve effective lowest price for Storefront card and metrics preview
+    double resolvedPrice = state.basePrice;
+    double resolvedSalePrice = state.salePrice;
+    if (state.variations.isNotEmpty) {
+      final pricedVars = state.variations
+          .where((v) => v.price > 0 || v.salePrice > 0)
+          .toList();
+      final pool = pricedVars.isNotEmpty ? pricedVars : state.variations;
+      ProductVariationModel lowestVar = pool.first;
+      double lowestEffective = VariationMatrixEngine.effectivePrice(lowestVar);
+      for (final v in pool) {
+        final eff = VariationMatrixEngine.effectivePrice(v);
+        if (eff > 0 && (lowestEffective == 0 || eff < lowestEffective)) {
+          lowestEffective = eff;
+          lowestVar = v;
+        }
+      }
+      if (lowestVar.salePrice > 0 && lowestVar.salePrice < lowestVar.price) {
+        resolvedPrice = lowestVar.price;
+        resolvedSalePrice = lowestVar.salePrice;
+      } else {
+        resolvedPrice = lowestVar.price > 0 ? lowestVar.price : lowestVar.salePrice;
+        resolvedSalePrice = 0.0;
+      }
+    }
+
+    final hasDiscount = resolvedPrice > 0 &&
+        resolvedSalePrice > 0 &&
+        resolvedSalePrice < resolvedPrice;
+    final discountPercent = hasDiscount
+        ? ((resolvedPrice - resolvedSalePrice) / resolvedPrice * 100).round()
+        : 0;
+    final totalUnits = state.variations.isNotEmpty
+        ? state.variations.fold(0, (s, v) => s + v.stock)
+        : state.baseStock;
+    final totalInventoryValue = state.variations.isNotEmpty
+        ? state.variations.fold<double>(
+            0.0,
+            (s, v) => s + ((v.salePrice > 0 ? v.salePrice : v.price) * v.stock),
+          )
+        : (resolvedSalePrice > 0 ? resolvedSalePrice : resolvedPrice) *
+              totalUnits;
+    final totalInventoryCost = state.variations.isNotEmpty
+        ? state.variations.fold<double>(
+            0.0,
+            (s, v) => s + (v.costPrice * v.stock),
+          )
+        : state.baseCostPrice * totalUnits;
+    final totalInventoryProfit = totalInventoryValue - totalInventoryCost;
+    final totalProfitMargin = totalInventoryValue > 0
+        ? (totalInventoryProfit / totalInventoryValue * 100)
+        : 0.0;
+
+    return Column(
       key: const ValueKey('step_4_review'),
-      padding: const EdgeInsets.all(AppSizes.lg),
-      decoration: BoxDecoration(
-        color: isDark ? AppColor.darkCard : AppColor.lightCard,
-        borderRadius: BorderRadius.circular(AppSizes.cardRadiusMd),
-        border: Border.all(
-          color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Image.network(
-                  state.thumbnail,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
-                    width: 80,
-                    height: 80,
-                    color: isDark
-                        ? AppColor.darkSubCard
-                        : AppColor.lightSubCard,
-                    child: Icon(
-                      state.categoryType.icon,
-                      size: 36,
-                      color: color,
-                    ),
-                  ),
-                ),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Storefront Customer Preview Card
+        Container(
+          padding: const EdgeInsets.all(AppSizes.md),
+          decoration: BoxDecoration(
+            color: isDark ? AppColor.darkCard : AppColor.lightCard,
+            borderRadius: BorderRadius.circular(AppSizes.cardRadiusMd),
+            border: Border.all(
+              color: color.withValues(alpha: 0.35),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: color.withValues(alpha: 0.1),
+                blurRadius: 16,
+                offset: const Offset(0, 4),
               ),
-              const SizedBox(width: AppSizes.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header tag
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Row(
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: color.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
+                        const Icon(
+                          Icons.storefront_rounded,
+                          size: 16,
+                          color: AppColor.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
                           child: Text(
-                            '${state.categoryType.arabicName} | ${state.brandName}',
+                            isArabic
+                                ? 'معاينة كارت المتجر للعملاء'
+                                : 'Customer Storefront Card Preview',
                             style: TextStyle(
-                              fontSize: 11,
+                              fontSize: 12,
                               fontWeight: FontWeight.w700,
-                              color: color,
+                              color: isDark
+                                  ? AppColor.textSecondaryDark
+                                  : AppColor.textSecondaryLight,
                             ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (state.isBadgeEnabled &&
-                            state.badgeId.isNotEmpty) ...[
-                          const SizedBox(width: 6),
-                          BlocBuilder<BadgeCubit, BadgeState>(
-                            builder: (context, bState) {
-                              final badges = bState is BadgeLoaded
-                                  ? bState.badges
-                                  : <BadgeModel>[];
-                              final b = badges.firstWhere(
-                                (e) => e.id == state.badgeId,
-                                orElse: () => BadgeModel(
-                                  id: state.badgeId,
-                                  name: state.badgeId,
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 2,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColor.success.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      isArabic ? 'معاينة حية' : 'Live Preview',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                        color: AppColor.success,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSizes.md),
+
+              // Mock Card Body
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Product Image with Promo Badge Overlay
+                  Stack(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(10),
+                        child: state.thumbnail.isNotEmpty
+                            ? Image.network(
+                                state.thumbnail,
+                                width: 100,
+                                height: 100,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Container(
+                                  width: 100,
+                                  height: 100,
+                                  color: isDark
+                                      ? AppColor.darkSubCard
+                                      : AppColor.lightSubCard,
+                                  child: Icon(
+                                    state.categoryType.icon,
+                                    size: 40,
+                                    color: color,
+                                  ),
                                 ),
-                              );
-                              return Container(
+                              )
+                            : Container(
+                                width: 100,
+                                height: 100,
+                                color: isDark
+                                    ? AppColor.darkSubCard
+                                    : AppColor.lightSubCard,
+                                child: Icon(
+                                  state.categoryType.icon,
+                                  size: 40,
+                                  color: color,
+                                ),
+                              ),
+                      ),
+                      if (state.isBadgeEnabled && state.badgeId.isNotEmpty)
+                        Builder(
+                          builder: (context) {
+                            Color badgeColor = const Color(0xFFF59E0B);
+                            try {
+                              final badges =
+                                  context.read<BadgeCubit>().currentBadges;
+                              final match = badges
+                                  .where((b) =>
+                                      b.id == state.badgeId ||
+                                      b.name.toUpperCase() ==
+                                          state.badgeId.toUpperCase())
+                                  .firstOrNull;
+                              if (match != null && match.colorHex.isNotEmpty) {
+                                final clean =
+                                    match.colorHex.replaceAll('#', '').trim();
+                                badgeColor =
+                                    Color(int.parse('FF$clean', radix: 16));
+                              }
+                            } catch (_) {}
+                            return Positioned(
+                              top: 4,
+                              left: 4,
+                              child: Container(
                                 padding: const EdgeInsets.symmetric(
                                   horizontal: 6,
-                                  vertical: 3,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: badgeColor,
+                                  borderRadius: BorderRadius.circular(4),
+                                  boxShadow: const [
+                                    BoxShadow(
+                                      color: Colors.black26,
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: Text(
+                                  state.badgeId,
+                                  style: const TextStyle(
+                                    fontSize: 9,
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: AppSizes.md),
+
+                  // Product Details
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Wrap(
+                          spacing: 6,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: color.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${isArabic ? state.categoryType.arabicName : state.categoryType.displayName} | ${state.brandName}',
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: color,
+                                ),
+                              ),
+                            ),
+                            if (state.liquidOrigin.isNotEmpty &&
+                                state.categoryType ==
+                                    ProductCategoryType.liquid)
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
                                   color: const Color(
-                                    0xFFF59E0B,
-                                  ).withValues(alpha: 0.18),
+                                    0xFF0EA5E9,
+                                  ).withValues(alpha: 0.12),
                                   borderRadius: BorderRadius.circular(4),
-                                  border: Border.all(
-                                    color: const Color(
-                                      0xFFF59E0B,
-                                    ).withValues(alpha: 0.4),
-                                  ),
                                 ),
                                 child: Text(
-                                  '⭐ ${b.name}',
+                                  state.liquidOrigin == 'Local'
+                                      ? (isArabic ? '🇪🇬 محلي' : '🇪🇬 Local')
+                                      : (isArabic ? '🌍 مستورد' : '🌍 Premium'),
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: Color(0xFF0EA5E9),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          state.title.isNotEmpty && !state.title.toLowerCase().contains('untitled')
+                              ? state.title
+                              : (state.categoryType == ProductCategoryType.disposable
+                                  ? (state.selectedFlavors.length == 1
+                                      ? '${state.brandName} - ${state.selectedFlavors.first}'
+                                      : '${state.brandName} (${state.categoryType.displayName})')
+                                  : (state.categoryType == ProductCategoryType.liquid
+                                      ? '${state.brandName} (${state.categoryType.displayName})'
+                                      : '${state.brandName} ${state.categoryType.displayName}')),
+                          style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          state.description.isNotEmpty
+                              ? state.description
+                              : (isArabic ? 'لا يوجد وصف للمنتج' : 'No description provided'),
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: isDark
+                                ? AppColor.textSecondaryDark
+                                : AppColor.textSecondaryLight,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 8),
+
+                        // Pricing Row
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          children: [
+                            if (state.variations.isNotEmpty)
+                              Text(
+                                isArabic ? 'يبدأ من ' : 'From ',
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColor.primary,
+                                ),
+                              ),
+                            Text(
+                              AppFormatters.formatEGP(
+                                resolvedSalePrice > 0
+                                    ? resolvedSalePrice
+                                    : resolvedPrice,
+                              ),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                                color: AppColor.success,
+                              ),
+                            ),
+                            if (hasDiscount) ...[
+                              Text(
+                                AppFormatters.formatEGP(resolvedPrice),
+                                style: const TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey,
+                                  decoration: TextDecoration.lineThrough,
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 5,
+                                  vertical: 1,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColor.error.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(3),
+                                ),
+                                child: Text(
+                                  '-$discountPercent%',
                                   style: const TextStyle(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w800,
-                                    color: Color(0xFFF59E0B),
+                                    color: AppColor.error,
                                   ),
                                 ),
-                              );
-                            },
-                          ),
-                        ],
+                              ),
+                            ],
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColor.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${state.variations.length} ${isArabic ? "متغير متاح" : "SKUs available"}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColor.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      state.title.isNotEmpty
-                          ? state.title
-                          : '${state.brandName} ${state.categoryType.displayName}',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      state.description.isNotEmpty
-                          ? state.description
-                          : 'No description provided',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark
-                            ? AppColor.textSecondaryDark
-                            : AppColor.textSecondaryLight,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: AppSizes.lg),
-          const Divider(height: 1),
-          const SizedBox(height: AppSizes.md),
+        ),
+        const SizedBox(height: AppSizes.md),
 
-          // Summary Metrics Row
-          Row(
-            children: [
-              _buildReviewMetricCard(
-                context,
-                title: 'السعر الأساسي',
-                value: AppFormatters.formatEGP(state.basePrice),
-                icon: Icons.attach_money_rounded,
-                color: AppColor.primary,
+        // Summary KPI Metrics Row
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final card1 = _buildReviewMetricCard(
+              context,
+              title: isArabic ? 'يبدأ من (أقل سعر)' : 'Starts From (Min Price)',
+              value: AppFormatters.formatEGP(
+                resolvedSalePrice > 0 ? resolvedSalePrice : resolvedPrice,
               ),
-              const SizedBox(width: AppSizes.sm),
-              _buildReviewMetricCard(
-                context,
-                title: 'سعر العرض',
-                value: AppFormatters.formatEGP(state.salePrice),
-                icon: Icons.local_offer_outlined,
-                color: AppColor.success,
-              ),
-              const SizedBox(width: AppSizes.sm),
-              _buildReviewMetricCard(
-                context,
-                title: 'إجمالي المتغيرات',
-                value: '${state.variations.length} SKUs',
-                icon: Icons.hub_rounded,
-                color: const Color(0xFF8B5CF6),
-              ),
-              const SizedBox(width: AppSizes.sm),
-              _buildReviewMetricCard(
-                context,
-                title: 'المخزون الإجمالي',
-                value: state.variations.isNotEmpty
-                    ? '${state.variations.fold(0, (s, v) => s + v.stock)} قطعة'
-                    : '${state.baseStock} قطعة',
-                icon: Icons.inventory_2_rounded,
-                color: AppColor.warning,
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSizes.lg),
+              icon: Icons.monetization_on_outlined,
+              color: AppColor.primary,
+            );
+            final card2 = _buildReviewMetricCard(
+              context,
+              title: isArabic ? 'عدد المتغيرات' : 'Variations Count',
+              value: '${state.variations.length} ${isArabic ? "متغير" : "variants"}',
+              icon: Icons.hub_rounded,
+              color: AppColor.success,
+            );
+            final card3 = _buildReviewMetricCard(
+              context,
+              title: isArabic ? 'المخزون الإجمالي' : 'Total Stock',
+              value: '$totalUnits ${isArabic ? "قطعة" : "units"}',
+              icon: Icons.inventory_2_rounded,
+              color: AppColor.warning,
+            );
+            final card4 = _buildReviewMetricCard(
+              context,
+              title: isArabic ? 'القيمة التقديرية' : 'Estimated Value',
+              value: AppFormatters.formatEGP(totalInventoryValue),
+              icon: Icons.account_balance_wallet_rounded,
+              color: const Color(0xFF8B5CF6),
+            );
+            final card5 = _buildReviewMetricCard(
+              context,
+              title: isArabic ? 'صافي الربح التقديري' : 'Projected Profit',
+              value: totalInventoryCost > 0
+                  ? '${AppFormatters.formatEGP(totalInventoryProfit)} (${totalProfitMargin.toStringAsFixed(0)}%)'
+                  : AppFormatters.formatEGP(totalInventoryValue),
+              icon: Icons.trending_up_rounded,
+              color: const Color(0xFF10B981),
+            );
 
-          // Target Firestore Collection
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
-              borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
-              border: Border.all(
-                color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
-              ),
-            ),
-            child: const Row(
+            if (constraints.maxWidth < 720) {
+              return Column(
+                children: [
+                  Row(
+                    children: [
+                      card1,
+                      const SizedBox(width: AppSizes.sm),
+                      card2,
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.sm),
+                  Row(
+                    children: [
+                      card3,
+                      const SizedBox(width: AppSizes.sm),
+                      card4,
+                    ],
+                  ),
+                  const SizedBox(height: AppSizes.sm),
+                  Row(
+                    children: [
+                      card5,
+                    ],
+                  ),
+                ],
+              );
+            }
+
+            return Row(
               children: [
-                Icon(
-                  Icons.cloud_done_rounded,
-                  size: 16,
-                  color: Color(0xFF10B981),
-                ),
-                SizedBox(width: 8),
-                Text(
-                  'سيتم حفظ هذا الصنف في مسار Cloud Firestore: /Products/{id}',
-                  style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600),
-                ),
+                card1,
+                const SizedBox(width: AppSizes.sm),
+                card2,
+                const SizedBox(width: AppSizes.sm),
+                card3,
+                const SizedBox(width: AppSizes.sm),
+                card4,
+                const SizedBox(width: AppSizes.sm),
+                card5,
               ],
+            );
+          },
+        ),
+        const SizedBox(height: AppSizes.md),
+
+        // Target Firestore Collection Ready Banner
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
+            borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
+            border: Border.all(
+              color: const Color(0xFF10B981).withValues(alpha: 0.35),
             ),
           ),
-        ],
-      ),
+          child: Row(
+            children: [
+              const Icon(
+                Icons.cloud_done_rounded,
+                size: 18,
+                color: Color(0xFF10B981),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isArabic
+                      ? 'جاهز للنشر: سيتم حفظ بيانات الصنف والمواصفات ومصفوفة الـ SKUs في مسار Cloud Firestore: /Products/{id}'
+                      : 'Ready to publish: Product details, specs, and SKUs will be saved to Cloud Firestore: /Products/{id}',
+                  style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -1413,7 +2268,7 @@ class ProductCreationWizard extends StatelessWidget {
         decoration: BoxDecoration(
           color: color.withValues(alpha: isDark ? 0.12 : 0.06),
           borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
-          border: Border.all(color: color.withValues(alpha: 0.2)),
+          border: Border.all(color: color.withValues(alpha: 0.25)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1422,13 +2277,17 @@ class ProductCreationWizard extends StatelessWidget {
               children: [
                 Icon(icon, size: 14, color: color),
                 const SizedBox(width: 4),
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: isDark
-                        ? AppColor.textSecondaryDark
-                        : AppColor.textSecondaryLight,
+                Expanded(
+                  child: Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: isDark
+                          ? AppColor.textSecondaryDark
+                          : AppColor.textSecondaryLight,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -1441,6 +2300,8 @@ class ProductCreationWizard extends StatelessWidget {
                 fontWeight: FontWeight.w800,
                 color: color,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
         ),
@@ -1449,85 +2310,147 @@ class ProductCreationWizard extends StatelessWidget {
   }
 
   // ----------------------------------------------------------------------
-  // ACTION BUTTONS
+  // ACTION BUTTONS (WITH STEP PROGRESS AND MODERN LABELS)
   // ----------------------------------------------------------------------
   Widget _buildActionButtons(
     BuildContext context,
     ProductFormState state,
     ProductFormCubit cubit,
   ) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final isFirstStep = state.currentStep == 0;
     final isLastStep = state.currentStep == 3;
 
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        if (isFirstStep)
-          OutlinedButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('إلغاء (Cancel)'),
-          )
-        else
-          OutlinedButton.icon(
-            onPressed: () => cubit.prevStep(),
-            icon: const Icon(Icons.arrow_back_rounded, size: 16),
-            label: const Text('السابق (Back)'),
-          ),
-        Row(
-          children: [
-            if (!isLastStep) ...[
-              ElevatedButton.icon(
-                onPressed: () {
-                  // If moving from Step 2 to Step 3, automatically generate variations if empty
-                  if (state.currentStep == 1 && state.variations.isEmpty) {
-                    cubit.generateDynamicVariations();
-                  }
-                  cubit.nextStep();
-                },
-                icon: const Icon(Icons.arrow_forward_rounded, size: 16),
-                label: const Text('التالي (Next)'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.lg,
-                    vertical: 12,
-                  ),
-                ),
+    String nextLabel;
+    switch (state.currentStep) {
+      case 0:
+        nextLabel = isArabic ? 'المتابعة إلى المواصفات' : 'Continue to Specs';
+        break;
+      case 1:
+        nextLabel = isArabic ? 'الانتقال إلى المتغيرات' : 'Continue to Variations';
+        break;
+      case 2:
+        nextLabel = isArabic ? 'مراجعة الصنف النهائي' : 'Review Product';
+        break;
+      case 3:
+      default:
+        nextLabel = isArabic ? 'حفظ ونشر المنتج' : 'Save & Publish Product';
+        break;
+    }
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 500;
+
+          final prevButton = isFirstStep
+              ? OutlinedButton(
+                  onPressed: () => Navigator.maybePop(context),
+                  child: Text(isArabic ? 'إلغاء' : 'Cancel'),
+                )
+              : OutlinedButton.icon(
+                  onPressed: () => cubit.prevStep(),
+                  icon: const Icon(Icons.arrow_back_rounded, size: 16),
+                  label: Text(isArabic ? 'السابق' : 'Back'),
+                );
+
+          final stepPill = Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColor.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              isArabic
+                  ? 'الخطوة ${state.currentStep + 1} من 4'
+                  : 'Step ${state.currentStep + 1} of 4',
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColor.primary,
               ),
-            ] else ...[
-              ElevatedButton.icon(
-                onPressed: state.isSubmitting
-                    ? null
-                    : () => cubit.saveProduct(),
-                icon: state.isSubmitting
-                    ? const SizedBox(
-                        width: 16,
-                        height: 16,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.white,
-                        ),
-                      )
-                    : const Icon(Icons.cloud_upload_rounded, size: 18),
-                label: Text(
-                  state.isSubmitting
-                      ? 'جاري الحفظ...'
-                      : 'حفظ ونشر المنتج (Save Product)',
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.success,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.xl,
-                    vertical: 14,
+            ),
+          );
+
+          final nextButton = !isLastStep
+              ? ElevatedButton.icon(
+                  onPressed: () {
+                    // Automatically generate and sync variations with specs when moving from Step 2 to Step 3
+                    if (state.currentStep == 1) {
+                      cubit.generateDynamicVariations();
+                    }
+                    cubit.nextStep();
+                  },
+                  icon: const Icon(Icons.arrow_forward_rounded, size: 16),
+                  label: Text(nextLabel),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.md,
+                      vertical: 12,
+                    ),
                   ),
+                )
+              : ElevatedButton.icon(
+                  onPressed: state.isSubmitting
+                      ? null
+                      : () => cubit.saveProduct(),
+                  icon: state.isSubmitting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Icon(Icons.cloud_upload_rounded, size: 18),
+                  label: Text(
+                    state.isSubmitting
+                        ? (isArabic ? 'جاري الحفظ...' : 'Saving...')
+                        : nextLabel,
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.success,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSizes.lg,
+                      vertical: 14,
+                    ),
+                  ),
+                );
+
+          if (isCompact) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(child: stepPill),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(child: prevButton),
+                    const SizedBox(width: 10),
+                    Expanded(child: nextButton),
+                  ],
                 ),
-              ),
+              ],
+            );
+          }
+
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              prevButton,
+              stepPill,
+              nextButton,
             ],
-          ],
-        ),
-      ],
+          );
+        },
+      ),
     );
   }
 }
+

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../common/widgets/dialogs/unified_modal_sheet.dart';
 import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
@@ -6,6 +7,7 @@ import '../../../../core/formatters/formatters.dart';
 import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/customer_model.dart';
+import '../cubit/customer_cubit.dart';
 
 class CustomerDetailsDialog extends StatelessWidget {
   final CustomerModel customer;
@@ -22,6 +24,36 @@ class CustomerDetailsDialog extends StatelessWidget {
       content: CustomerDetailsDialog(customer: customer),
     );
   }
+
+  @override
+  Widget build(BuildContext context) {
+    final cubit = context.read<CustomerCubit>();
+
+    return StreamBuilder<CustomerModel?>(
+      stream: cubit.watchCustomer(customer),
+      initialData: customer,
+      builder: (context, snapshot) {
+        final currentCustomer = snapshot.data ?? customer;
+
+        // Sync update with parent cubit so customer table also reflects latest data
+        if (snapshot.hasData && snapshot.data != null && snapshot.data != customer) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (context.mounted) {
+              cubit.updateCustomerLocally(snapshot.data!);
+            }
+          });
+        }
+
+        return _CustomerDetailsContent(customer: currentCustomer);
+      },
+    );
+  }
+}
+
+class _CustomerDetailsContent extends StatelessWidget {
+  final CustomerModel customer;
+
+  const _CustomerDetailsContent({required this.customer});
 
   @override
   Widget build(BuildContext context) {
@@ -44,31 +76,77 @@ class CustomerDetailsDialog extends StatelessWidget {
               CircleAvatar(
                 radius: 28,
                 backgroundColor: AppColor.primary,
-                child: Text(
-                  firstLetter,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
-                ),
+                backgroundImage: customer.image.isNotEmpty ? NetworkImage(customer.image) : null,
+                onBackgroundImageError:
+                    customer.image.isNotEmpty ? (exception, stackTrace) {} : null,
+                child: customer.image.isEmpty
+                    ? Text(
+                        firstLetter,
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800, fontSize: 18),
+                      )
+                    : null,
               ),
               const SizedBox(width: AppSizes.md),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      customer.name,
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
-                      ),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            customer.name,
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w800,
+                              color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
+                            ),
+                          ),
+                        ),
+                        // Live stream indicator badge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: AppColor.success.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: AppColor.success.withValues(alpha: 0.25), width: 0.8),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 5,
+                                height: 5,
+                                decoration: const BoxDecoration(
+                                  color: AppColor.success,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              const Text(
+                                'LIVE',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w800,
+                                  color: AppColor.success,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       customer.email,
                       style: TextStyle(fontSize: 12, color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      '${customer.city} • ${AppFormatters.formatPhone(customer.phone)}',
+                      customer.phone.isNotEmpty
+                          ? '${customer.city} • ${AppFormatters.formatPhone(customer.phone)}'
+                          : '${customer.city} • -',
                       style: const TextStyle(fontSize: 11, color: AppColor.textMutedDark),
                     ),
                   ],

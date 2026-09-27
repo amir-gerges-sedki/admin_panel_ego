@@ -166,6 +166,39 @@ void main() {
       expect(order.shippingCost, equals(50.0));
       expect(order.totalAmount, equals(250.0));
     });
+
+    test('Correctly identifies POS In-Store sale vs Online delivery order', () {
+      final posJson = {
+        'id': 'POS_987123',
+        'source': 'pos',
+        'orderType': 'in_store',
+        'userId': 'pos_cashier',
+        'cashierName': 'Amir Cashier',
+        'status': 'delivered',
+        'totalAmount': 500.0,
+        'items': [{'title': 'Vape Coil', 'price': 500.0, 'quantity': 1}],
+      };
+
+      final posOrder = OrderModel.fromJson(posJson);
+      expect(posOrder.isPosSale, isTrue);
+      expect(posOrder.isOnlineOrder, isFalse);
+      expect(posOrder.cashierName, equals('Amir Cashier'));
+      expect(posOrder.sourceDisplayLabel, contains('POS'));
+
+      final onlineJson = {
+        'id': 'ORD_112233',
+        'source': 'mobile_app',
+        'userId': 'user_889',
+        'status': 'pending',
+        'totalAmount': 1200.0,
+        'items': [{'title': 'E-Liquid', 'price': 1200.0, 'quantity': 1}],
+      };
+
+      final onlineOrder = OrderModel.fromJson(onlineJson);
+      expect(onlineOrder.isPosSale, isFalse);
+      expect(onlineOrder.isOnlineOrder, isTrue);
+      expect(onlineOrder.sourceDisplayLabel, contains('App'));
+    });
   });
 }
 

@@ -6,6 +6,7 @@ import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/formatters/formatters.dart';
+import '../../../../core/helper/color_utils.dart';
 import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../badges/data/models/badge_model.dart';
@@ -13,6 +14,7 @@ import '../../../badges/data/repositories/badge_repository.dart';
 import '../../../badges/presentation/cubit/badge_cubit.dart';
 import '../../../badges/presentation/cubit/badge_state.dart';
 import '../../data/models/product_model.dart';
+import 'product_barcode_print_dialog.dart';
 
 class ProductDetailsDialog extends StatelessWidget {
   final ProductModel product;
@@ -22,7 +24,7 @@ class ProductDetailsDialog extends StatelessWidget {
   static void show(BuildContext context, ProductModel product) {
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final resolvedDisplayName = isArabic ? product.categoryType.arabicName : product.categoryType.displayName;
-    final displayName = product.title.isNotEmpty ? product.title : (product.brand.name.isNotEmpty ? product.brand.name : 'Untitled');
+    final displayName = product.displayTitle;
 
     UnifiedModalSheet.show(
       context: context,
@@ -51,7 +53,7 @@ class ProductDetailsDialog extends StatelessWidget {
     final isArabic = Localizations.localeOf(context).languageCode == 'ar';
     final color = product.categoryType.accentColor;
     final resolvedDisplayName = isArabic ? product.categoryType.arabicName : product.categoryType.displayName;
-    final displayName = product.title.isNotEmpty ? product.title : (product.brand.name.isNotEmpty ? product.brand.name : 'Untitled');
+    final displayName = product.displayTitle;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,28 +97,95 @@ class ProductDetailsDialog extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Row(
-                    children: [
-                      Text(
-                        AppFormatters.formatEGP(product.salePrice),
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w800,
-                          color: color,
-                        ),
-                      ),
-                      if (product.price > product.salePrice) ...[
-                        const SizedBox(width: 8),
-                        Text(
-                          AppFormatters.formatEGP(product.price),
-                          style: const TextStyle(
-                            fontSize: 13,
-                            decoration: TextDecoration.lineThrough,
-                            color: AppColor.textMutedDark,
+                  Builder(
+                    builder: (context) {
+                      final variations = product.productVariations;
+                      final List<double> effectivePrices = [];
+                      final List<double> regularPrices = [];
+
+                      if (variations.isNotEmpty) {
+                        for (final v in variations) {
+                          final hasVarDisc = v.salePrice > 0 && v.salePrice < v.price;
+                          final eff = hasVarDisc ? v.salePrice : (v.price > 0 ? v.price : v.salePrice);
+                          final reg = v.price > 0 ? v.price : v.salePrice;
+                          if (eff > 0) effectivePrices.add(eff);
+                          if (reg > 0) regularPrices.add(reg);
+                        }
+                      }
+
+                      final double minEff = effectivePrices.isNotEmpty
+                          ? effectivePrices.reduce((a, b) => a < b ? a : b)
+                          : (product.salePrice > 0 && product.salePrice < product.price ? product.salePrice : (product.price > 0 ? product.price : product.salePrice));
+                      final double maxEff = effectivePrices.isNotEmpty
+                          ? effectivePrices.reduce((a, b) => a > b ? a : b)
+                          : minEff;
+
+                      final double minReg = regularPrices.isNotEmpty
+                          ? regularPrices.reduce((a, b) => a < b ? a : b)
+                          : (product.price > 0 ? product.price : product.salePrice);
+                      final double maxReg = regularPrices.isNotEmpty
+                          ? regularPrices.reduce((a, b) => a > b ? a : b)
+                          : minReg;
+
+                      final bool hasRange = minEff < maxEff;
+                      final bool hasAnyDiscount = variations.isNotEmpty
+                          ? variations.any((v) => v.salePrice > 0 && v.salePrice < v.price)
+                          : (product.salePrice > 0 && product.salePrice < product.price);
+
+                      if (hasRange) {
+                        return Wrap(
+                          crossAxisAlignment: WrapCrossAlignment.center,
+                          spacing: 8,
+                          children: [
+                            Text(
+                              '${AppFormatters.formatEGP(minEff)} - ${AppFormatters.formatEGP(maxEff)}',
+                              style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.w800,
+                                color: hasAnyDiscount ? const Color(0xFF10B981) : color,
+                              ),
+                            ),
+                            if (hasAnyDiscount && (minReg > minEff || maxReg > maxEff))
+                              Text(
+                                '${AppFormatters.formatEGP(minReg)} - ${AppFormatters.formatEGP(maxReg)}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  decoration: TextDecoration.lineThrough,
+                                  color: AppColor.textMutedDark,
+                                ),
+                              ),
+                          ],
+                        );
+                      }
+
+                      final displayPrice = hasAnyDiscount
+                          ? product.salePrice
+                          : (product.price > 0 ? product.price : product.salePrice);
+
+                      return Row(
+                        children: [
+                          Text(
+                            AppFormatters.formatEGP(displayPrice),
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              color: hasAnyDiscount ? const Color(0xFF10B981) : color,
+                            ),
                           ),
-                        ),
-                      ],
-                    ],
+                          if (hasAnyDiscount) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              AppFormatters.formatEGP(product.price),
+                              style: const TextStyle(
+                                fontSize: 13,
+                                decoration: TextDecoration.lineThrough,
+                                color: AppColor.textMutedDark,
+                              ),
+                            ),
+                          ],
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 6),
                   Wrap(
@@ -188,61 +257,48 @@ class ProductDetailsDialog extends StatelessWidget {
                                 ? bState.badges
                                 : <BadgeModel>[];
                             final b = badges.firstWhere(
-                              (e) => e.id == product.badgeId,
+                              (e) =>
+                                  e.id == product.badgeId ||
+                                  e.name.toUpperCase() ==
+                                      product.badgeId.toUpperCase(),
                               orElse: () => BadgeModel(
                                 id: product.badgeId,
                                 name: product.badgeId,
                               ),
                             );
+                            Color bColor;
+                            try {
+                              final clean =
+                                  b.colorHex.replaceAll('#', '').trim();
+                              bColor =
+                                  Color(int.parse('FF$clean', radix: 16));
+                            } catch (_) {
+                              bColor = const Color(0xFFF59E0B);
+                            }
                             return Container(
                               padding: const EdgeInsets.symmetric(
                                 horizontal: 8,
                                 vertical: 3,
                               ),
                               decoration: BoxDecoration(
-                                color: const Color(
-                                  0xFFF59E0B,
-                                ).withValues(alpha: 0.18),
+                                color: bColor.withValues(alpha: 0.18),
                                 borderRadius: BorderRadius.circular(
                                   AppSizes.borderRadiusSm,
                                 ),
                                 border: Border.all(
-                                  color: const Color(
-                                    0xFFF59E0B,
-                                  ).withValues(alpha: 0.4),
+                                  color: bColor.withValues(alpha: 0.4),
                                 ),
                               ),
                               child: Text(
                                 '🏷️ ${b.name}',
-                                style: const TextStyle(
-                                  color: Color(0xFFF59E0B),
+                                style: TextStyle(
+                                  color: bColor,
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
                                 ),
                               ),
                             );
                           },
-                        ),
-                      if (product.isFeatured)
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 3,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColor.secondary.withValues(alpha: 0.15),
-                            borderRadius: BorderRadius.circular(
-                              AppSizes.borderRadiusSm,
-                            ),
-                          ),
-                          child: Text(
-                            'featured'.tr,
-                            style: const TextStyle(
-                              color: AppColor.secondary,
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
                         ),
                     ],
                   ),
@@ -252,6 +308,27 @@ class ProductDetailsDialog extends StatelessWidget {
           ],
         ),
         const SizedBox(height: AppSizes.md),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            ElevatedButton.icon(
+              onPressed: () => ProductBarcodePrintDialog.show(context, product: product),
+              icon: const Icon(Icons.qr_code_2_rounded, size: 16),
+              label: Text(
+                isArabic ? 'طباعة استيكرات الباركود' : 'Print Barcode Labels',
+                style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFF97316),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd)),
+                elevation: 0,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppSizes.sm),
         const Divider(height: 1),
         const SizedBox(height: AppSizes.md),
 
@@ -356,7 +433,12 @@ class ProductDetailsDialog extends StatelessWidget {
             child: Wrap(
               spacing: 12,
               runSpacing: 8,
-              children: product.specifications.entries.map((e) {
+              children: product.specifications.entries
+                  .where((e) {
+                    final k = e.key.toLowerCase();
+                    return k != 'type' && k != 'liquidtype';
+                  })
+                  .map((e) {
                 return Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -456,7 +538,15 @@ class ProductDetailsDialog extends StatelessWidget {
                             Wrap(
                               spacing: 4,
                               runSpacing: 4,
-                              children: v.attributeValues.entries.map((e) {
+                              children: v.attributeValues.entries
+                                  .where((e) {
+                                    final k = e.key.toLowerCase();
+                                    return k != 'type' && k != 'liquidtype';
+                                  })
+                                  .map((e) {
+                                final isColor = e.key.toLowerCase().contains('color') ||
+                                    e.key.contains('لون') ||
+                                    e.value.contains('#');
                                 return Container(
                                   padding: const EdgeInsets.symmetric(
                                     horizontal: 6,
@@ -469,13 +559,22 @@ class ProductDetailsDialog extends StatelessWidget {
                                       color: color.withValues(alpha: 0.2),
                                     ),
                                   ),
-                                  child: Text(
-                                    '${e.key}: ${e.value}',
-                                    style: TextStyle(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: color,
-                                    ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (isColor) ...[
+                                        ColorUtils.buildColorIndicator(e.value, size: 10),
+                                        const SizedBox(width: 4),
+                                      ],
+                                      Text(
+                                        isColor ? ColorUtils.getReadableColorName(e.value) : '${e.key}: ${e.value}',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w600,
+                                          color: color,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 );
                               }).toList(),
@@ -488,12 +587,45 @@ class ProductDetailsDialog extends StatelessWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
-                            Text(
-                              AppFormatters.formatEGP(v.salePrice),
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 13,
-                              ),
+                            Builder(
+                              builder: (context) {
+                                final hasVarDiscount = v.salePrice > 0 && v.salePrice < v.price;
+                                final varDisplayPrice = hasVarDiscount
+                                    ? v.salePrice
+                                    : (v.price > 0 ? v.price : v.salePrice);
+
+                                if (hasVarDiscount) {
+                                  return Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Text(
+                                        AppFormatters.formatEGP(varDisplayPrice),
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: 13,
+                                          color: Color(0xFF10B981),
+                                        ),
+                                      ),
+                                      Text(
+                                        AppFormatters.formatEGP(v.price),
+                                        style: const TextStyle(
+                                          fontSize: 10,
+                                          decoration: TextDecoration.lineThrough,
+                                          color: AppColor.textMutedDark,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                }
+
+                                return Text(
+                                  AppFormatters.formatEGP(varDisplayPrice),
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 13,
+                                  ),
+                                );
+                              },
                             ),
                             Text(
                               '${'stock'.tr}: ${v.stock}',

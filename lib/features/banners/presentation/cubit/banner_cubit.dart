@@ -1,62 +1,17 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/models/banner_model.dart';
 import '../../data/repositories/banner_repository.dart';
+import 'banner_state.dart';
 
-abstract class BannerState extends Equatable {
-  const BannerState();
-  @override
-  List<Object?> get props => [];
-}
-
-class BannerInitial extends BannerState {}
-class BannerLoading extends BannerState {}
-class BannerLoaded extends BannerState {
-  final List<BannerModel> banners;
-  final List<BannerModel>? _filteredBanners;
-  final String? _searchQuery;
-
-  List<BannerModel> get filteredBanners => _filteredBanners ?? banners;
-  String get searchQuery => _searchQuery ?? '';
-
-  const BannerLoaded({
-    this.banners = const [],
-    List<BannerModel>? filteredBanners,
-    String? searchQuery,
-  })  : _filteredBanners = filteredBanners ?? banners,
-        _searchQuery = searchQuery ?? '';
-
-  BannerLoaded copyWith({
-    List<BannerModel>? banners,
-    List<BannerModel>? filteredBanners,
-    String? searchQuery,
-  }) {
-    final b = banners ?? this.banners;
-    return BannerLoaded(
-      banners: b,
-      filteredBanners: filteredBanners ?? _filteredBanners ?? b,
-      searchQuery: searchQuery ?? _searchQuery ?? '',
-    );
-  }
-
-  @override
-  List<Object?> get props => [banners, filteredBanners, searchQuery];
-}
-
-class BannerError extends BannerState {
-  final String message;
-  const BannerError(this.message);
-  @override
-  List<Object?> get props => [message];
-}
+export 'banner_state.dart';
 
 class BannerCubit extends Cubit<BannerState> {
   final BannerRepository bannerRepository;
 
-  BannerCubit(this.bannerRepository) : super(BannerInitial());
+  BannerCubit(this.bannerRepository) : super(const BannerInitial());
 
   Future<void> loadBanners() async {
-    emit(BannerLoading());
+    emit(const BannerLoading());
     try {
       final banners = await bannerRepository.getBanners();
       emit(BannerLoaded(banners: banners, filteredBanners: banners));
@@ -74,6 +29,8 @@ class BannerCubit extends Cubit<BannerState> {
       return q.isEmpty ||
           b.title.toLowerCase().contains(q) ||
           b.targetScreen.toLowerCase().contains(q) ||
+          (b.productId != null && b.productId!.toLowerCase().contains(q)) ||
+          (b.productTitle != null && b.productTitle!.toLowerCase().contains(q)) ||
           b.id.toLowerCase().contains(q);
     }).toList();
 

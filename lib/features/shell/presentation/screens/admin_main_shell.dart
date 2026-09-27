@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../common/widgets/app_bar/admin_top_bar.dart';
 import '../../../../common/widgets/sidebar/admin_sidebar.dart';
+import '../../../../core/constant/app_colors.dart';
+import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/helper/responsive_helper.dart';
+import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/localization/locale_bloc.dart';
 import '../../../banners/presentation/cubit/banner_cubit.dart';
 import '../../../banners/presentation/screens/banners_screen.dart';
-import '../../../categories/presentation/cubit/category_cubit.dart';
-import '../../../categories/presentation/screens/categories_brands_screen.dart';
+import '../../../brands/presentation/cubit/brand_cubit.dart';
+import '../../../brands/presentation/screens/brands_screen.dart';
 import '../../../coupons/presentation/cubit/coupon_cubit.dart';
 import '../../../coupons/presentation/screens/coupons_screen.dart';
 import '../../../customers/presentation/cubit/customer_cubit.dart';
@@ -16,9 +20,15 @@ import '../../../notifications/presentation/cubit/notification_cubit.dart';
 import '../../../notifications/presentation/screens/broadcast_screen.dart';
 import '../../../orders/presentation/cubit/order_cubit.dart';
 import '../../../orders/presentation/screens/orders_screen.dart';
+import '../../../pos/presentation/screens/pos_screen.dart';
 import '../../../products/presentation/cubit/product_cubit.dart';
 import '../../../products/presentation/screens/products_screen.dart';
+import '../../../roles/domain/models/admin_role.dart';
+import '../../../roles/presentation/cubit/auth_role_cubit.dart';
+import '../../../roles/presentation/screens/roles_management_screen.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
+import '../../../suppliers/presentation/cubit/supplier_cubit.dart';
+import '../../../suppliers/presentation/screens/suppliers_screen.dart';
 
 class AdminMainShell extends StatefulWidget {
   const AdminMainShell({super.key});
@@ -34,122 +44,236 @@ class _AdminMainShellState extends State<AdminMainShell> {
 
   final List<String> _tabTitles = [
     'dashboard',
+    'pos_cashier',
     'products',
-    'categories',
+    'brands',
     'orders',
+    'suppliers',
     'banners',
     'coupons',
     'customers',
     'notifications',
     'settings',
+    'roles_permissions',
   ];
+
+  final Map<int, AdminPermission> _tabPermissions = {
+    0: AdminPermission.dashboard,
+    1: AdminPermission.pos,
+    2: AdminPermission.products,
+    3: AdminPermission.brands,
+    4: AdminPermission.orders,
+    5: AdminPermission.suppliers,
+    6: AdminPermission.banners,
+    7: AdminPermission.coupons,
+    8: AdminPermission.customers,
+    9: AdminPermission.notifications,
+    10: AdminPermission.settings,
+    11: AdminPermission.roles,
+  };
 
   void _handleGlobalSearch(String query) {
     switch (_selectedTabIndex) {
-      case 1:
+      case 2:
         context.read<ProductCubit>().filterProducts(query: query);
         break;
-      case 2:
-        context.read<CategoryCubit>().filterCategories(query);
-        context.read<CategoryCubit>().filterBrands(query);
-        break;
       case 3:
-        context.read<OrderCubit>().filterOrders(query: query);
+        context.read<BrandCubit>().filterBrands(query);
         break;
       case 4:
-        context.read<BannerCubit>().filterBanners(query);
+        context.read<OrderCubit>().filterOrders(query: query);
         break;
       case 5:
-        context.read<CouponCubit>().filterCoupons(query);
+        context.read<SupplierCubit>().filterSuppliers(query);
         break;
       case 6:
-        context.read<CustomerCubit>().filterCustomers(query);
+        context.read<BannerCubit>().filterBanners(query);
         break;
       case 7:
+        context.read<CouponCubit>().filterCoupons(query);
+        break;
+      case 8:
+        context.read<CustomerCubit>().filterCustomers(query);
+        break;
+      case 9:
         context.read<NotificationCubit>().filterBroadcasts(query);
         break;
       default:
         if (query.trim().isNotEmpty) {
-          setState(() => _selectedTabIndex = 1);
+          setState(() => _selectedTabIndex = 2);
           context.read<ProductCubit>().filterProducts(query: query);
         }
         break;
     }
   }
 
+  int _getFirstPermittedTab(AuthRoleState authState) {
+    for (int i = 0; i < _tabTitles.length; i++) {
+      final perm = _tabPermissions[i];
+      if (perm != null && authState.hasPermission(perm)) {
+        return i;
+      }
+    }
+    return 1; // Fallback to POS or Orders
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDesktop = ResponsiveHelper.isDesktop(context);
 
-    final screens = [
-      DashboardScreen(onNavigateTab: (index) => setState(() => _selectedTabIndex = index)),
-      const ProductsScreen(),
-      const CategoriesBrandsScreen(),
-      const OrdersScreen(),
-      const BannersScreen(),
-      const CouponsScreen(),
-      const CustomersScreen(),
-      const BroadcastScreen(),
-      const SettingsScreen(),
-    ];
+    return BlocBuilder<AuthRoleCubit, AuthRoleState>(
+      builder: (context, authState) {
+        // Ensure the active tab is permitted for the current role
+        final currentPerm = _tabPermissions[_selectedTabIndex];
+        final isCurrentTabAllowed = currentPerm != null && authState.hasPermission(currentPerm);
 
-    return BlocBuilder<OrderCubit, OrderState>(
-      builder: (context, orderState) {
-        int pendingOrdersCount = 0;
-        if (orderState is OrderLoaded) {
-          pendingOrdersCount = orderState.orders
-              .where((o) => o.status.toLowerCase() == 'pending')
-              .length;
+        if (!isCurrentTabAllowed) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _selectedTabIndex = _getFirstPermittedTab(authState);
+              });
+            }
+          });
         }
 
-        return Scaffold(
-          key: _scaffoldKey,
-          drawer: !isDesktop
-              ? Drawer(
-                  child: AdminSidebar(
-                    selectedIndex: _selectedTabIndex,
-                    onItemSelected: (index) {
-                      setState(() => _selectedTabIndex = index);
-                      Navigator.of(context).pop();
-                    },
-                    isCollapsed: false,
-                    onToggleCollapse: () {},
-                    pendingOrdersCount: pendingOrdersCount,
+        final allowedCount = _tabPermissions.values.where((p) => authState.hasPermission(p)).length;
+        final bool isSingleModuleMode = allowedCount <= 1;
+        final bool showDesktopSidebar = isDesktop && !isSingleModuleMode;
+        final bool showMobileDrawer = !isDesktop && !isSingleModuleMode;
+
+        return BlocBuilder<LocaleBloc, LocaleState>(
+          builder: (context, localeState) {
+            final screens = [
+              DashboardScreen(onNavigateTab: (index) => setState(() => _selectedTabIndex = index)),
+              const PosScreen(),
+              const ProductsScreen(),
+              const BrandsScreen(),
+              const OrdersScreen(),
+              const SuppliersScreen(),
+              const BannersScreen(),
+              const CouponsScreen(),
+              const CustomersScreen(),
+              const BroadcastScreen(),
+              const SettingsScreen(),
+              const RolesManagementScreen(),
+            ];
+
+            return BlocBuilder<OrderCubit, OrderState>(
+              builder: (context, orderState) {
+                int pendingOrdersCount = 0;
+                if (orderState is OrderLoaded) {
+                  pendingOrdersCount = orderState.orders
+                      .where((o) => o.status.toLowerCase() == 'pending')
+                      .length;
+                }
+
+                return PopScope(
+                  canPop: false,
+                  onPopInvokedWithResult: (didPop, result) {
+                    if (didPop) return;
+                    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+                      _scaffoldKey.currentState?.closeDrawer();
+                    }
+                  },
+                  child: Scaffold(
+                    key: _scaffoldKey,
+                    drawer: showMobileDrawer
+                        ? Drawer(
+                            child: AdminSidebar(
+                              selectedIndex: _selectedTabIndex,
+                              onItemSelected: (index) {
+                                setState(() => _selectedTabIndex = index);
+                                if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+                                  _scaffoldKey.currentState?.closeDrawer();
+                                }
+                              },
+                              isCollapsed: false,
+                              onToggleCollapse: () {},
+                              pendingOrdersCount: pendingOrdersCount,
+                            ),
+                          )
+                        : null,
+                    body: Row(
+                      children: [
+                        if (showDesktopSidebar)
+                          AdminSidebar(
+                            selectedIndex: _selectedTabIndex,
+                            onItemSelected: (index) => setState(() => _selectedTabIndex = index),
+                            isCollapsed: _isSidebarCollapsed,
+                            onToggleCollapse: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
+                            pendingOrdersCount: pendingOrdersCount,
+                          ),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              AdminTopBar(
+                                title: _selectedTabIndex < _tabTitles.length
+                                    ? _tabTitles[_selectedTabIndex]
+                                    : 'dashboard',
+                                onMenuPressed: showMobileDrawer
+                                    ? () => _scaffoldKey.currentState?.openDrawer()
+                                    : null,
+                                onGlobalSearch: _handleGlobalSearch,
+                                onNotificationPressed: () {
+                                  setState(() => _selectedTabIndex = 4);
+                                  context.read<OrderCubit>().filterOrders(status: 'Pending', query: '');
+                                },
+                                onNavigateTab: (index) => setState(() => _selectedTabIndex = index),
+                              ),
+
+                              Expanded(
+                                child: AnimatedSwitcher(
+                                  duration: const Duration(milliseconds: 200),
+                                  child: KeyedSubtree(
+                                    key: ValueKey('${localeState.locale.languageCode}_$_selectedTabIndex'),
+                                    child: isCurrentTabAllowed
+                                        ? screens[_selectedTabIndex]
+                                        : _buildAccessDeniedView(context),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                )
-              : null,
-          body: Row(
-            children: [
-              if (isDesktop)
-                AdminSidebar(
-                  selectedIndex: _selectedTabIndex,
-                  onItemSelected: (index) => setState(() => _selectedTabIndex = index),
-                  isCollapsed: _isSidebarCollapsed,
-                  onToggleCollapse: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
-                  pendingOrdersCount: pendingOrdersCount,
-                ),
-              Expanded(
-                child: Column(
-                  children: [
-                    AdminTopBar(
-                      title: _tabTitles[_selectedTabIndex],
-                      onMenuPressed: () => _scaffoldKey.currentState?.openDrawer(),
-                      onGlobalSearch: _handleGlobalSearch,
-                      onNotificationPressed: () => setState(() => _selectedTabIndex = 7),
-                    ),
-                    Expanded(
-                      child: AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 200),
-                        child: screens[_selectedTabIndex],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+                );
+              },
+            );
+          },
         );
       },
+    );
+  }
+
+  Widget _buildAccessDeniedView(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: AppColor.error.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.lock_rounded, size: 48, color: AppColor.error),
+          ),
+          const SizedBox(height: AppSizes.md),
+          Text(
+            'access_denied_title'.tr,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          const SizedBox(height: AppSizes.xs),
+          Text(
+            'access_denied_desc'.tr,
+            style: const TextStyle(fontSize: 13, color: Colors.grey),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
     );
   }
 }

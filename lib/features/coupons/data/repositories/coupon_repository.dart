@@ -1,5 +1,5 @@
 import 'package:flutter/foundation.dart';
-import '../../../../core/services/firebase_service.dart';
+import '../datasources/coupon_remote_data_source.dart';
 import '../models/coupon_model.dart';
 
 abstract class CouponRepository {
@@ -10,15 +10,15 @@ abstract class CouponRepository {
 }
 
 class CouponRepositoryImpl implements CouponRepository {
+  final CouponRemoteDataSource remoteDataSource;
+
+  CouponRepositoryImpl({CouponRemoteDataSource? remoteDataSource})
+      : remoteDataSource = remoteDataSource ?? CouponRemoteDataSourceImpl();
+
   @override
   Future<List<CouponModel>> getCoupons() async {
     try {
-      final snapshot = await FirebaseService.getDocsSafely('Coupons', secondaryName: 'coupons');
-      return snapshot.docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return CouponModel.fromJson(data);
-      }).toList();
+      return await remoteDataSource.getCoupons();
     } catch (e) {
       debugPrint('Firestore Coupons fetch note: $e');
       return [];
@@ -26,17 +26,14 @@ class CouponRepositoryImpl implements CouponRepository {
   }
 
   @override
-  Future<void> addCoupon(CouponModel coupon) async {
-    await FirebaseService.couponsCollection.doc(coupon.id).set(coupon.toJson());
-  }
+  Future<void> addCoupon(CouponModel coupon) =>
+      remoteDataSource.addCoupon(coupon);
 
   @override
-  Future<void> updateCoupon(CouponModel coupon) async {
-    await FirebaseService.couponsCollection.doc(coupon.id).set(coupon.toJson());
-  }
+  Future<void> updateCoupon(CouponModel coupon) =>
+      remoteDataSource.updateCoupon(coupon);
 
   @override
-  Future<void> deleteCoupon(String id) async {
-    await FirebaseService.couponsCollection.doc(id).delete();
-  }
+  Future<void> deleteCoupon(String id) =>
+      remoteDataSource.deleteCoupon(id);
 }

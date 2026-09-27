@@ -1,346 +1,36 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
-import 'package:flutter/material.dart';
-import '../../../../core/helper/color_utils.dart';
+import 'product_attribute.dart';
+import 'product_brand.dart';
+import 'product_category_type.dart';
+import 'product_variation_model.dart';
 
-enum ProductCategoryType {
-  liquid,
-  device,
-  pod,
-  coil,
-  accessory;
+// Re-export domain sub-models so existing imports throughout the app remain seamless.
+export 'product_attribute.dart';
+export 'product_brand.dart';
+export 'product_category_type.dart';
+export 'product_variation_model.dart';
+export 'stock_movement_model.dart';
 
-  static List<ProductCategoryType> get visibleTypes => const [
-    ProductCategoryType.liquid,
-    ProductCategoryType.device,
-    ProductCategoryType.pod,
-    ProductCategoryType.accessory,
-  ];
-
-  String get id {
-    switch (this) {
-      case ProductCategoryType.liquid:
-        return 'CAT_LIQUIDS';
-      case ProductCategoryType.device:
-        return 'CAT_HARDWARE';
-      case ProductCategoryType.pod:
-      case ProductCategoryType.coil:
-        return 'CAT_COILS_PODS';
-      case ProductCategoryType.accessory:
-        return 'CAT_ACCESSORIES';
-    }
-  }
-
-  String get displayName {
-    switch (this) {
-      case ProductCategoryType.liquid:
-        return 'E-Liquids';
-      case ProductCategoryType.device:
-        return 'Devices & Mods';
-      case ProductCategoryType.pod:
-      case ProductCategoryType.coil:
-        return 'Coils & Cartridges';
-      case ProductCategoryType.accessory:
-        return 'Accessories';
-    }
-  }
-
-  String get arabicName {
-    switch (this) {
-      case ProductCategoryType.liquid:
-        return 'سوائل إلكترونية (Liquid)';
-      case ProductCategoryType.device:
-        return 'أجهزة ومودات (Device)';
-      case ProductCategoryType.pod:
-      case ProductCategoryType.coil:
-        return 'كويلات وكارتردج (Coils & Cartridges)';
-      case ProductCategoryType.accessory:
-        return 'إكسسوارات ومستلزمات';
-    }
-  }
-
-  String get description {
-    switch (this) {
-      case ProductCategoryType.liquid:
-        return 'سولت نيكوتين وفري بيز مع النكهات وسحب MTL/DL';
-      case ProductCategoryType.device:
-        return 'أجهزة فيب وبود كيت مع خيارات الألوان والبطارية';
-      case ProductCategoryType.pod:
-      case ProductCategoryType.coil:
-        return 'كويلات مقاومة وبودات وكارتردج مع قيم المقاومة ونطاق الواط (Wattage)';
-      case ProductCategoryType.accessory:
-        return 'بطاريات وشواحن وقطن وزجاج وأدوات الصيانة';
-    }
-  }
-
-  IconData get icon {
-    switch (this) {
-      case ProductCategoryType.liquid:
-        return Icons.water_drop_rounded;
-      case ProductCategoryType.device:
-        return Icons.vape_free_rounded;
-      case ProductCategoryType.pod:
-      case ProductCategoryType.coil:
-        return Icons.flash_on_rounded;
-      case ProductCategoryType.accessory:
-        return Icons.handyman_rounded;
-    }
-  }
-
-  Color get accentColor {
-    switch (this) {
-      case ProductCategoryType.liquid:
-        return const Color(0xFF0EA5E9); // Ocean Cyan
-      case ProductCategoryType.device:
-        return const Color(0xFF6366F1); // Indigo
-      case ProductCategoryType.pod:
-      case ProductCategoryType.coil:
-        return const Color(0xFF10B981); // Emerald Green
-      case ProductCategoryType.accessory:
-        return const Color(0xFFEC4899); // Rose Pink
-    }
-  }
-
-  static ProductCategoryType fromString(String? raw) {
-    if (raw == null) return ProductCategoryType.liquid;
-    final r = raw.toLowerCase();
-    if (r.contains('liquid') ||
-        r.contains('salt') ||
-        r.contains('freebase') ||
-        r.contains('juice') ||
-        r.contains('flavor') ||
-        r.contains('local') ||
-        r.contains('prem') ||
-        r.contains('prim')) {
-      return ProductCategoryType.liquid;
-    }
-    if (r.contains('pod') ||
-        r.contains('cartridge') ||
-        r.contains('coil') ||
-        r.contains('mesh') ||
-        r.contains('resistance')) {
-      return ProductCategoryType.pod;
-    }
-    if (r.contains('accessory') ||
-        r.contains('battery') ||
-        r.contains('charger') ||
-        r.contains('cotton') ||
-        r.contains('glass') ||
-        r.contains('tool')) {
-      return ProductCategoryType.accessory;
-    }
-    if (r.contains('device') ||
-        r.contains('kit') ||
-        r.contains('mod') ||
-        r.contains('hardware')) {
-      return ProductCategoryType.device;
-    }
-    return ProductCategoryType.liquid;
-  }
-}
-
-class ProductBrand extends Equatable {
-  final String id;
-  final String name;
-  final String image;
-  final int productsCount;
-
-  const ProductBrand({
-    required this.id,
-    required this.name,
-    this.image = '',
-    this.productsCount = 0,
-  });
-
-  factory ProductBrand.fromJson(dynamic json) {
-    if (json == null) return const ProductBrand(id: '', name: 'General');
-    if (json is String) {
-      return ProductBrand(id: json, name: json);
-    }
-    if (json is Map) {
-      return ProductBrand(
-        id: json['id']?.toString() ?? json['Id']?.toString() ?? '',
-        name:
-            json['name']?.toString() ??
-            json['Name']?.toString() ??
-            json['lineName']?.toString() ??
-            json['LineName']?.toString() ??
-            json['title']?.toString() ??
-            '',
-        image:
-            json['image']?.toString() ??
-            json['Image']?.toString() ??
-            json['logo']?.toString() ??
-            '',
-        productsCount:
-            (json['productsCount'] ?? json['ProductsCount'] as num?)?.toInt() ??
-            0,
-      );
-    }
-    return ProductBrand(id: '', name: json.toString());
-  }
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'name': name,
-    'image': image,
-    'productsCount': productsCount,
-  };
-
-  @override
-  List<Object?> get props => [id, name, image, productsCount];
-}
-
-class ProductAttribute extends Equatable {
-  final String name;
-  final List<String> values;
-
-  const ProductAttribute({required this.name, required this.values});
-
-  factory ProductAttribute.fromJson(Map<String, dynamic> json) {
-    final rawValues = json['values'] ?? json['Values'];
-    final List<String> parsedValues = rawValues is List
-        ? rawValues.map((e) => e.toString()).toList()
-        : <String>[];
-
-    return ProductAttribute(
-      name: json['name']?.toString() ?? json['Name']?.toString() ?? '',
-      values: parsedValues,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {'name': name, 'values': values};
-
-  @override
-  List<Object?> get props => [name, values];
-}
-
-class ProductVariationModel extends Equatable {
-  final String id;
-  final String sku;
-  final double price;
-  final double salePrice;
-  final int stock;
-  final String image;
-  final Map<String, String> attributeValues;
-
-  const ProductVariationModel({
-    required this.id,
-    required this.sku,
-    required this.price,
-    required this.salePrice,
-    required this.stock,
-    this.image = '',
-    required this.attributeValues,
-  });
-
-  factory ProductVariationModel.fromJson(Map<String, dynamic> json) {
-    final rawAttrs =
-        json['attributeValues'] ??
-        json['AttributeValues'] ??
-        json['attributes'] ??
-        {};
-    final Map<String, String> attrs = {};
-    if (rawAttrs is Map) {
-      rawAttrs.forEach((k, v) {
-        final keyStr = k.toString();
-        if (keyStr.toLowerCase() != 'wattage' &&
-            keyStr.toLowerCase() != 'watt') {
-          attrs[keyStr] = v.toString();
-        }
-      });
-    }
-
-    return ProductVariationModel(
-      id: json['id']?.toString() ?? json['Id']?.toString() ?? '',
-      sku:
-          json['sku']?.toString() ??
-          json['Sku']?.toString() ??
-          json['SKU']?.toString() ??
-          '',
-      price: (json['price'] ?? json['Price'] as num?)?.toDouble() ?? 0.0,
-      salePrice:
-          (json['salePrice'] ?? json['SalePrice'] ?? json['price'] as num?)
-              ?.toDouble() ??
-          0.0,
-      stock:
-          (json['stock'] ??
-                  json['Stock'] ??
-                  json['quantity'] ??
-                  json['Quantity'] as num?)
-              ?.toInt() ??
-          0,
-      image: json['image']?.toString() ?? json['Image']?.toString() ?? '',
-      attributeValues: attrs,
-    );
-  }
-
-  ProductVariationModel copyWith({
-    String? id,
-    String? sku,
-    double? price,
-    double? salePrice,
-    int? stock,
-    String? image,
-    Map<String, String>? attributeValues,
-  }) {
-    return ProductVariationModel(
-      id: id ?? this.id,
-      sku: sku ?? this.sku,
-      price: price ?? this.price,
-      salePrice: salePrice ?? this.salePrice,
-      stock: stock ?? this.stock,
-      image: image ?? this.image,
-      attributeValues: attributeValues ?? this.attributeValues,
-    );
-  }
-
-  Map<String, dynamic> toJson() => {
-    'id': id,
-    'sku': sku,
-    'price': price,
-    'salePrice': salePrice,
-    'stock': stock,
-    'image': image,
-    'Image': image,
-    'attributeValues': attributeValues,
-    'attributes': attributeValues,
-  };
-
-  @override
-  List<Object?> get props => [
-    id,
-    sku,
-    price,
-    salePrice,
-    stock,
-    image,
-    attributeValues,
-  ];
-}
-
+/// Comprehensive Product Model representing all vaping catalog items.
 class ProductModel extends Equatable {
   final String id;
   final String title;
   final String description;
   final double price;
   final double salePrice;
+  final double costPrice;
   final int stock;
-  final String thumbnail;
+  final int? lowStockThreshold;
   final List<String> images;
   final ProductBrand brand;
   final String categoryId;
   final ProductCategoryType categoryType;
-  final bool isFeatured;
   final bool isBadgeEnabled;
   final String badgeId;
   final String productType; // 'simple' or 'variable'
   final List<ProductAttribute> productAttributes;
   final List<ProductVariationModel> productVariations;
-  final List<String> flavors;
   final Map<String, dynamic> specifications;
-  final double rating;
-  final int totalReviews;
 
   const ProductModel({
     required this.id,
@@ -348,26 +38,96 @@ class ProductModel extends Equatable {
     required this.description,
     required this.price,
     required this.salePrice,
+    this.costPrice = 0.0,
     required this.stock,
-    required this.thumbnail,
+    this.lowStockThreshold,
     this.images = const [],
     required this.brand,
     required this.categoryId,
     this.categoryType = ProductCategoryType.liquid,
-    this.isFeatured = false,
     this.isBadgeEnabled = false,
     this.badgeId = '',
     this.productType = 'simple',
     this.productAttributes = const [],
     this.productVariations = const [],
-    this.flavors = const [],
     this.specifications = const {},
-    this.rating = 5.0,
-    this.totalReviews = 0,
   });
+
+  double get effectivePrice => salePrice > 0 ? salePrice : price;
+  double get profitPerUnit => (effectivePrice - costPrice).clamp(0.0, double.infinity);
+  double get profitMarginPercent => effectivePrice > 0 ? ((effectivePrice - costPrice) / effectivePrice) * 100 : 0.0;
+
 
   bool get isVariable =>
       productType == 'variable' || productVariations.isNotEmpty;
+
+  /// Dynamic primary thumbnail resolved from the first image in [images].
+  String get thumbnail => images.isNotEmpty ? images.first : '';
+
+  /// Dynamic flavor list resolved directly from [productAttributes] or [productVariations].
+  List<String> get flavors {
+    for (final attr in productAttributes) {
+      if (attr.name.toLowerCase().contains('flav')) {
+        return attr.values;
+      }
+    }
+    final Set<String> flavsFromVars = {};
+    for (final v in productVariations) {
+      v.attributeValues.forEach((key, val) {
+        if (key.toLowerCase().contains('flav') && val.trim().isNotEmpty) {
+          flavsFromVars.add(val.trim());
+        }
+      });
+    }
+    if (flavsFromVars.isNotEmpty) return flavsFromVars.toList();
+
+    final specFlavors = specifications['flavors'];
+    if (specFlavors is List && specFlavors.isNotEmpty) {
+      return specFlavors
+          .map((e) => e.toString().trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+
+    return const [];
+  }
+
+  /// Dynamic Display Title resolving cleanly for all product categories:
+  /// - If title is explicitly set (and not 'Untitled Product' / 'Untitled'): use it.
+  /// - For Liquids & Disposables:
+  ///   - 1 Flavor: Flavor Name
+  ///   - >1 Flavors: Brand Name
+  ///   - No Flavors: Brand Name
+  /// - Fallback: Brand Name or Category Type
+  String get displayTitle {
+    final cleanTitle = title.trim();
+    if (cleanTitle.isNotEmpty &&
+        !cleanTitle.toLowerCase().contains('untitled')) {
+      return cleanTitle;
+    }
+
+    final flavs = flavors;
+    if (categoryType == ProductCategoryType.liquid ||
+        categoryType == ProductCategoryType.disposable) {
+      if (flavs.length == 1) {
+        return flavs.first;
+      } else if (brand.name.trim().isNotEmpty) {
+        return brand.name.trim();
+      } else if (flavs.isNotEmpty) {
+        return flavs.join(', ');
+      }
+    }
+
+    if (brand.name.trim().isNotEmpty) {
+      return brand.name.trim();
+    }
+
+    if (flavs.isNotEmpty) {
+      return flavs.first;
+    }
+
+    return categoryType.displayName;
+  }
 
   ProductModel copyWith({
     String? id,
@@ -375,22 +135,19 @@ class ProductModel extends Equatable {
     String? description,
     double? price,
     double? salePrice,
+    double? costPrice,
     int? stock,
-    String? thumbnail,
+    int? lowStockThreshold,
     List<String>? images,
     ProductBrand? brand,
     String? categoryId,
     ProductCategoryType? categoryType,
-    bool? isFeatured,
     bool? isBadgeEnabled,
     String? badgeId,
     String? productType,
     List<ProductAttribute>? productAttributes,
     List<ProductVariationModel>? productVariations,
-    List<String>? flavors,
     Map<String, dynamic>? specifications,
-    double? rating,
-    int? totalReviews,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -398,55 +155,25 @@ class ProductModel extends Equatable {
       description: description ?? this.description,
       price: price ?? this.price,
       salePrice: salePrice ?? this.salePrice,
+      costPrice: costPrice ?? this.costPrice,
       stock: stock ?? this.stock,
-      thumbnail: thumbnail ?? this.thumbnail,
+      lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
       images: images ?? this.images,
       brand: brand ?? this.brand,
       categoryId: categoryId ?? this.categoryId,
       categoryType: categoryType ?? this.categoryType,
-      isFeatured: isFeatured ?? this.isFeatured,
       isBadgeEnabled: isBadgeEnabled ?? this.isBadgeEnabled,
       badgeId: badgeId ?? this.badgeId,
       productType: productType ?? this.productType,
       productAttributes: productAttributes ?? this.productAttributes,
       productVariations: productVariations ?? this.productVariations,
-      flavors: flavors ?? this.flavors,
       specifications: specifications ?? this.specifications,
-      rating: rating ?? this.rating,
-      totalReviews: totalReviews ?? this.totalReviews,
     );
   }
 
   factory ProductModel.fromJson(Map<String, dynamic> json) {
-    // Images list
-    final rawImages =
-        json['images'] ?? json['Images'] ?? json['imageUrls'] ?? [];
-    final List<String> imagesList = [];
-    if (rawImages is List) {
-      for (final img in rawImages) {
-        if (img != null && img.toString().isNotEmpty) {
-          imagesList.add(img.toString());
-        }
-      }
-    }
-
-    final thumb =
-        json['thumbnail']?.toString() ??
-        json['Thumbnail']?.toString() ??
-        json['image']?.toString() ??
-        json['Image']?.toString() ??
-        (imagesList.isNotEmpty ? imagesList.first : '');
-
-    // Brand / Line detection
-    final rawBrand =
-        json['brandName'] ??
-        json['BrandName'] ??
-        json['brand'] ??
-        json['Brand'] ??
-        json['line'] ??
-        json['Line'] ??
-        json['lineName'] ??
-        json['LineName'];
+    final imagesList = _parseImages(json);
+    final brand = _parseBrand(json);
 
     final catId =
         json['categoryId']?.toString() ??
@@ -464,85 +191,212 @@ class ProductModel extends Equatable {
         catId;
 
     final determinedType = ProductCategoryType.fromString(rawType);
+    final specsMap = _parseSpecifications(json);
+    final sanitizedAttrs = _parseAttributes(json, determinedType);
+    final sanitizedVars = _parseVariations(json, determinedType);
+    final resolvedTitle = _parseTitle(json, determinedType);
 
-    // Flavors list
-    final rawFlavors = json['flavors'] ?? json['Flavors'] ?? [];
-    final List<String> flavorsList = [];
-    if (rawFlavors is List) {
-      for (final f in rawFlavors) {
-        if (f != null && f.toString().isNotEmpty) {
-          flavorsList.add(f.toString());
+    final rawBadgeId =
+        json['badgeId']?.toString() ??
+        json['BadgeId']?.toString() ??
+        json['badgeRef']?.toString() ??
+        json['badge']?.toString() ??
+        '';
+
+    final hasBadge =
+        json['isBadgeEnabled'] == true ||
+        json['IsBadgeEnabled'] == true ||
+        json['hasBadge'] == true ||
+        rawBadgeId.isNotEmpty;
+
+    return ProductModel(
+      id: json['id']?.toString() ?? json['Id']?.toString() ?? '',
+      title: resolvedTitle,
+      description:
+          json['description']?.toString() ??
+          json['Description']?.toString() ??
+          '',
+      price: (json['price'] ?? json['Price'] as num?)?.toDouble() ?? 0.0,
+      salePrice:
+          (json['salePrice'] ?? json['SalePrice'] ?? json['price'] as num?)
+              ?.toDouble() ??
+          0.0,
+      costPrice:
+          (json['costPrice'] ?? json['CostPrice'] ?? json['cost'] as num?)
+              ?.toDouble() ??
+          0.0,
+      stock:
+          (json['stock'] ??
+                  json['Stock'] ??
+                  json['quantity'] ??
+                  json['Quantity'] as num?)
+              ?.toInt() ??
+          0,
+      lowStockThreshold: (json['lowStockThreshold'] as num?)?.toInt(),
+      images: imagesList,
+      brand: brand,
+      categoryId: catId,
+      categoryType: determinedType,
+      isBadgeEnabled: hasBadge,
+      badgeId: rawBadgeId,
+      productType:
+          (json['productType'] ??
+                  json['ProductType'] ??
+                  json['type'] ??
+                  'simple')
+              .toString()
+              .toLowerCase(),
+      productAttributes: sanitizedAttrs,
+      productVariations: sanitizedVars,
+      specifications: specsMap,
+    );
+  }
+
+  Map<String, dynamic> toJson({bool forFirestore = false}) {
+    final bool isLiquid = categoryType == ProductCategoryType.liquid;
+    final String liquidOriginVal =
+        (specifications['liquidOrigin'] ??
+                (specifications['isLocal'] == true ? 'Local' : 'Premium'))
+            .toString();
+    final String liquidCategoryLabel =
+        liquidOriginVal.toLowerCase().contains('local')
+        ? 'Local Liquid'
+        : 'Premium Liquid';
+
+    return {
+      'id': id,
+      'description': description,
+      'price': price,
+      'salePrice': salePrice,
+      'costPrice': costPrice,
+      'stock': stock,
+      if (lowStockThreshold != null) 'lowStockThreshold': lowStockThreshold,
+      'images': images,
+      'brand': brand.toJson(),
+      'categoryId': categoryId,
+      'categoryType': isLiquid ? liquidCategoryLabel : categoryType.name,
+      if (!isLiquid) ...{'title': title, 'name': title},
+      'isBadgeEnabled': isBadgeEnabled,
+      'badgeId': isBadgeEnabled ? badgeId : '',
+      'productType': productVariations.isNotEmpty ? 'variable' : productType,
+      'productAttributes': productAttributes.map((e) => e.toJson()).toList(),
+      'productVariations': productVariations.map((e) => e.toJson()).toList(),
+      'specifications': specifications,
+    };
+  }
+
+  // --- PRIVATE CLEAN ARCHITECTURE PARSER HELPERS ---
+
+  static List<String> _parseImages(Map<String, dynamic> json) {
+    final rawImages =
+        json['images'] ?? json['Images'] ?? json['imageUrls'] ?? [];
+    final List<String> imagesList = [];
+    if (rawImages is List) {
+      for (final img in rawImages) {
+        if (img != null && img.toString().isNotEmpty) {
+          imagesList.add(img.toString());
         }
       }
     }
 
-    // Specifications
+    final fallbackThumb =
+        json['thumbnail']?.toString() ??
+        json['Thumbnail']?.toString() ??
+        json['image']?.toString() ??
+        json['Image']?.toString();
+
+    if (fallbackThumb != null &&
+        fallbackThumb.trim().isNotEmpty &&
+        !imagesList.contains(fallbackThumb.trim())) {
+      imagesList.insert(0, fallbackThumb.trim());
+    }
+
+    return imagesList;
+  }
+
+  static ProductBrand _parseBrand(Map<String, dynamic> json) {
+    final rawBrand = json['brand'] ??
+        json['Brand'] ??
+        json['brandName'] ??
+        json['BrandName'] ??
+        json['line'] ??
+        json['lineName'];
+    return ProductBrand.fromJson(rawBrand);
+  }
+
+  static Map<String, dynamic> _parseSpecifications(Map<String, dynamic> json) {
     final rawSpecs = json['specifications'] ?? json['specs'] ?? {};
     final Map<String, dynamic> specsMap = {};
     if (rawSpecs is Map) {
-      rawSpecs.forEach((k, v) => specsMap[k.toString()] = v);
+      rawSpecs.forEach((k, v) {
+        final kLower = k.toString().toLowerCase();
+        if (kLower != 'type' && kLower != 'liquidtype') {
+          specsMap[k.toString()] = v;
+        }
+      });
     }
+    final rootStyle = json['vapeStyle'] ?? json['style'] ?? json['Style'];
+    if (rootStyle != null && !specsMap.containsKey('vapeStyle')) {
+      specsMap['vapeStyle'] = rootStyle.toString();
+    }
+    final rootFlavors = json['flavors'] ?? json['Flavors'];
+    if (rootFlavors != null && !specsMap.containsKey('flavors')) {
+      specsMap['flavors'] = rootFlavors;
+    }
+    final rootOrigin = json['liquidOrigin'] ?? json['origin'];
+    if (rootOrigin != null && !specsMap.containsKey('liquidOrigin')) {
+      specsMap['liquidOrigin'] = rootOrigin.toString();
+    } else if (!specsMap.containsKey('liquidOrigin')) {
+      final catType = json['categoryType']?.toString() ?? '';
+      if (catType.toLowerCase().contains('local')) {
+        specsMap['liquidOrigin'] = 'Local';
+      } else if (catType.toLowerCase().contains('prem')) {
+        specsMap['liquidOrigin'] = 'Premium';
+      }
+    }
+    return specsMap;
+  }
 
-    // Attributes list
+  static List<ProductAttribute> _parseAttributes(
+    Map<String, dynamic> json,
+    ProductCategoryType determinedType,
+  ) {
     final rawAttrs = json['productAttributes'] ?? json['ProductAttributes'];
     final List<ProductAttribute> attrsList = [];
     if (rawAttrs is List) {
       for (final item in rawAttrs) {
         if (item is ProductAttribute) {
-          if (item.name.toLowerCase() != 'wattage' &&
-              item.name.toLowerCase() != 'watt') {
+          final n = item.name.toLowerCase();
+          if (n != 'wattage' && n != 'watt' && n != 'type' && n != 'liquidtype') {
             attrsList.add(item);
           }
         } else if (item is Map) {
           final attr = ProductAttribute.fromJson(
             Map<String, dynamic>.from(item),
           );
-          if (attr.name.toLowerCase() != 'wattage' &&
-              attr.name.toLowerCase() != 'watt') {
+          final n = attr.name.toLowerCase();
+          if (n != 'wattage' && n != 'watt' && n != 'type' && n != 'liquidtype') {
             attrsList.add(attr);
           }
         }
       }
     }
 
-    // Variations list
-    final rawVars = json['productVariations'] ?? json['ProductVariations'];
-    final List<ProductVariationModel> varsList = [];
-    if (rawVars is List) {
-      for (final item in rawVars) {
-        if (item is ProductVariationModel) {
-          varsList.add(item);
-        } else if (item is Map) {
-          varsList.add(
-            ProductVariationModel.fromJson(Map<String, dynamic>.from(item)),
-          );
-        }
-      }
-    }
-
-    // Sanitize attributes list strictly by category type
     final List<ProductAttribute> sanitizedAttrs = [];
     for (final attr in attrsList) {
       final nameLower = attr.name.toLowerCase();
-      if (nameLower == 'wattage' || nameLower == 'watt') continue;
+      if (nameLower == 'wattage' ||
+          nameLower == 'watt' ||
+          nameLower == 'type' ||
+          nameLower == 'liquidtype') {
+        continue;
+      }
 
-      if (determinedType == ProductCategoryType.device) {
-        // Device ONLY has Color - normalize each color value to hex!
+      if (determinedType == ProductCategoryType.device ||
+          determinedType == ProductCategoryType.accessory) {
         if (nameLower.contains('color')) {
-          final List<String> normalizedValues = attr.values
-              .map((val) {
-                final text = val.trim();
-                if (text.startsWith('#')) return text;
-                final parsed = ColorUtils.parseColorsFromText(text);
-                if (parsed.isNotEmpty) {
-                  return ColorUtils.toHex(parsed.first);
-                }
-                return text;
-              })
-              .cast<String>()
-              .toList();
           sanitizedAttrs.add(
-            ProductAttribute(name: 'Color', values: normalizedValues),
+            ProductAttribute(name: 'Color', values: attr.values.map((v) => v.trim()).toList()),
           );
         }
       } else if (determinedType == ProductCategoryType.pod ||
@@ -565,29 +419,45 @@ class ProductModel extends Equatable {
         sanitizedAttrs.add(attr);
       }
     }
+    return sanitizedAttrs;
+  }
 
-    // Sanitize variation attributes strictly by category type
+  static List<ProductVariationModel> _parseVariations(
+    Map<String, dynamic> json,
+    ProductCategoryType determinedType,
+  ) {
+    final rawVars = json['productVariations'] ?? json['ProductVariations'];
+    final List<ProductVariationModel> varsList = [];
+    if (rawVars is List) {
+      for (final item in rawVars) {
+        if (item is ProductVariationModel) {
+          varsList.add(item);
+        } else if (item is Map) {
+          varsList.add(
+            ProductVariationModel.fromJson(Map<String, dynamic>.from(item)),
+          );
+        }
+      }
+    }
+
     final List<ProductVariationModel> sanitizedVars = [];
     for (final v in varsList) {
       final Map<String, String> cleanedMap = {};
       v.attributeValues.forEach((key, val) {
         final kLower = key.toLowerCase();
-        if (kLower == 'wattage' || kLower == 'watt') return;
+        if (kLower == 'wattage' ||
+            kLower == 'watt' ||
+            kLower == 'type' ||
+            kLower == 'liquidtype') {
+          return;
+        }
 
-        if (determinedType == ProductCategoryType.device) {
+        if (determinedType == ProductCategoryType.device ||
+            determinedType == ProductCategoryType.accessory) {
           if (kLower.contains('color')) {
-            // NORMALIZE TO HEX SO IT MATCHES PRODUCT ATTRIBUTES 100%!
-            final text = val.trim();
-            if (text.startsWith('#')) {
-              cleanedMap['Color'] = text;
-            } else {
-              final parsed = ColorUtils.parseColorsFromText(text);
-              if (parsed.isNotEmpty) {
-                cleanedMap['Color'] = ColorUtils.toHex(parsed.first);
-              } else {
-                cleanedMap['Color'] = text;
-              }
-            }
+            cleanedMap['Color'] = val.trim();
+          } else {
+            cleanedMap[key] = val;
           }
         } else if (determinedType == ProductCategoryType.pod ||
             determinedType == ProductCategoryType.coil) {
@@ -606,24 +476,15 @@ class ProductModel extends Equatable {
           cleanedMap[key] = val;
         }
       });
-
       sanitizedVars.add(v.copyWith(attributeValues: cleanedMap));
     }
+    return sanitizedVars;
+  }
 
-
-    final rawBadgeId =
-        json['badgeId']?.toString() ??
-        json['BadgeId']?.toString() ??
-        json['badgeRef']?.toString() ??
-        json['badge']?.toString() ??
-        '';
-
-    final hasBadge =
-        json['isBadgeEnabled'] == true ||
-        json['IsBadgeEnabled'] == true ||
-        json['hasBadge'] == true ||
-        rawBadgeId.isNotEmpty;
-
+  static String _parseTitle(
+    Map<String, dynamic> json,
+    ProductCategoryType determinedType,
+  ) {
     final rawTitle =
         json['title'] ??
         json['Title'] ??
@@ -631,127 +492,13 @@ class ProductModel extends Equatable {
         json['Name'] ??
         json['liquidName'] ??
         json['LiquidName'];
-    final String resolvedTitle;
-    if (rawTitle != null && rawTitle.toString().trim().isNotEmpty) {
-      resolvedTitle = rawTitle.toString().trim();
-    } else if (determinedType == ProductCategoryType.liquid) {
-      resolvedTitle = '';
+    if (rawTitle != null &&
+        rawTitle.toString().trim().isNotEmpty &&
+        !rawTitle.toString().trim().toLowerCase().contains('untitled')) {
+      return rawTitle.toString().trim();
     } else {
-      resolvedTitle = 'Untitled Product';
+      return '';
     }
-
-    return ProductModel(
-      id: json['id']?.toString() ?? json['Id']?.toString() ?? '',
-      title: resolvedTitle,
-      description:
-          json['description']?.toString() ??
-          json['Description']?.toString() ??
-          '',
-      price: (json['price'] ?? json['Price'] as num?)?.toDouble() ?? 0.0,
-      salePrice:
-          (json['salePrice'] ?? json['SalePrice'] ?? json['price'] as num?)
-              ?.toDouble() ??
-          0.0,
-      stock:
-          (json['stock'] ??
-                  json['Stock'] ??
-                  json['quantity'] ??
-                  json['Quantity'] as num?)
-              ?.toInt() ??
-          0,
-      thumbnail: thumb,
-      images: imagesList,
-      brand: ProductBrand.fromJson(rawBrand),
-      categoryId: catId,
-      categoryType: determinedType,
-      isFeatured: json['isFeatured'] == true || json['IsFeatured'] == true,
-      isBadgeEnabled: hasBadge,
-      badgeId: rawBadgeId,
-      productType:
-          (json['productType'] ??
-                  json['ProductType'] ??
-                  json['type'] ??
-                  'simple')
-              .toString()
-              .toLowerCase(),
-      productAttributes: sanitizedAttrs,
-      productVariations: sanitizedVars,
-      flavors: determinedType == ProductCategoryType.liquid
-          ? flavorsList
-          : const [],
-      specifications: specsMap,
-      rating: (json['rating'] ?? json['Rating'] as num?)?.toDouble() ?? 5.0,
-      totalReviews:
-          (json['totalReviews'] ?? json['TotalReviews'] as num?)?.toInt() ?? 0,
-    );
-  }
-
-  Map<String, dynamic> toJson({bool forFirestore = false}) {
-    final bool isLiquid = categoryType == ProductCategoryType.liquid;
-    final String liquidOriginVal =
-        (specifications['liquidOrigin'] ??
-                specifications['liquidType'] ??
-                (specifications['isLocal'] == true ? 'Local' : 'Premium'))
-            .toString();
-    final String liquidCategoryLabel =
-        liquidOriginVal.toLowerCase().contains('local')
-        ? 'Local Liquid'
-        : 'Premium Liquid';
-
-    final Map<String, dynamic> data = {
-      'id': id,
-      'description': description,
-      'price': price,
-      'salePrice': salePrice,
-      'stock': stock,
-      'thumbnail': thumbnail,
-      'Thumbnail': thumbnail,
-      'image': thumbnail,
-      'Image': thumbnail,
-      'images': images,
-      'Images': images,
-      'imageUrls': images,
-      'brand': brand.toJson(),
-      'brandName': brand.name,
-      'line': brand.name,
-      'lineName': brand.name,
-      'categoryId': isLiquid ? liquidCategoryLabel : categoryId,
-      'category': isLiquid ? liquidCategoryLabel : categoryId,
-      'subCategory': isLiquid ? liquidCategoryLabel : '',
-      'subCategoryName': isLiquid ? liquidCategoryLabel : '',
-      'categoryType': isLiquid ? liquidCategoryLabel : categoryType.name,
-      'liquidOrigin': isLiquid ? liquidOriginVal : '',
-      'liquidType': isLiquid ? liquidCategoryLabel : '',
-      'origin': isLiquid ? liquidOriginVal : '',
-      'isFeatured': isFeatured,
-      'isBadgeEnabled': isBadgeEnabled,
-      'badgeId': isBadgeEnabled ? badgeId : '',
-      'productType': productVariations.isNotEmpty ? 'variable' : productType,
-      'productAttributes': productAttributes.map((e) => e.toJson()).toList(),
-      'ProductAttributes': productAttributes.map((e) => e.toJson()).toList(),
-      'productVariations': productVariations.map((e) => e.toJson()).toList(),
-      'ProductVariations': productVariations.map((e) => e.toJson()).toList(),
-      'flavors': categoryType == ProductCategoryType.liquid
-          ? flavors
-          : <String>[],
-      'specifications': specifications,
-      'rating': rating,
-      'totalReviews': totalReviews,
-    };
-
-    if (isLiquid) {
-      if (forFirestore) {
-        data['title'] = FieldValue.delete();
-        data['name'] = FieldValue.delete();
-        data['Title'] = FieldValue.delete();
-        data['Name'] = FieldValue.delete();
-      }
-    } else {
-      data['title'] = title;
-      data['name'] = title;
-    }
-
-    return data;
   }
 
   @override
@@ -761,21 +508,18 @@ class ProductModel extends Equatable {
     description,
     price,
     salePrice,
+    costPrice,
     stock,
-    thumbnail,
+    lowStockThreshold,
     images,
     brand,
     categoryId,
     categoryType,
-    isFeatured,
     isBadgeEnabled,
     badgeId,
     productType,
     productAttributes,
     productVariations,
-    flavors,
     specifications,
-    rating,
-    totalReviews,
   ];
 }

@@ -1,411 +1,273 @@
-import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../core/helper/color_utils.dart';
 import '../../data/models/product_model.dart';
 import '../../data/repositories/product_repository.dart';
+import '../../domain/variation_matrix_engine.dart';
+import 'product_form_state.dart';
 
-class ProductFormState extends Equatable {
-  final int currentStep; // 0: Type, 1: Specs, 2: Matrix, 3: Review
-  final ProductCategoryType categoryType;
-  final bool isEditMode;
-  final String? initialProductId;
+export 'product_form_state.dart';
 
-  // Basic Info
-  final String title;
-  final String description;
-  final String brandName;
-  final double basePrice;
-  final double salePrice;
-  final int baseStock;
-  final String baseSku;
-  final String thumbnail;
-  final List<String> images;
-  final bool isFeatured;
-  final bool isBadgeEnabled;
-  final String badgeId;
-  final bool isSubmitting;
-  final String? errorMessage;
-  final bool isSuccess;
+/// Global memory pool of liquid flavors that persists across products during the admin session.
+/// Populated ONLY from products existing in Firestore and user entries.
+class GlobalFlavorsPool {
+  GlobalFlavorsPool._();
 
-  // 1. Liquid Specs
-  final String liquidOrigin; // 'Local' or 'Premium'
-  final List<String> availableFlavors;
-  final List<String> selectedFlavors;
-  final String activeFlavor;
-  final String vapeStyle; // 'MTL', 'DL', 'BOTH'
-  final List<String> availableNicotines;
-  final List<String> selectedNicotines;
-  final List<String> availableSizes;
-  final List<String> selectedSizes;
-  final String vgPgRatio;
+  static final Set<String> _flavors = <String>{};
 
-  // 2. Device Specs
-  final String maxWattage;
-  final String batteryType;
-  final String batteryCapacity;
-  final String chargingPort;
-  final String screenType;
-  final String airflowType;
-  final List<String> availableColors;
-  final List<String> selectedColors;
+  static List<String> get flavors => _flavors.toList()..sort();
 
-  // 3. Pod & Coil Specs (Coils & Cartridges)
-  final String podCompatibleDevices;
-  final String podCapacity;
-  final List<String> availablePodCapacities;
-  final List<String> selectedPodCapacities;
-  final List<String> availablePodFillTypes;
-  final List<String> selectedPodFillTypes;
-  final List<String> availablePodResistances;
-  final List<String> selectedPodResistances;
-  final Map<String, String> podResistanceWattages;
-  final List<String> availablePodPackSizes;
-  final List<String> selectedPodPackSizes;
-  final bool isPrefilledPod;
-
-
-  // 4. Legacy Coil Specs (mapped to Coils & Cartridges)
-  final String coilCompatibleTanks;
-  final List<String> availableCoilResistances;
-  final List<String> selectedCoilResistances;
-  final String wireMaterial;
-  final String recommendedWattage;
-  final List<String> availableCoilPackSizes;
-  final List<String> selectedCoilPackSizes;
-
-  // 5. Accessory Specs
-  final String accessoryCategory;
-  final String accessoryCompatibility;
-  final String accessoryMaterial;
-
-  // Variations Matrix
-  final List<ProductVariationModel> variations;
-
-  const ProductFormState({
-    this.currentStep = 0,
-    this.categoryType = ProductCategoryType.liquid,
-    this.isEditMode = false,
-    this.initialProductId,
-    this.title = '',
-    this.description = '',
-    this.brandName = '',
-    this.basePrice = 0.0,
-    this.salePrice = 0.0,
-    this.baseStock = 0,
-    this.baseSku = '',
-    this.thumbnail = '',
-    this.images = const [],
-    this.isFeatured = false,
-    this.isBadgeEnabled = false,
-    this.badgeId = '',
-    this.isSubmitting = false,
-    this.errorMessage,
-    this.isSuccess = false,
-
-    // Liquid Specs
-    this.liquidOrigin = 'Local',
-    this.availableFlavors = const [],
-    this.selectedFlavors = const [],
-    this.activeFlavor = '',
-    this.vapeStyle = 'MTL',
-    this.availableNicotines = const [
-      '3mg',
-      '6mg',
-      '9mg',
-      '12mg',
-      '18mg',
-      '20mg',
-      '25mg',
-      '30mg',
-      '50mg',
-    ],
-    this.selectedNicotines = const [],
-    this.availableSizes = const ['15ml', '30ml', '60ml', '100ml', '120ml'],
-    this.selectedSizes = const [],
-    this.vgPgRatio = '50/50',
-
-    // Device Specs
-    this.maxWattage = '',
-    this.batteryType = 'Built-in Battery',
-    this.batteryCapacity = '',
-    this.chargingPort = '',
-    this.screenType = '',
-    this.airflowType = '',
-    this.availableColors = const [],
-    this.selectedColors = const [],
-
-    // Pod & Coil Specs
-    this.podCompatibleDevices = '',
-    this.podCapacity = '',
-    this.availablePodCapacities = const [
-      '2.0ml',
-      '3.0ml',
-      '4.0ml',
-      '4.5ml',
-      '5.0ml',
-    ],
-    this.selectedPodCapacities = const [],
-    this.availablePodFillTypes = const [
-      'Top Fill',
-      'Side Fill',
-      'Bottom Fill',
-    ],
-    this.selectedPodFillTypes = const [],
-    this.availablePodResistances = const [
-      '0.15Ω',
-      '0.2Ω',
-      '0.3Ω',
-      '0.4Ω',
-      '0.6Ω',
-      '0.7Ω',
-      '0.8Ω',
-      '1.0Ω',
-      '1.2Ω',
-    ],
-    this.selectedPodResistances = const [],
-    this.podResistanceWattages = const {},
-    this.availablePodPackSizes = const [
-      'Pack of 4',
-      'Pack of 3',
-      'Pack of 2',
-      'Single Pod (1pc)',
-    ],
-    this.selectedPodPackSizes = const [],
-    this.isPrefilledPod = false,
-
-    // Coil Specs
-    this.coilCompatibleTanks = '',
-    this.availableCoilResistances = const [
-      '0.15Ω',
-      '0.2Ω',
-      '0.3Ω',
-      '0.4Ω',
-      '0.6Ω',
-      '0.7Ω',
-      '0.8Ω',
-      '1.0Ω',
-      '1.2Ω',
-    ],
-    this.selectedCoilResistances = const [],
-    this.wireMaterial = '',
-    this.recommendedWattage = '',
-    this.availableCoilPackSizes = const [
-      'Pack of 5',
-      'Pack of 3',
-      'Single Coil (1pc)',
-    ],
-    this.selectedCoilPackSizes = const [],
-
-    // Accessory Specs
-    this.accessoryCategory = '',
-    this.accessoryCompatibility = '',
-    this.accessoryMaterial = '',
-
-    this.variations = const [],
-  });
-
-  ProductFormState copyWith({
-    int? currentStep,
-    ProductCategoryType? categoryType,
-    bool? isEditMode,
-    String? initialProductId,
-    String? title,
-    String? description,
-    String? brandName,
-    double? basePrice,
-    double? salePrice,
-    int? baseStock,
-    String? baseSku,
-    String? thumbnail,
-    List<String>? images,
-    bool? isFeatured,
-    bool? isBadgeEnabled,
-    String? badgeId,
-    bool? isSubmitting,
-    String? errorMessage,
-    bool? isSuccess,
-    String? liquidOrigin,
-    List<String>? availableFlavors,
-    List<String>? selectedFlavors,
-    String? activeFlavor,
-    String? vapeStyle,
-    List<String>? availableNicotines,
-    List<String>? selectedNicotines,
-    List<String>? availableSizes,
-    List<String>? selectedSizes,
-    String? vgPgRatio,
-    String? maxWattage,
-    String? batteryType,
-    String? batteryCapacity,
-    String? chargingPort,
-    String? screenType,
-    String? airflowType,
-    List<String>? availableColors,
-    List<String>? selectedColors,
-    String? podCompatibleDevices,
-    String? podCapacity,
-    List<String>? availablePodCapacities,
-    List<String>? selectedPodCapacities,
-    List<String>? availablePodFillTypes,
-    List<String>? selectedPodFillTypes,
-    List<String>? availablePodResistances,
-    List<String>? selectedPodResistances,
-    Map<String, String>? podResistanceWattages,
-    List<String>? availablePodPackSizes,
-    List<String>? selectedPodPackSizes,
-    bool? isPrefilledPod,
-    String? coilCompatibleTanks,
-    List<String>? availableCoilResistances,
-    List<String>? selectedCoilResistances,
-    String? wireMaterial,
-    String? recommendedWattage,
-    List<String>? availableCoilPackSizes,
-    List<String>? selectedCoilPackSizes,
-    String? accessoryCategory,
-    String? accessoryCompatibility,
-    String? accessoryMaterial,
-    List<ProductVariationModel>? variations,
-  }) {
-    return ProductFormState(
-      currentStep: currentStep ?? this.currentStep,
-      categoryType: categoryType ?? this.categoryType,
-      isEditMode: isEditMode ?? this.isEditMode,
-      initialProductId: initialProductId ?? this.initialProductId,
-      title: title ?? this.title,
-      description: description ?? this.description,
-      brandName: brandName ?? this.brandName,
-      basePrice: basePrice ?? this.basePrice,
-      salePrice: salePrice ?? this.salePrice,
-      baseStock: baseStock ?? this.baseStock,
-      baseSku: baseSku ?? this.baseSku,
-      thumbnail: thumbnail ?? this.thumbnail,
-      images: images ?? this.images,
-      isFeatured: isFeatured ?? this.isFeatured,
-      isBadgeEnabled: isBadgeEnabled ?? this.isBadgeEnabled,
-      badgeId: badgeId ?? this.badgeId,
-      isSubmitting: isSubmitting ?? this.isSubmitting,
-      errorMessage: errorMessage,
-      isSuccess: isSuccess ?? this.isSuccess,
-      liquidOrigin: liquidOrigin ?? this.liquidOrigin,
-      availableFlavors: availableFlavors ?? this.availableFlavors,
-      selectedFlavors: selectedFlavors ?? this.selectedFlavors,
-      activeFlavor: activeFlavor ?? this.activeFlavor,
-      vapeStyle: vapeStyle ?? this.vapeStyle,
-      availableNicotines: availableNicotines ?? this.availableNicotines,
-      selectedNicotines: selectedNicotines ?? this.selectedNicotines,
-      availableSizes: availableSizes ?? this.availableSizes,
-      selectedSizes: selectedSizes ?? this.selectedSizes,
-      vgPgRatio: vgPgRatio ?? this.vgPgRatio,
-      maxWattage: maxWattage ?? this.maxWattage,
-      batteryType: batteryType ?? this.batteryType,
-      batteryCapacity: batteryCapacity ?? this.batteryCapacity,
-      chargingPort: chargingPort ?? this.chargingPort,
-      screenType: screenType ?? this.screenType,
-      airflowType: airflowType ?? this.airflowType,
-      availableColors: availableColors ?? this.availableColors,
-      selectedColors: selectedColors ?? this.selectedColors,
-      podCompatibleDevices: podCompatibleDevices ?? this.podCompatibleDevices,
-      podCapacity: podCapacity ?? this.podCapacity,
-      availablePodCapacities:
-          availablePodCapacities ?? this.availablePodCapacities,
-      selectedPodCapacities:
-          selectedPodCapacities ?? this.selectedPodCapacities,
-      availablePodFillTypes:
-          availablePodFillTypes ?? this.availablePodFillTypes,
-      selectedPodFillTypes:
-          selectedPodFillTypes ?? this.selectedPodFillTypes,
-      availablePodResistances:
-          availablePodResistances ?? this.availablePodResistances,
-      selectedPodResistances:
-          selectedPodResistances ?? this.selectedPodResistances,
-      podResistanceWattages:
-          podResistanceWattages ?? this.podResistanceWattages,
-      availablePodPackSizes:
-          availablePodPackSizes ?? this.availablePodPackSizes,
-      selectedPodPackSizes: selectedPodPackSizes ?? this.selectedPodPackSizes,
-      isPrefilledPod: isPrefilledPod ?? this.isPrefilledPod,
-      coilCompatibleTanks: coilCompatibleTanks ?? this.coilCompatibleTanks,
-      availableCoilResistances:
-          availableCoilResistances ?? this.availableCoilResistances,
-      selectedCoilResistances:
-          selectedCoilResistances ?? this.selectedCoilResistances,
-      wireMaterial: wireMaterial ?? this.wireMaterial,
-      recommendedWattage: recommendedWattage ?? this.recommendedWattage,
-      availableCoilPackSizes:
-          availableCoilPackSizes ?? this.availableCoilPackSizes,
-      selectedCoilPackSizes:
-          selectedCoilPackSizes ?? this.selectedCoilPackSizes,
-      accessoryCategory: accessoryCategory ?? this.accessoryCategory,
-      accessoryCompatibility:
-          accessoryCompatibility ?? this.accessoryCompatibility,
-      accessoryMaterial: accessoryMaterial ?? this.accessoryMaterial,
-      variations: variations ?? this.variations,
-    );
+  static void addFlavor(String flavor) {
+    final clean = flavor.trim();
+    if (clean.isNotEmpty) {
+      _flavors.add(clean);
+    }
   }
 
-  @override
-  List<Object?> get props => [
-    currentStep,
-    categoryType,
-    isEditMode,
-    initialProductId,
-    title,
-    description,
-    brandName,
-    basePrice,
-    salePrice,
-    baseStock,
-    baseSku,
-    thumbnail,
-    images,
-    isFeatured,
-    isBadgeEnabled,
-    badgeId,
-    isSubmitting,
-    errorMessage,
-    isSuccess,
-    liquidOrigin,
-    availableFlavors,
-    selectedFlavors,
-    activeFlavor,
-    vapeStyle,
-    availableNicotines,
-    selectedNicotines,
-    availableSizes,
-    selectedSizes,
-    vgPgRatio,
-    maxWattage,
-    batteryType,
-    batteryCapacity,
-    chargingPort,
-    screenType,
-    airflowType,
-    availableColors,
-    selectedColors,
-    podCompatibleDevices,
-    podCapacity,
-    availablePodCapacities,
-    selectedPodCapacities,
-    availablePodFillTypes,
-    selectedPodFillTypes,
-    availablePodResistances,
-    selectedPodResistances,
-    podResistanceWattages,
-    availablePodPackSizes,
-    selectedPodPackSizes,
-    isPrefilledPod,
-    coilCompatibleTanks,
-    availableCoilResistances,
-    selectedCoilResistances,
-    wireMaterial,
-    recommendedWattage,
-    availableCoilPackSizes,
-    selectedCoilPackSizes,
-    accessoryCategory,
-    accessoryCompatibility,
-    accessoryMaterial,
-    variations,
-  ];
+  static void addFlavors(Iterable<String> newFlavors) {
+    for (final f in newFlavors) {
+      addFlavor(f);
+    }
+  }
+
+  /// Automatically harvests flavors from all loaded catalog products in Firestore.
+  static void harvestFromProducts(Iterable<ProductModel> products) {
+    for (final p in products) {
+      if (p.flavors.isNotEmpty) {
+        addFlavors(p.flavors);
+      }
+      final specFlavors = (p.specifications['flavors'] as List<dynamic>?)
+          ?.map((e) => e.toString());
+      if (specFlavors != null) {
+        addFlavors(specFlavors);
+      }
+      for (final v in p.productVariations) {
+        final f = v.attributeValues['Flavour'] ??
+            v.attributeValues['flavor'] ??
+            v.attributeValues['Flavor'];
+        if (f != null && f.trim().isNotEmpty) {
+          addFlavor(f);
+        }
+      }
+    }
+  }
+
+  static void resetForTesting() {
+    _flavors.clear();
+  }
+}
+
+/// Global session-persistent pool for device hardware spec options.
+/// Works exactly like [GlobalFlavorsPool] — options added during one product
+/// creation survive to the next product, and the pool is seeded automatically
+/// from existing Firestore products when loaded.
+class GlobalDeviceSpecsPool {
+  GlobalDeviceSpecsPool._();
+
+  // All collections start EMPTY.
+  // Values come exclusively from:
+  //   1. Firestore products harvested on session start (harvestFromProducts)
+  //   2. Values the admin manually adds via Quick-Add dialogs during this session
+
+  // --- Wattage ---
+  static final Set<String> _wattageOptions = {};
+  static List<String> get wattageOptions =>
+      (_wattageOptions.toList()..sort(_numericSort));
+  static void addWattage(String v) {
+    final c = v.trim();
+    if (c.isNotEmpty) _wattageOptions.add(c);
+  }
+
+  // --- Battery Capacity ---
+  static final Set<String> _batteryCapacities = {};
+  static List<String> get batteryCapacities =>
+      (_batteryCapacities.toList()..sort(_mAhSort));
+  static void addBatteryCapacity(String v) {
+    final c = v.trim();
+    if (c.isNotEmpty) _batteryCapacities.add(c);
+  }
+
+  // --- Battery System ---
+  static final Map<String, String> _batterySystems = {};
+  static Map<String, String> get batterySystems =>
+      Map<String, String>.from(_batterySystems);
+  static void addBatterySystem(String key, String label) {
+    if (key.trim().isNotEmpty) _batterySystems[key.trim()] = label.trim();
+  }
+
+  // --- Charging Port ---
+  static final Map<String, String> _chargingPorts = {};
+  static Map<String, String> get chargingPorts =>
+      Map<String, String>.from(_chargingPorts);
+  static void addChargingPort(String key, String label) {
+    if (key.trim().isNotEmpty) _chargingPorts[key.trim()] = label.trim();
+  }
+
+  // --- Screen Type ---
+  static final Map<String, String> _screenTypes = {};
+  static Map<String, String> get screenTypes =>
+      Map<String, String>.from(_screenTypes);
+  static void addScreenType(String key, String label) {
+    if (key.trim().isNotEmpty) _screenTypes[key.trim()] = label.trim();
+  }
+
+  // --- Airflow ---
+  static final Map<String, String> _airflowTypes = {};
+  static Map<String, String> get airflowTypes =>
+      Map<String, String>.from(_airflowTypes);
+  static void addAirflowType(String key, String label) {
+    if (key.trim().isNotEmpty) _airflowTypes[key.trim()] = label.trim();
+  }
+
+  /// Harvest device spec values from existing Firestore products into the pool.
+  static void harvestFromProducts(Iterable<ProductModel> products) {
+    for (final p in products) {
+      if (p.categoryType != ProductCategoryType.device) continue;
+      final specs = p.specifications;
+      final w = specs['maxWattage']?.toString() ?? '';
+      if (w.isNotEmpty) addWattage(w);
+      final bc = specs['batteryCapacity']?.toString() ?? '';
+      if (bc.isNotEmpty) addBatteryCapacity(bc);
+      final bt = specs['batteryType']?.toString() ?? '';
+      if (bt.isNotEmpty) addBatterySystem(bt, bt);
+      final cp = specs['chargingPort']?.toString() ?? '';
+      if (cp.isNotEmpty) addChargingPort(cp, cp);
+      final st = specs['screenType']?.toString() ?? '';
+      if (st.isNotEmpty) addScreenType(st, st);
+      final af = specs['airflowType']?.toString() ?? '';
+      if (af.isNotEmpty) addAirflowType(af, af);
+    }
+  }
+
+  // Sort helpers — numeric ascending (e.g. 15W < 80W < 200W)
+  static int _numericSort(String a, String b) {
+    final numA = double.tryParse(a.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0;
+    final numB = double.tryParse(b.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0;
+    return numA.compareTo(numB);
+  }
+
+  static int _mAhSort(String a, String b) {
+    if (a.toLowerCase().startsWith('external')) return 1;
+    if (b.toLowerCase().startsWith('external')) return -1;
+    return _numericSort(a, b);
+  }
+
+  static void resetForTesting() {
+    _wattageOptions.clear();
+    _batteryCapacities.clear();
+    _batterySystems.clear();
+    _chargingPorts.clear();
+    _screenTypes.clear();
+    _airflowTypes.clear();
+  }
+}
+
+/// Global session-persistent pool for disposable vape spec options (Puffs & Battery Capacity).
+/// Works exactly like [GlobalFlavorsPool] and [GlobalDeviceSpecsPool].
+/// Starts completely EMPTY (no hardcoded presets).
+/// Populated exclusively from:
+///   1. Firestore products harvested on session start (harvestFromProducts)
+///   2. Values the admin manually inputs / saves during this session
+class GlobalDisposableSpecsPool {
+  GlobalDisposableSpecsPool._();
+
+  static final Set<String> _puffOptions = <String>{};
+  static final Set<String> _batteryOptions = <String>{};
+
+  static List<String> get puffOptions =>
+      (_puffOptions.toList()..sort(_numericSort));
+
+  static List<String> get batteryOptions =>
+      (_batteryOptions.toList()..sort(_numericSort));
+
+  static void addPuff(String val) {
+    final c = val.trim();
+    if (c.isNotEmpty) {
+      _puffOptions.add(c);
+    }
+  }
+
+  static void addPuffs(Iterable<String> vals) {
+    for (final v in vals) {
+      addPuff(v);
+    }
+  }
+
+  static void addBattery(String val) {
+    final c = val.trim();
+    if (c.isNotEmpty) {
+      _batteryOptions.add(c);
+    }
+  }
+
+  static void addBatteries(Iterable<String> vals) {
+    for (final v in vals) {
+      addBattery(v);
+    }
+  }
+
+  /// Harvests puffs and battery capacity from existing products into the pool.
+  static void harvestFromProducts(Iterable<ProductModel> products) {
+    for (final p in products) {
+      final specs = p.specifications;
+      final puffVal = specs['puffs']?.toString() ??
+          specs['puffsCount']?.toString() ??
+          specs['numberOfPuffs']?.toString() ??
+          '';
+      if (puffVal.isNotEmpty) {
+        addPuff(puffVal);
+      }
+
+      // Check product attributes
+      for (final attr in p.productAttributes) {
+        final name = attr.name.toLowerCase();
+        if (name.contains('puff')) {
+          addPuffs(attr.values);
+        }
+        if (name.contains('battery') &&
+            p.categoryType == ProductCategoryType.disposable) {
+          addBatteries(attr.values);
+        }
+      }
+
+      // Check variations
+      for (final v in p.productVariations) {
+        final pVal = v.attributeValues['Puffs'] ??
+            v.attributeValues['puffs'] ??
+            v.attributeValues['Puff'];
+        if (pVal != null && pVal.trim().isNotEmpty) {
+          addPuff(pVal);
+        }
+      }
+
+      final isDisposable = p.categoryType == ProductCategoryType.disposable ||
+          specs['categoryType']?.toString().toLowerCase() == 'disposable' ||
+          p.categoryId.toLowerCase().contains('disp') ||
+          puffVal.isNotEmpty;
+
+      // Battery specs for disposable
+      if (isDisposable) {
+        final batVal = specs['batteryCapacity']?.toString() ??
+            specs['battery']?.toString() ??
+            '';
+        if (batVal.isNotEmpty) {
+          addBattery(batVal);
+        }
+      }
+    }
+  }
+
+  static int _numericSort(String a, String b) {
+    final numA = double.tryParse(a.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0;
+    final numB = double.tryParse(b.replaceAll(RegExp(r'[^\d.]'), '')) ?? 0;
+    if (numA != numB) {
+      return numA.compareTo(numB);
+    }
+    return a.compareTo(b);
+  }
+
+  static void resetForTesting() {
+    _puffOptions.clear();
+    _batteryOptions.clear();
+  }
 }
 
 class ProductFormCubit extends Cubit<ProductFormState> {
@@ -423,18 +285,57 @@ class ProductFormCubit extends Cubit<ProductFormState> {
         isEditMode: false,
         isBadgeEnabled: false,
         badgeId: '',
+        availableFlavors: GlobalFlavorsPool.flavors,
       ),
     );
+
+    // Harvest from Firestore whenever either flavor, device, or disposable spec pools are empty
+    if (GlobalFlavorsPool.flavors.isEmpty ||
+        GlobalDeviceSpecsPool.wattageOptions.isEmpty ||
+        GlobalDisposableSpecsPool.puffOptions.isEmpty) {
+      loadFlavorsFromFirestore();
+    }
+  }
+
+  Future<void> loadFlavorsFromFirestore() async {
+    try {
+      final products = await productRepository.getProducts();
+      GlobalFlavorsPool.harvestFromProducts(products);
+      GlobalDeviceSpecsPool.harvestFromProducts(products);
+      GlobalDisposableSpecsPool.harvestFromProducts(products);
+      if (state.categoryType == ProductCategoryType.liquid ||
+          state.categoryType == ProductCategoryType.disposable) {
+        emit(
+          state.copyWith(
+            availableFlavors: _resolveAvailableFlavors(state.selectedFlavors),
+          ),
+        );
+      }
+    } catch (_) {}
   }
 
   void initForEditProduct(ProductModel product) {
     final specs = product.specifications;
-    final flavs = product.flavors.isNotEmpty
-        ? product.flavors
-        : (specs['flavors'] as List<dynamic>?)
-                  ?.map((e) => e.toString())
-                  .toList() ??
-              [];
+    final flavsFromAttrs = product.productAttributes
+        .firstWhere(
+          (a) => a.name.toLowerCase().contains('flav'),
+          orElse: () => const ProductAttribute(name: '', values: []),
+        )
+        .values;
+    final flavsFromVars = product.productVariations
+        .map((v) =>
+            v.attributeValues['Flavour'] ??
+            v.attributeValues['flavor'] ??
+            v.attributeValues['Flavor'])
+        .where((f) => f != null && f.isNotEmpty)
+        .cast<String>()
+        .toList();
+    final flavs = {
+      ...product.flavors,
+      ...(specs['flavors'] as List<dynamic>? ?? []).map((e) => e.toString()),
+      ...flavsFromAttrs,
+      ...flavsFromVars,
+    }.where((f) => f.trim().isNotEmpty).toList();
 
     final activeFlav = flavs.isNotEmpty ? flavs.first : '';
 
@@ -461,6 +362,22 @@ class ProductFormCubit extends Cubit<ProductFormState> {
       ...colorsFromVars,
     }.toList();
 
+    // Extract colorImages from specifications or variations
+    final Map<String, String> extractedColorImages = {};
+    if (specs['colorImages'] is Map) {
+      (specs['colorImages'] as Map).forEach((k, v) {
+        if (k != null && v != null && v.toString().trim().isNotEmpty) {
+          extractedColorImages[k.toString().trim()] = v.toString().trim();
+        }
+      });
+    }
+    for (final v in product.productVariations) {
+      final color = v.attributeValues['Color'] ?? v.attributeValues['color'];
+      if (color != null && color.isNotEmpty && v.image.trim().isNotEmpty) {
+        extractedColorImages[color] ??= v.image.trim();
+      }
+    }
+
     // Extract nicotines and sizes
     final nicsFromAttrs = product.productAttributes
         .firstWhere(
@@ -473,7 +390,19 @@ class ProductFormCubit extends Cubit<ProductFormState> {
             ?.map((e) => e.toString())
             .toList() ??
         [];
-    final allNics = {...nicsFromAttrs, ...nicsFromSpecs}.toList();
+    final nicsFromVars = product.productVariations
+        .map((v) =>
+            v.attributeValues['Nicotine'] ??
+            v.attributeValues['nicotine'] ??
+            v.attributeValues['Nic'])
+        .where((n) => n != null && n.isNotEmpty)
+        .cast<String>()
+        .toList();
+    final allNics = {
+      ...nicsFromAttrs,
+      ...nicsFromSpecs,
+      ...nicsFromVars,
+    }.where((n) => n.trim().isNotEmpty).toList();
 
     final sizesFromAttrs = product.productAttributes
         .firstWhere(
@@ -613,31 +542,48 @@ class ProductFormCubit extends Cubit<ProductFormState> {
 
     final List<String> availColors = List<String>.from(allColors);
 
+    final List<String> extractedCompatIds = [];
+    final rawCompat = specs['compatibleProductIds'] ??
+        specs['relatedProductIds'] ??
+        specs['compatibleProducts'];
+    if (rawCompat is List) {
+      for (final id in rawCompat) {
+        if (id != null && id.toString().trim().isNotEmpty) {
+          extractedCompatIds.add(id.toString().trim());
+        }
+      }
+    }
+
     emit(
       ProductFormState(
         currentStep: 1, // Jump directly to Specs form
         isEditMode: true,
         initialProductId: product.id,
         categoryType: product.categoryType,
-        title: product.title,
+        title: product.title.toLowerCase().contains('untitled') ? '' : product.title,
         description: product.description,
+        brandId: product.brand.id,
         brandName: product.brand.name,
         basePrice: product.price,
         salePrice: product.salePrice,
+        baseCostPrice: product.costPrice,
         baseStock: product.stock,
         baseSku: product.productVariations.isNotEmpty
             ? product.productVariations.first.sku.split('-').first
             : '',
         thumbnail: product.thumbnail,
         images: product.images,
-        isFeatured: product.isFeatured,
         isBadgeEnabled: product.isBadgeEnabled,
         badgeId: product.badgeId,
         variations: product.productVariations,
         liquidOrigin: specs['liquidOrigin']?.toString() ??
-            specs['liquidType']?.toString() ??
-            (specs['isLocal'] == true ? 'Local' : 'Local'),
-        availableFlavors: flavs,
+            (specs['isLocal'] == true
+                ? 'Local'
+                : (specs['isLocal'] == false ? 'Premium' : 'Local')),
+        availableFlavors: () {
+          GlobalFlavorsPool.addFlavors(flavs);
+          return (Set<String>.from(GlobalFlavorsPool.flavors)..addAll(flavs)).toList()..sort();
+        }(),
         selectedFlavors: flavs,
         activeFlavor: activeFlav,
         vapeStyle: specs['vapeStyle']?.toString() ?? 'MTL',
@@ -650,6 +596,7 @@ class ProductFormCubit extends Cubit<ProductFormState> {
         selectedSizes: allSizes,
         availableColors: availColors,
         selectedColors: allColors,
+        colorImages: extractedColorImages,
         maxWattage: specs['maxWattage']?.toString() ?? '',
         batteryType: specs['batteryType']?.toString() ?? 'Built-in Battery',
         batteryCapacity: specs['batteryCapacity']?.toString() ?? '',
@@ -679,9 +626,18 @@ class ProductFormCubit extends Cubit<ProductFormState> {
         accessoryCompatibility:
             specs['accessoryCompatibility']?.toString() ?? '',
         accessoryMaterial: specs['accessoryMaterial']?.toString() ?? '',
+        puffsCount: specs['puffs']?.toString() ??
+            specs['puffsCount']?.toString() ??
+            specs['numberOfPuffs']?.toString() ??
+            '',
+        disposableBatteryCapacity: specs['batteryCapacity']?.toString() ?? '',
+        compatibleProductIds: extractedCompatIds,
       ),
     );
 
+    // Feed this product's custom device & disposable spec values back into the shared pools
+    GlobalDeviceSpecsPool.harvestFromProducts([product]);
+    GlobalDisposableSpecsPool.harvestFromProducts([product]);
   }
 
   // Step Navigation
@@ -703,26 +659,40 @@ class ProductFormCubit extends Cubit<ProductFormState> {
     }
   }
 
+  static List<String> _resolveAvailableFlavors([List<String> currentSelected = const []]) {
+    final set = Set<String>.from(GlobalFlavorsPool.flavors)..addAll(currentSelected);
+    final list = set.toList()..sort();
+    return list;
+  }
+
   void selectCategoryType(ProductCategoryType type) {
+    final isFlavorCategory =
+        type == ProductCategoryType.liquid || type == ProductCategoryType.disposable;
     emit(
       state.copyWith(
         categoryType: type,
         currentStep: 1, // Advance to step 2 (Specs)
-        selectedFlavors: type == ProductCategoryType.liquid
+        selectedFlavors: isFlavorCategory
             ? state.selectedFlavors
             : const [],
-        availableFlavors: type == ProductCategoryType.liquid
-            ? state.availableFlavors
+        availableFlavors: isFlavorCategory
+            ? _resolveAvailableFlavors(state.selectedFlavors)
             : const [],
-        selectedNicotines: type == ProductCategoryType.liquid
+        selectedNicotines: (type == ProductCategoryType.liquid ||
+                type == ProductCategoryType.disposable)
             ? state.selectedNicotines
             : const [],
         selectedSizes: type == ProductCategoryType.liquid
             ? state.selectedSizes
             : const [],
-        selectedColors: type == ProductCategoryType.device
+        selectedColors: (type == ProductCategoryType.device ||
+                type == ProductCategoryType.accessory)
             ? state.selectedColors
             : const [],
+        colorImages: (type == ProductCategoryType.device ||
+                type == ProductCategoryType.accessory)
+            ? state.colorImages
+            : const {},
         selectedPodResistances: type == ProductCategoryType.pod
             ? state.selectedPodResistances
             : const [],
@@ -733,33 +703,62 @@ class ProductFormCubit extends Cubit<ProductFormState> {
     );
   }
 
+  void updateDisposableSpecs({
+    String? puffsCount,
+    String? batteryCapacity,
+    String? vapeStyle,
+  }) {
+    emit(
+      state.copyWith(
+        puffsCount: puffsCount,
+        disposableBatteryCapacity: batteryCapacity,
+        vapeStyle: vapeStyle,
+      ),
+    );
+  }
+
   // Basic Info setters
   void updateBasicInfo({
     String? title,
     String? description,
+    String? brandId,
     String? brandName,
     double? basePrice,
     double? salePrice,
+    double? baseCostPrice,
     int? baseStock,
     String? baseSku,
     String? thumbnail,
     List<String>? images,
-    bool? isFeatured,
     bool? isBadgeEnabled,
     String? badgeId,
   }) {
+    List<String>? updatedImages =
+        images != null ? List<String>.from(images) : List<String>.from(state.images);
+    if (thumbnail != null) {
+      final oldThumb = state.thumbnail.trim();
+      final newThumb = thumbnail.trim();
+      if (oldThumb.isNotEmpty && newThumb != oldThumb) {
+        updatedImages.removeWhere((img) => img.trim() == oldThumb);
+      }
+      if (newThumb.isNotEmpty && !updatedImages.contains(newThumb)) {
+        updatedImages.insert(0, newThumb);
+      }
+    }
+
     emit(
       state.copyWith(
         title: title,
         description: description,
+        brandId: brandId,
         brandName: brandName,
         basePrice: basePrice,
         salePrice: salePrice,
+        baseCostPrice: baseCostPrice,
         baseStock: baseStock,
         baseSku: baseSku,
         thumbnail: thumbnail,
-        images: images,
-        isFeatured: isFeatured,
+        images: updatedImages,
         isBadgeEnabled: isBadgeEnabled,
         badgeId: badgeId,
       ),
@@ -767,7 +766,16 @@ class ProductFormCubit extends Cubit<ProductFormState> {
   }
 
   void setThumbnail(String url) {
-    emit(state.copyWith(thumbnail: url.trim()));
+    final clean = url.trim();
+    final oldThumb = state.thumbnail.trim();
+    final updatedImages = List<String>.from(state.images);
+    if (oldThumb.isNotEmpty && clean != oldThumb) {
+      updatedImages.removeWhere((img) => img.trim() == oldThumb);
+    }
+    if (clean.isNotEmpty && !updatedImages.contains(clean)) {
+      updatedImages.insert(0, clean);
+    }
+    emit(state.copyWith(thumbnail: clean, images: updatedImages));
   }
 
   void addProductImage(String url) {
@@ -780,9 +788,34 @@ class ProductFormCubit extends Cubit<ProductFormState> {
 
   void removeProductImage(int index) {
     if (index >= 0 && index < state.images.length) {
+      final removed = state.images[index];
       final list = List<String>.from(state.images)..removeAt(index);
-      emit(state.copyWith(images: list));
+      final newColorImages = Map<String, String>.from(state.colorImages)
+        ..removeWhere((k, v) => v == removed);
+      final newThumb = state.thumbnail == removed
+          ? (list.isNotEmpty ? list.first : '')
+          : state.thumbnail;
+      emit(state.copyWith(
+        images: list,
+        colorImages: newColorImages,
+        thumbnail: newThumb,
+      ));
     }
+  }
+
+  void removeProductImageUrl(String url) {
+    final clean = url.trim();
+    final list = List<String>.from(state.images)..removeWhere((e) => e == clean);
+    final newColorImages = Map<String, String>.from(state.colorImages)
+      ..removeWhere((k, v) => v == clean);
+    final newThumb = state.thumbnail == clean
+        ? (list.isNotEmpty ? list.first : '')
+        : state.thumbnail;
+    emit(state.copyWith(
+      images: list,
+      colorImages: newColorImages,
+      thumbnail: newThumb,
+    ));
   }
 
   // Badge Handlers
@@ -796,13 +829,19 @@ class ProductFormCubit extends Cubit<ProductFormState> {
   }
 
   void setBadgeId(String id) {
-    emit(state.copyWith(badgeId: id));
+    emit(
+      state.copyWith(
+        badgeId: id,
+      ),
+    );
   }
 
   // 1. LIQUID HANDLERS
   void addCustomFlavor(String flavor) {
     final clean = flavor.trim();
     if (clean.isEmpty) return;
+
+    GlobalFlavorsPool.addFlavor(clean);
 
     final updatedAvailable = List<String>.from(state.availableFlavors);
     if (!updatedAvailable.contains(clean)) {
@@ -906,6 +945,11 @@ class ProductFormCubit extends Cubit<ProductFormState> {
   }
 
   void setVapeStyle(String style) {
+    if (state.categoryType == ProductCategoryType.disposable) {
+      emit(state.copyWith(vapeStyle: style));
+      return;
+    }
+
     List<String> availNics;
     List<String> selNics;
 
@@ -957,6 +1001,41 @@ class ProductFormCubit extends Cubit<ProductFormState> {
     );
   }
 
+  /// Toggles individual vape style option ('MTL' or 'DL') via checkboxes.
+  /// If both are active, sets style to 'BOTH'.
+  /// Prevents unchecking both to ensure at least one style is selected.
+  void toggleVapeStyleOption(String styleOption) {
+    final opt = styleOption.toUpperCase().trim();
+    final bool currentHasMtl = state.vapeStyle == 'MTL' || state.vapeStyle == 'BOTH';
+    final bool currentHasDl = state.vapeStyle == 'DL' || state.vapeStyle == 'BOTH';
+
+    if (opt == 'MTL') {
+      final newHasMtl = !currentHasMtl;
+      if (!newHasMtl && !currentHasDl) {
+        return; // Keep at least one active
+      }
+      if (newHasMtl && currentHasDl) {
+        setVapeStyle('BOTH');
+      } else if (newHasMtl) {
+        setVapeStyle('MTL');
+      } else {
+        setVapeStyle('DL');
+      }
+    } else if (opt == 'DL') {
+      final newHasDl = !currentHasDl;
+      if (!newHasDl && !currentHasMtl) {
+        return; // Keep at least one active
+      }
+      if (newHasDl && currentHasMtl) {
+        setVapeStyle('BOTH');
+      } else if (newHasDl) {
+        setVapeStyle('DL');
+      } else {
+        setVapeStyle('MTL');
+      }
+    }
+  }
+
   void toggleNicotine(String nic) {
     final list = List<String>.from(state.selectedNicotines);
     if (list.contains(nic)) {
@@ -1006,6 +1085,25 @@ class ProductFormCubit extends Cubit<ProductFormState> {
     String? screenType,
     String? airflowType,
   }) {
+    // Feed new values into the shared pool so they persist for next products
+    if (maxWattage != null && maxWattage.isNotEmpty) {
+      GlobalDeviceSpecsPool.addWattage(maxWattage);
+    }
+    if (batteryCapacity != null && batteryCapacity.isNotEmpty) {
+      GlobalDeviceSpecsPool.addBatteryCapacity(batteryCapacity);
+    }
+    if (batteryType != null && batteryType.isNotEmpty) {
+      GlobalDeviceSpecsPool.addBatterySystem(batteryType, batteryType);
+    }
+    if (chargingPort != null && chargingPort.isNotEmpty) {
+      GlobalDeviceSpecsPool.addChargingPort(chargingPort, chargingPort);
+    }
+    if (screenType != null && screenType.isNotEmpty) {
+      GlobalDeviceSpecsPool.addScreenType(screenType, screenType);
+    }
+    if (airflowType != null && airflowType.isNotEmpty) {
+      GlobalDeviceSpecsPool.addAirflowType(airflowType, airflowType);
+    }
     emit(
       state.copyWith(
         maxWattage: maxWattage,
@@ -1017,6 +1115,7 @@ class ProductFormCubit extends Cubit<ProductFormState> {
       ),
     );
   }
+
 
   void toggleColor(String color) {
     final list = List<String>.from(state.selectedColors);
@@ -1036,6 +1135,30 @@ class ProductFormCubit extends Cubit<ProductFormState> {
     final sel = List<String>.from(state.selectedColors);
     if (!sel.contains(clean)) sel.add(clean);
     emit(state.copyWith(availableColors: avail, selectedColors: sel));
+  }
+
+  void setColorImage(String color, String imageUrl) {
+    final cleanColor = color.trim();
+    final cleanUrl = imageUrl.trim();
+    if (cleanColor.isEmpty) return;
+
+    final updatedMap = Map<String, String>.from(state.colorImages);
+    if (cleanUrl.isEmpty) {
+      updatedMap.remove(cleanColor);
+    } else {
+      updatedMap[cleanColor] = cleanUrl;
+    }
+
+    // Also update any existing variations that match this color
+    final updatedVars = state.variations.map((v) {
+      final c = v.attributeValues['Color'] ?? v.attributeValues['color'];
+      if (c == cleanColor) {
+        return v.copyWith(image: cleanUrl);
+      }
+      return v;
+    }).toList();
+
+    emit(state.copyWith(colorImages: updatedMap, variations: updatedVars));
   }
 
   // 3. POD & COILS HANDLERS (COILS & CARTRIDGES)
@@ -1254,223 +1377,65 @@ class ProductFormCubit extends Cubit<ProductFormState> {
     String? category,
     String? compatibility,
     String? material,
+    String? quantityPerPack,
   }) {
     emit(
       state.copyWith(
         accessoryCategory: category,
         accessoryCompatibility: compatibility,
         accessoryMaterial: material,
+        accessoryQuantityPerPack: quantityPerPack,
       ),
     );
   }
 
-  // DYNAMIC VARIATIONS MATRIX GENERATOR
-  void generateDynamicVariations() {
-    final prefix = state.baseSku.trim().isNotEmpty
-        ? state.baseSku.trim().toUpperCase()
-        : 'SKU';
-    final price = state.salePrice > 0 ? state.salePrice : state.basePrice;
-    final stock = state.baseStock;
-    final List<ProductVariationModel> newVars = [];
-
-    switch (state.categoryType) {
-      case ProductCategoryType.liquid:
-        final originType = state.liquidOrigin == 'Local' ? 'Local' : 'Premium';
-        final styles = state.vapeStyle == 'BOTH'
-            ? ['MTL', 'DL']
-            : [state.vapeStyle];
-        final flavorsToGen = state.selectedFlavors.isNotEmpty
-            ? state.selectedFlavors
-            : (state.activeFlavor.isNotEmpty
-                  ? [state.activeFlavor]
-                  : <String>[]);
-        final sizesToGen = state.selectedSizes.isNotEmpty
-            ? state.selectedSizes
-            : ['30ml'];
-
-        if (flavorsToGen.isEmpty) {
-          // If no flavors specified yet, create base style variations
-          for (final style in styles) {
-            final nicsForStyle = getNicotinesForStyle(
-              style,
-              state.selectedNicotines,
-            );
-            for (final sz in sizesToGen) {
-              for (final nic in nicsForStyle) {
-                final sku = '$prefix-$style-$sz-$nic'.toUpperCase();
-                newVars.add(
-                  ProductVariationModel(
-                    id: 'VAR_${DateTime.now().millisecondsSinceEpoch}_${newVars.length}',
-                    sku: sku,
-                    price: state.basePrice,
-                    salePrice: price,
-                    stock: stock,
-                    attributeValues: {
-                      'Type': originType,
-                      'Style': style,
-                      'Size': sz,
-                      'Nicotine': nic,
-                    },
-                  ),
-                );
-              }
-            }
-          }
-        } else {
-          for (final flav in flavorsToGen) {
-            final flavCode = flav.replaceAll(' ', '').toUpperCase();
-            for (final style in styles) {
-              final nicsForStyle = getNicotinesForStyle(
-                style,
-                state.selectedNicotines,
-              );
-              for (final sz in sizesToGen) {
-                for (final nic in nicsForStyle) {
-                  final sku = '$prefix-$flavCode-$style-$sz-$nic'.toUpperCase();
-                  newVars.add(
-                    ProductVariationModel(
-                      id: 'VAR_${DateTime.now().millisecondsSinceEpoch}_${newVars.length}',
-                      sku: sku,
-                      price: state.basePrice,
-                      salePrice: price,
-                      stock: stock,
-                      attributeValues: {
-                        'Type': originType,
-                        'Flavour': flav,
-                        'Style': style,
-                        'Size': sz,
-                        'Nicotine': nic,
-                      },
-                    ),
-                  );
-                }
-              }
-            }
-          }
-        }
-        break;
-
-      case ProductCategoryType.device:
-        final colorsToGen = state.selectedColors.isNotEmpty
-            ? state.selectedColors
-            : ['Standard'];
-        for (final color in colorsToGen) {
-          final colorCode = color
-              .replaceAll('#', '')
-              .replaceAll('/', '-')
-              .replaceAll(' ', '')
-              .toUpperCase();
-          final sku = '$prefix-$colorCode'.toUpperCase();
-          newVars.add(
-            ProductVariationModel(
-              id: 'VAR_${DateTime.now().millisecondsSinceEpoch}_${newVars.length}',
-              sku: sku,
-              price: state.basePrice,
-              salePrice: price,
-              stock: stock,
-              attributeValues: {'Color': color},
-            ),
-          );
-        }
-        break;
-
-      case ProductCategoryType.pod:
-      case ProductCategoryType.coil:
-        final resList = state.selectedPodResistances.isNotEmpty
-            ? state.selectedPodResistances
-            : (state.selectedCoilResistances.isNotEmpty
-                ? state.selectedCoilResistances
-                : ['0.6Ω', '0.8Ω']);
-
-        List<Map<String, String>> combinations = [];
-        for (final res in resList) {
-          combinations.add({'Resistance': res});
-        }
-
-        if (state.selectedPodCapacities.isNotEmpty) {
-          final expanded = <Map<String, String>>[];
-          for (final comb in combinations) {
-            for (final cap in state.selectedPodCapacities) {
-              expanded.add({...comb, 'Capacity': cap});
-            }
-          }
-          combinations = expanded;
-        }
-
-        if (state.selectedPodFillTypes.isNotEmpty) {
-          final expanded = <Map<String, String>>[];
-          for (final comb in combinations) {
-            for (final fill in state.selectedPodFillTypes) {
-              expanded.add({...comb, 'FillType': fill});
-            }
-          }
-          combinations = expanded;
-        }
-
-        for (final comb in combinations) {
-          final parts = <String>[prefix];
-          if (comb.containsKey('Resistance')) {
-            final resCode = comb['Resistance']!
-                .split(' ')
-                .first
-                .replaceAll('Ω', '')
-                .replaceAll('ohm', '')
-                .replaceAll('.', '');
-            parts.add('R$resCode');
-          }
-          if (comb.containsKey('Capacity')) {
-            final capCode = comb['Capacity']!
-                .replaceAll(' ', '')
-                .replaceAll('.', '')
-                .toUpperCase();
-            parts.add(capCode);
-          }
-          if (comb.containsKey('FillType')) {
-            final fillVal = comb['FillType']!.toLowerCase();
-            if (fillVal.contains('top')) {
-              parts.add('TOP');
-            } else if (fillVal.contains('side')) {
-              parts.add('SIDE');
-            } else if (fillVal.contains('bottom')) {
-              parts.add('BOT');
-            } else {
-              parts.add(fillVal.replaceAll(' ', '').toUpperCase());
-            }
-          }
-          final sku = parts.join('-').toUpperCase();
-          newVars.add(
-            ProductVariationModel(
-              id: 'VAR_${DateTime.now().millisecondsSinceEpoch}_${newVars.length}',
-              sku: sku,
-              price: state.basePrice,
-              salePrice: price,
-              stock: stock,
-              attributeValues: comb,
-            ),
-          );
-        }
-        break;
-
-
-      case ProductCategoryType.accessory:
-        newVars.add(
-          ProductVariationModel(
-            id: 'VAR_${DateTime.now().millisecondsSinceEpoch}_0',
-            sku: '$prefix-STD'.toUpperCase(),
-            price: state.basePrice,
-            salePrice: price,
-            stock: stock,
-            attributeValues: {
-              if (state.accessoryCategory.isNotEmpty)
-                'Category': state.accessoryCategory,
-              if (state.accessoryMaterial.isNotEmpty)
-                'Spec': state.accessoryMaterial,
-            },
-          ),
-        );
-        break;
+  void toggleAccessoryTag(String tag) {
+    final current = List<String>.from(state.selectedAccessoryTags);
+    if (current.contains(tag)) {
+      current.remove(tag);
+    } else {
+      current.add(tag);
     }
+    emit(state.copyWith(selectedAccessoryTags: current));
+  }
 
+  // 6. COMPATIBLE / RELATED PRODUCTS HANDLERS
+  void setCompatibleProducts(List<ProductModel> products) {
+    emit(
+      state.copyWith(
+        compatibleProducts: products,
+        compatibleProductIds: products.map((p) => p.id).toList(),
+      ),
+    );
+  }
+
+  void addCompatibleProduct(ProductModel product) {
+    if (!state.compatibleProductIds.contains(product.id)) {
+      final newIds = List<String>.from(state.compatibleProductIds)..add(product.id);
+      final newProducts = List<ProductModel>.from(state.compatibleProducts)..add(product);
+      emit(
+        state.copyWith(
+          compatibleProductIds: newIds,
+          compatibleProducts: newProducts,
+        ),
+      );
+    }
+  }
+
+  void removeCompatibleProduct(String productId) {
+    final newIds = state.compatibleProductIds.where((id) => id != productId).toList();
+    final newProducts = state.compatibleProducts.where((p) => p.id != productId).toList();
+    emit(
+      state.copyWith(
+        compatibleProductIds: newIds,
+        compatibleProducts: newProducts,
+      ),
+    );
+  }
+
+  // DYNAMIC VARIATIONS MATRIX GENERATOR (Delegated to VariationMatrixEngine)
+  void generateDynamicVariations() {
+    final newVars = VariationMatrixEngine.generateVariations(state);
     emit(state.copyWith(variations: newVars));
   }
 
@@ -1502,16 +1467,67 @@ class ProductFormCubit extends Cubit<ProductFormState> {
     emit(state.copyWith(variations: const []));
   }
 
-  void applyBulkPriceAndStock(double basePrice, double salePrice, int stock) {
+  void applyBulkPriceAndStock(double basePrice, double salePrice, int stock, [double? costPrice]) {
+    final list = VariationMatrixEngine.applyBulkPriceAndStock(
+      variations: state.variations,
+      basePrice: basePrice,
+      salePrice: salePrice,
+      costPrice: costPrice,
+      stock: stock,
+    );
+    emit(state.copyWith(variations: list));
+  }
+
+  void bulkUpdateCostPrice(double costPrice) {
     final list = state.variations
-        .map(
-          (v) => v.copyWith(
-            price: basePrice > 0 ? basePrice : v.price,
-            salePrice: salePrice > 0 ? salePrice : v.salePrice,
-            stock: stock >= 0 ? stock : v.stock,
-          ),
-        )
+        .map((v) => v.copyWith(costPrice: costPrice))
         .toList();
+    emit(state.copyWith(variations: list));
+  }
+
+  void applyLiquidTierPrices({
+    String? targetSize,
+    double? mtlStandardPrice,
+    double? mtlStandardSalePrice,
+    double? dl3mgPrice,
+    double? dl3mgSalePrice,
+    double? dl6mgPrice,
+    double? dl6mgSalePrice,
+    double? mtl18mgPrice,
+    double? mtl18mgSalePrice,
+    double? salt30mgPrice,
+    double? salt30mgSalePrice,
+    double? salt50mgPrice,
+    double? salt50mgSalePrice,
+  }) {
+    final list = VariationMatrixEngine.applyLiquidTierPrices(
+      variations: state.variations,
+      targetSize: targetSize,
+      mtlStandardPrice: mtlStandardPrice,
+      mtlStandardSalePrice: mtlStandardSalePrice,
+      dl3mgPrice: dl3mgPrice,
+      dl3mgSalePrice: dl3mgSalePrice,
+      dl6mgPrice: dl6mgPrice,
+      dl6mgSalePrice: dl6mgSalePrice,
+      mtl18mgPrice: mtl18mgPrice,
+      mtl18mgSalePrice: mtl18mgSalePrice,
+      salt30mgPrice: salt30mgPrice,
+      salt30mgSalePrice: salt30mgSalePrice,
+      salt50mgPrice: salt50mgPrice,
+      salt50mgSalePrice: salt50mgSalePrice,
+    );
+    emit(state.copyWith(variations: list));
+  }
+
+  void removeLiquidTierVariations({
+    required String targetSize,
+    required String tierKey,
+  }) {
+    final list = VariationMatrixEngine.removeLiquidTierVariations(
+      variations: state.variations,
+      targetSize: targetSize,
+      tierKey: tierKey,
+    );
     emit(state.copyWith(variations: list));
   }
 
@@ -1530,288 +1546,65 @@ class ProductFormCubit extends Cubit<ProductFormState> {
   void setVariationImage(int index, String imageUrl) {
     if (index >= 0 && index < state.variations.length) {
       final list = List<ProductVariationModel>.from(state.variations);
-      list[index] = list[index].copyWith(image: imageUrl);
+      list[index] = list[index].copyWith(image: imageUrl.trim());
       emit(state.copyWith(variations: list));
     }
   }
 
   void applyImageToAllVariations(String imageUrl) {
     final list = state.variations
-        .map((v) => v.copyWith(image: imageUrl))
+        .map((v) => v.copyWith(image: imageUrl.trim()))
         .toList();
     emit(state.copyWith(variations: list));
   }
 
   void applyImageToColorVariations(String colorValue, String imageUrl) {
-    final list = state.variations.map((v) {
-      final color = v.attributeValues['Color'] ?? v.attributeValues['color'];
-      if (color == colorValue) {
-        return v.copyWith(image: imageUrl);
-      }
-      return v;
-    }).toList();
-    emit(state.copyWith(variations: list));
+    final list = VariationMatrixEngine.applyImageByAttribute(
+      variations: state.variations,
+      attributeKey: 'Color',
+      targetValue: colorValue,
+      imageUrl: imageUrl,
+    );
+    final updatedColorImages = Map<String, String>.from(state.colorImages);
+    if (imageUrl.trim().isNotEmpty) {
+      updatedColorImages[colorValue] = imageUrl.trim();
+    } else {
+      updatedColorImages.remove(colorValue);
+    }
+    emit(state.copyWith(variations: list, colorImages: updatedColorImages));
   }
 
   void applyImageToFlavorVariations(String flavorValue, String imageUrl) {
-    final list = state.variations.map((v) {
-      final flv =
-          v.attributeValues['Flavour'] ??
-          v.attributeValues['Flavor'] ??
-          v.attributeValues['flavor'];
-      if (flv == flavorValue) {
-        return v.copyWith(image: imageUrl);
-      }
-      return v;
-    }).toList();
+    final list = VariationMatrixEngine.applyImageByAttribute(
+      variations: state.variations,
+      attributeKey: 'Flavour',
+      targetValue: flavorValue,
+      imageUrl: imageUrl,
+    );
     emit(state.copyWith(variations: list));
   }
 
-  // BUILD & SAVE PRODUCT TO FIRESTORE
+  // BUILD & SAVE PRODUCT TO FIRESTORE (Delegated to VariationMatrixEngine)
   ProductModel buildProductModel() {
-    final now = DateTime.now();
-    final id = state.initialProductId ?? 'PROD_${now.millisecondsSinceEpoch}';
-
-    String categoryId = 'CAT_HARDWARE';
-    switch (state.categoryType) {
-      case ProductCategoryType.liquid:
-        categoryId = state.liquidOrigin == 'Local'
-            ? 'Local Liquid'
-            : 'Premium Liquid';
-        break;
-      case ProductCategoryType.device:
-        categoryId = 'CAT_HARDWARE';
-        break;
-      case ProductCategoryType.pod:
-        categoryId = 'CAT_POD_SYSTEMS';
-        break;
-      case ProductCategoryType.coil:
-        categoryId = 'CAT_COILS_PODS';
-        break;
-      case ProductCategoryType.accessory:
-        categoryId = 'CAT_ACCESSORIES';
-        break;
-    }
-
-    // Specifications map
-    final Map<String, dynamic> specs = {
-      'categoryType': state.categoryType.name,
-      'vapeStyle': state.vapeStyle,
-    };
-
-    if (state.categoryType == ProductCategoryType.liquid) {
-      specs['liquidOrigin'] = state.liquidOrigin;
-      specs['liquidType'] = state.liquidOrigin;
-      specs['isLocal'] = state.liquidOrigin == 'Local';
-      specs['flavors'] = state.selectedFlavors;
-      specs['nicotines'] = state.selectedNicotines;
-      specs['sizes'] = state.selectedSizes;
-      specs['vgPgRatio'] = state.vgPgRatio;
-    } else if (state.categoryType == ProductCategoryType.device) {
-      specs['maxWattage'] = state.maxWattage;
-      specs['batteryType'] = state.batteryType;
-      specs['batteryCapacity'] = state.batteryCapacity;
-      specs['chargingPort'] = state.chargingPort;
-      specs['screenType'] = state.screenType;
-      specs['airflowType'] = state.airflowType;
-      specs['colors'] = state.selectedColors;
-    } else if (state.categoryType == ProductCategoryType.pod ||
-        state.categoryType == ProductCategoryType.coil) {
-      specs['compatibleDevices'] = state.podCompatibleDevices.isNotEmpty
-          ? state.podCompatibleDevices
-          : state.coilCompatibleTanks;
-      specs['capacity'] = state.podCapacity;
-      specs['isPrefilled'] = state.isPrefilledPod;
-      if (state.selectedPodCapacities.isNotEmpty) {
-        specs['capacities'] = state.selectedPodCapacities;
-      }
-      if (state.selectedPodFillTypes.isNotEmpty) {
-        specs['fillTypes'] = state.selectedPodFillTypes;
-      }
-      final resList = state.selectedPodResistances.isNotEmpty
-          ? state.selectedPodResistances
-          : state.selectedCoilResistances;
-      specs['resistances'] = resList;
-      for (final res in resList) {
-        final watt =
-            state.podResistanceWattages[res] ?? getSuggestedWattage(res);
-        specs['$res Wattage'] = watt;
-      }
-    } else if (state.categoryType == ProductCategoryType.accessory) {
-      specs['accessoryCategory'] = state.accessoryCategory;
-      specs['accessoryCompatibility'] = state.accessoryCompatibility;
-      specs['accessoryMaterial'] = state.accessoryMaterial;
-    }
-
-    // Build Product Attributes strictly based on categoryType
-    final List<ProductAttribute> attributes = [];
-
-    if (state.categoryType == ProductCategoryType.liquid) {
-      attributes.add(
-        ProductAttribute(
-          name: 'Type',
-          values: [
-            state.liquidOrigin == 'Local' ? 'Local Liquid' : 'Premium Liquid',
-          ],
-        ),
-      );
-      if (state.selectedFlavors.isNotEmpty) {
-        attributes.add(
-          ProductAttribute(name: 'Flavour', values: state.selectedFlavors),
-        );
-      }
-      if (state.selectedNicotines.isNotEmpty) {
-        attributes.add(
-          ProductAttribute(name: 'Nicotine', values: state.selectedNicotines),
-        );
-      }
-      if (state.selectedSizes.isNotEmpty) {
-        attributes.add(
-          ProductAttribute(name: 'Size', values: state.selectedSizes),
-        );
-      }
-    } else if (state.categoryType == ProductCategoryType.device) {
-      // Devices ONLY have Color attributes (NO Flavor/Wattage/Resistance)
-      if (state.selectedColors.isNotEmpty) {
-        final List<String> hexColors = state.selectedColors
-            .map((c) {
-              final text = c.trim();
-              if (text.startsWith('#')) return text;
-              final parsed = ColorUtils.parseColorsFromText(text);
-              return parsed.isNotEmpty ? ColorUtils.toHex(parsed.first) : text;
-            })
-            .cast<String>()
-            .toList();
-        attributes.add(ProductAttribute(name: 'Color', values: hexColors));
-      }
-    } else if (state.categoryType == ProductCategoryType.pod ||
-        state.categoryType == ProductCategoryType.coil) {
-      final resList = state.selectedPodResistances.isNotEmpty
-          ? state.selectedPodResistances
-          : state.selectedCoilResistances;
-      if (resList.isNotEmpty) {
-        attributes.add(
-          ProductAttribute(
-            name: 'Resistance',
-            values: resList,
-          ),
-        );
-      }
-      if (state.selectedPodCapacities.isNotEmpty) {
-        attributes.add(
-          ProductAttribute(
-            name: 'Capacity',
-            values: state.selectedPodCapacities,
-          ),
-        );
-      }
-      if (state.selectedPodFillTypes.isNotEmpty) {
-        attributes.add(
-          ProductAttribute(
-            name: 'FillType',
-            values: state.selectedPodFillTypes,
-          ),
-        );
-      }
-    } else if (state.categoryType == ProductCategoryType.accessory) {
-      if (state.accessoryCategory.isNotEmpty) {
-        attributes.add(
-          ProductAttribute(name: 'Category', values: [state.accessoryCategory]),
-        );
-      }
-    }
-
-
-    // Resolve main thumbnail
-    String resolvedThumbnail = state.thumbnail.trim();
-    if (resolvedThumbnail.isEmpty) {
-      if (state.images.isNotEmpty) {
-        resolvedThumbnail = state.images.first.trim();
-      } else if (state.variations.any((v) => v.image.trim().isNotEmpty)) {
-        resolvedThumbnail = state.variations
-            .firstWhere((v) => v.image.trim().isNotEmpty)
-            .image
-            .trim();
-      }
-    }
-
-    // Collect all distinct images for gallery
-    final Set<String> distinctImages = {};
-    if (resolvedThumbnail.isNotEmpty) {
-      distinctImages.add(resolvedThumbnail);
-    }
-    for (final img in state.images) {
-      if (img.trim().isNotEmpty) distinctImages.add(img.trim());
-    }
-    for (final v in state.variations) {
-      if (v.image.trim().isNotEmpty) distinctImages.add(v.image.trim());
-    }
-    final List<String> resolvedImages = distinctImages.toList();
-
-    // Preserve each variation's own specific image without overwriting
-    // AND normalize color attribute to exact hex so it matches productAttributes!
-    final List<ProductVariationModel>
-    finalizedVariations = state.variations.map((v) {
-      final Map<String, String> cleanedAttrs = Map<String, String>.from(
-        v.attributeValues,
-      );
-      if (cleanedAttrs.containsKey('Color') ||
-          cleanedAttrs.containsKey('color')) {
-        final colorKey = cleanedAttrs.containsKey('Color') ? 'Color' : 'color';
-        final rawColor = cleanedAttrs[colorKey] ?? '';
-        if (rawColor.isNotEmpty && !rawColor.startsWith('#')) {
-          final parsed = ColorUtils.parseColorsFromText(rawColor);
-          if (parsed.isNotEmpty) {
-            cleanedAttrs[colorKey] = ColorUtils.toHex(parsed.first);
-          }
-        }
-      }
-      return v.copyWith(image: v.image.trim(), attributeValues: cleanedAttrs);
-    }).toList();
-
-    final String resolvedTitle;
-    if (state.categoryType == ProductCategoryType.liquid) {
-      resolvedTitle = '';
-    } else {
-      resolvedTitle = state.title.trim().isNotEmpty
-          ? state.title.trim()
-          : 'New ${state.categoryType.displayName} Product';
-    }
-
-    return ProductModel(
-      id: id,
-      title: resolvedTitle,
-      description: state.description,
-      price: state.basePrice,
-      salePrice: state.salePrice > 0 ? state.salePrice : state.basePrice,
-      stock: finalizedVariations.isNotEmpty
-          ? finalizedVariations.fold(0, (acc, v) => acc + v.stock)
-          : state.baseStock,
-      thumbnail: resolvedThumbnail,
-      images: resolvedImages,
-      brand: ProductBrand(
-        id: 'BRAND_${state.brandName.replaceAll(' ', '_').toUpperCase()}',
-        name: state.brandName,
-      ),
-      categoryId: categoryId,
-      categoryType: state.categoryType,
-      isFeatured: state.isFeatured,
-      isBadgeEnabled: state.isBadgeEnabled,
-      badgeId: state.isBadgeEnabled ? state.badgeId : '',
-      productType: finalizedVariations.isNotEmpty ? 'variable' : 'simple',
-      productAttributes: attributes,
-      productVariations: finalizedVariations,
-      flavors: state.categoryType == ProductCategoryType.liquid
-          ? state.selectedFlavors
-          : const [],
-      specifications: specs,
-    );
+    return VariationMatrixEngine.buildProductModel(state);
   }
 
   Future<bool> saveProduct() async {
     emit(state.copyWith(isSubmitting: true, errorMessage: null));
     try {
       final product = buildProductModel();
+      if (state.selectedFlavors.isNotEmpty) {
+        GlobalFlavorsPool.addFlavors(state.selectedFlavors);
+      }
+      GlobalFlavorsPool.harvestFromProducts([product]);
+      GlobalDisposableSpecsPool.harvestFromProducts([product]);
+      if (state.puffsCount.trim().isNotEmpty) {
+        GlobalDisposableSpecsPool.addPuff(state.puffsCount.trim());
+      }
+      if (state.disposableBatteryCapacity.trim().isNotEmpty) {
+        GlobalDisposableSpecsPool.addBattery(state.disposableBatteryCapacity.trim());
+      }
+
       if (state.isEditMode) {
         await productRepository.updateProduct(product);
       } else {
@@ -1830,3 +1623,4 @@ class ProductFormCubit extends Cubit<ProductFormState> {
     }
   }
 }
+

@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../../../common/widgets/cards/kpi_metric_card.dart';
-import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
-import '../../../../core/formatters/formatters.dart';
-import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/helper/responsive_helper.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../orders/data/models/order_model.dart';
 import '../../../orders/presentation/cubit/order_cubit.dart';
 import '../../../orders/presentation/widgets/order_details_drawer.dart';
-import '../../data/models/dashboard_analytics_model.dart';
 import '../cubit/dashboard_cubit.dart';
 import '../widgets/brand_share_donut_chart.dart';
+import '../widgets/dashboard_date_filter_bar.dart';
+import '../widgets/dashboard_header.dart';
+import '../widgets/dashboard_kpi_grid.dart';
+import '../widgets/export_report_dialog.dart';
 import '../widgets/live_orders_stream_widget.dart';
 import '../widgets/low_stock_alert_card.dart';
 import '../widgets/revenue_line_chart.dart';
+import '../widgets/sales_channel_profit_card.dart';
+import '../widgets/supplier_financials_card.dart';
 
 class DashboardScreen extends StatelessWidget {
   final ValueChanged<int>? onNavigateTab;
@@ -40,58 +41,31 @@ class DashboardScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 // Top Header Row
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'executive_overview'.tr,
-                            style: TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: HelperFun.isDarkMode(context)
-                                  ? AppColor.textPrimaryDark
-                                  : AppColor.textPrimaryLight,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            'executive_overview_sub'.tr,
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: HelperFun.isDarkMode(context)
-                                  ? AppColor.textSecondaryDark
-                                  : AppColor.textSecondaryLight,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: AppSizes.md),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        HelperFun.successSnackbar('export_csv'.tr, 'CSV summary generated successfully!');
-                      },
-                      icon: const Icon(Icons.download_rounded, size: 16),
-                      label: Text('export_csv'.tr),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColor.primary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: AppSizes.sm),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-                        ),
-                      ),
-                    ),
-                  ],
+                DashboardHeader(
+                  onExportPressed: () => ExportReportDialog.show(
+                    context,
+                    analytics: data,
+                  ),
                 ),
+                const SizedBox(height: AppSizes.md),
+
+                // Interactive Period & Calendar Filter Bar
+                DashboardDateFilterBar(analytics: data),
+                const SizedBox(height: AppSizes.lg),
+
+                // Sales & Net Profit by Channel (Online App vs Branch POS vs Total)
+                SalesChannelProfitCard(analytics: data),
                 const SizedBox(height: AppSizes.lg),
 
                 // KPI Metric Cards Grid
-                _buildKpiGrid(context, data, isDesktop),
+                DashboardKpiGrid(analytics: data, isDesktop: isDesktop),
+                const SizedBox(height: AppSizes.lg),
+
+                // Supplier Financials & Accounts Payable Overview
+                SupplierFinancialsCard(
+                  analytics: data,
+                  onNavigateTab: onNavigateTab,
+                ),
                 const SizedBox(height: AppSizes.lg),
 
                 // Charts Row
@@ -120,7 +94,8 @@ class DashboardScreen extends StatelessWidget {
                 // Bottom Section: Low Stock Warnings & Live Order Dispatch
                 BlocBuilder<OrderCubit, OrderState>(
                   builder: (context, orderState) {
-                    final List<OrderModel> orders = orderState is OrderLoaded ? orderState.orders : <OrderModel>[];
+                    final List<OrderModel> orders =
+                        orderState is OrderLoaded ? orderState.orders : <OrderModel>[];
                     if (isDesktop) {
                       return Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -182,69 +157,5 @@ class DashboardScreen extends StatelessWidget {
         );
       },
     );
-  }
-
-  Widget _buildKpiGrid(BuildContext context, DashboardAnalyticsModel data, bool isDesktop) {
-    final revenueSparkline = data.weeklyTrend.map((e) => e.revenue).toList();
-    final ordersSparkline = data.weeklyTrend.map((e) => e.ordersCount.toDouble()).toList();
-
-    final cards = [
-      KpiMetricCard(
-        title: 'kpi_total_revenue'.tr,
-        value: AppFormatters.formatCompactEGP(data.totalRevenue),
-        delta: data.totalRevenue > 0 ? 'Active' : '0 EGP',
-        isPositive: true,
-        icon: Icons.account_balance_wallet_outlined,
-        accentColor: AppColor.primary,
-        sparklineData: revenueSparkline.any((v) => v > 0) ? revenueSparkline : null,
-      ),
-      KpiMetricCard(
-        title: 'kpi_today_orders'.tr,
-        value: '${data.todayOrders} Orders',
-        delta: '${data.todayOrders} today',
-        isPositive: data.todayOrders > 0,
-        icon: Icons.shopping_bag_outlined,
-        accentColor: AppColor.secondary,
-        sparklineData: ordersSparkline.any((v) => v > 0) ? ordersSparkline : null,
-      ),
-      KpiMetricCard(
-        title: 'kpi_active_customers'.tr,
-        value: '${data.activeCustomers}',
-        delta: '${data.activeCustomers} users',
-        isPositive: data.activeCustomers > 0,
-        icon: Icons.people_outline_rounded,
-        accentColor: AppColor.statusShipped,
-      ),
-      KpiMetricCard(
-        title: 'kpi_low_stock_alerts'.tr,
-        value: '${data.lowStockAlertsCount} Items',
-        delta: data.lowStockAlertsCount > 0 ? '${data.lowStockAlertsCount} urgent' : 'Healthy',
-        isPositive: data.lowStockAlertsCount == 0,
-        icon: Icons.warning_amber_rounded,
-        accentColor: data.lowStockAlertsCount > 0 ? AppColor.warning : AppColor.success,
-      ),
-    ];
-
-    if (isDesktop) {
-      return Row(
-        children: cards
-            .map((c) => Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 6),
-                    child: c,
-                  ),
-                ))
-            .toList(),
-      );
-    } else {
-      return Column(
-        children: cards
-            .map((c) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSizes.md),
-                  child: c,
-                ))
-            .toList(),
-      );
-    }
   }
 }

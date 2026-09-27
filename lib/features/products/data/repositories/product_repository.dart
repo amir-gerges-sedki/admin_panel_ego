@@ -1,6 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
-import '../../../../core/services/firebase_service.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../brands/data/repositories/brand_repository.dart';
+import '../datasources/product_remote_data_source.dart';
 import '../models/product_model.dart';
 
 abstract class ProductRepository {
@@ -11,35 +12,45 @@ abstract class ProductRepository {
 }
 
 class ProductRepositoryImpl implements ProductRepository {
+  final ProductRemoteDataSource remoteDataSource;
+  final BrandRepository _brandRepository;
+
+  ProductRepositoryImpl({
+    ProductRemoteDataSource? remoteDataSource,
+    BrandRepository? brandRepository,
+  })  : remoteDataSource =
+            remoteDataSource ?? ProductRemoteDataSourceImpl(),
+        _brandRepository = brandRepository ??
+            (sl.isRegistered<BrandRepository>()
+                ? sl<BrandRepository>()
+                : BrandRepositoryImpl());
+
   @override
-  Future<List<ProductModel>> getProducts() async {
-    try {
-      final docs = await FirebaseService.getMultipleCollectionsDocs([
-        'Products',
-        'products',
-        'Items',
-        'items',
-      ]);
-      return docs.map((doc) {
-        final data = doc.data();
-        data['id'] = doc.id;
-        return ProductModel.fromJson(data);
-      }).toList();
-    } catch (e) {
-      debugPrint('Firestore Products fetch note: $e');
-      return [];
-    }
-  }
+  Future<List<ProductModel>> getProducts() => remoteDataSource.getProducts();
 
   @override
   Future<void> addProduct(ProductModel product) async {
-    final json = product.toJson(forFirestore: true);
     try {
-      // Write exclusively to canonical 'Products' collection
-      await FirebaseService.firestore
-          .collection('Products')
-          .doc(product.id)
-          .set(json, SetOptions(merge: true));
+      ProductModel productToSave = product;
+
+      // Ensure brand exists in Brands collection before saving product
+      final brandName = product.brand.name.trim();
+      final brandId = product.brand.id.trim();
+      if (brandName.isNotEmpty || brandId.isNotEmpty) {
+        final resolvedBrand = await _brandRepository.ensureBrandExists(
+          name: brandName,
+          id: brandId,
+        );
+
+        productToSave = productToSave.copyWith(
+          brand: ProductBrand(
+            id: resolvedBrand.id,
+            name: resolvedBrand.name,
+          ),
+        );
+      }
+
+      await remoteDataSource.saveProduct(productToSave);
     } catch (e) {
       debugPrint('Firestore addProduct error: $e');
       rethrow;
@@ -48,13 +59,27 @@ class ProductRepositoryImpl implements ProductRepository {
 
   @override
   Future<void> updateProduct(ProductModel product) async {
-    final json = product.toJson(forFirestore: true);
     try {
-      // Update exclusively in canonical 'Products' collection
-      await FirebaseService.firestore
-          .collection('Products')
-          .doc(product.id)
-          .set(json, SetOptions(merge: true));
+      ProductModel productToSave = product;
+
+      // Ensure brand exists in Brands collection before updating product
+      final brandName = product.brand.name.trim();
+      final brandId = product.brand.id.trim();
+      if (brandName.isNotEmpty || brandId.isNotEmpty) {
+        final resolvedBrand = await _brandRepository.ensureBrandExists(
+          name: brandName,
+          id: brandId,
+        );
+
+        productToSave = productToSave.copyWith(
+          brand: ProductBrand(
+            id: resolvedBrand.id,
+            name: resolvedBrand.name,
+          ),
+        );
+      }
+
+      await remoteDataSource.saveProduct(productToSave);
     } catch (e) {
       debugPrint('Firestore updateProduct error: $e');
       rethrow;
@@ -64,10 +89,7 @@ class ProductRepositoryImpl implements ProductRepository {
   @override
   Future<void> deleteProduct(String productId) async {
     try {
-      await FirebaseService.firestore
-          .collection('Products')
-          .doc(productId)
-          .delete();
+      await remoteDataSource.deleteProduct(productId);
     } catch (e) {
       debugPrint('Firestore deleteProduct error: $e');
       rethrow;

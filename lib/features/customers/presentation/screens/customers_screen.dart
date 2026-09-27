@@ -31,6 +31,48 @@ class CustomersScreen extends StatelessWidget {
                   title: 'customers_title'.tr,
                   subtitle: 'customers_subtitle'.tr,
                   searchHint: 'search_customers_hint'.tr,
+                  trailingHeaderAction: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: AppColor.success.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColor.success.withValues(alpha: 0.25), width: 0.8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 6,
+                              height: 6,
+                              decoration: const BoxDecoration(
+                                color: AppColor.success,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 5),
+                            const Text(
+                              'LIVE',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                color: AppColor.success,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      IconButton(
+                        icon: const Icon(Icons.refresh_rounded, size: 20),
+                        tooltip: 'reload'.tr,
+                        onPressed: () => context.read<CustomerCubit>().loadCustomers(),
+                      ),
+                    ],
+                  ),
                   onSearchChanged: (q) => context.read<CustomerCubit>().filterCustomers(q),
                   emptyMessage: 'no_customers_found'.tr,
                   emptyIcon: Icons.people_outline_rounded,
@@ -69,7 +111,7 @@ class CustomersScreen extends StatelessWidget {
                           ),
                         ),
                         DataCell(Text(c.email)),
-                        DataCell(Text(AppFormatters.formatPhone(c.phone))),
+                        DataCell(Text(c.phone.isNotEmpty ? AppFormatters.formatPhone(c.phone) : '-')),
                         DataCell(Text(c.city)),
                         DataCell(Text('${c.totalOrders}')),
                         DataCell(

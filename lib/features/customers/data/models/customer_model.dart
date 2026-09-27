@@ -12,7 +12,6 @@ DateTime _parseCustomerDate(dynamic date) {
 class CustomerModel extends Equatable {
   final String id;
   final String name;
-  final String userName;
   final String email;
   final String phone;
   final String image;
@@ -25,7 +24,6 @@ class CustomerModel extends Equatable {
   const CustomerModel({
     required this.id,
     required this.name,
-    required this.userName,
     required this.email,
     required this.phone,
     this.image = '',
@@ -38,63 +36,69 @@ class CustomerModel extends Equatable {
 
   factory CustomerModel.fromJson(Map<String, dynamic> json) {
     return CustomerModel(
-      id: json['id']?.toString() ?? json['Id']?.toString() ?? '',
-      name: json['name']?.toString() ??
-          json['Name']?.toString() ??
-          json['fullName']?.toString() ??
-          json['FullName']?.toString() ??
-          json['userName']?.toString() ??
-          'Customer',
-      userName: json['userName']?.toString() ??
-          json['UserName']?.toString() ??
-          json['username']?.toString() ??
-          json['name']?.toString() ??
-          '',
-      email: json['email']?.toString() ?? json['Email']?.toString() ?? '',
-      phone: json['phone']?.toString() ??
-          json['Phone']?.toString() ??
-          json['phoneNumber']?.toString() ??
-          json['PhoneNumber']?.toString() ??
-          '',
-      image: json['image']?.toString() ??
-          json['Image']?.toString() ??
-          json['profilePicture']?.toString() ??
-          json['photoUrl']?.toString() ??
-          '',
-      role: (json['role'] ?? json['Role'] ?? 'user').toString().toLowerCase(),
-      city: json['city']?.toString() ?? json['City']?.toString() ?? 'Cairo',
-      totalOrders: (json['totalOrders'] ?? json['TotalOrders'] as num?)?.toInt() ?? 0,
-      totalSpent: (json['totalSpent'] ?? json['TotalSpent'] as num?)?.toDouble() ?? 0.0,
-      createdAt: _parseCustomerDate(json['createdAt'] ?? json['CreatedAt']),
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? json['userName']?.toString() ?? 'Customer',
+      email: json['email']?.toString() ?? '',
+      phone: json['phone']?.toString() ?? '',
+      image: json['image']?.toString() ?? '',
+      role: (json['role'] ?? 'user').toString().toLowerCase(),
+      city: json['city']?.toString() ?? 'Cairo',
+      totalOrders: (json['totalOrders'] as num?)?.toInt() ?? 0,
+      totalSpent: (json['totalSpent'] as num?)?.toDouble() ?? 0.0,
+      createdAt: _parseCustomerDate(json['createdAt']),
+    );
+  }
+
+  CustomerModel copyWith({
+    String? id,
+    String? name,
+    String? email,
+    String? phone,
+    String? image,
+    String? role,
+    String? city,
+    int? totalOrders,
+    double? totalSpent,
+    DateTime? createdAt,
+  }) {
+    return CustomerModel(
+      id: id ?? this.id,
+      name: name ?? this.name,
+      email: email ?? this.email,
+      phone: phone ?? this.phone,
+      image: image ?? this.image,
+      role: role ?? this.role,
+      city: city ?? this.city,
+      totalOrders: totalOrders ?? this.totalOrders,
+      totalSpent: totalSpent ?? this.totalSpent,
+      createdAt: createdAt ?? this.createdAt,
     );
   }
 
   Map<String, dynamic> toJson() => {
-        'id': id,
-        'name': name,
-        'userName': userName,
-        'email': email,
-        'phone': phone,
-        'image': image,
-        'role': role,
-        'city': city,
-        'totalOrders': totalOrders,
-        'totalSpent': totalSpent,
-        'createdAt': createdAt.toIso8601String(),
-      };
+    'id': id,
+    'name': name,
+    'email': email,
+    'phone': phone,
+    'image': image,
+    'role': role,
+    'city': city,
+    'totalOrders': totalOrders,
+    'totalSpent': totalSpent,
+    'createdAt': createdAt.toIso8601String(),
+  };
 
   @override
   List<Object?> get props => [
-        id,
-        name,
-        userName,
-        email,
-        phone,
-        image,
-        role,
-        city,
-        totalOrders,
-        totalSpent,
-        createdAt,
-      ];
+    id,
+    name,
+    email,
+    phone,
+    image,
+    role,
+    city,
+    totalOrders,
+    totalSpent,
+    createdAt,
+  ];
 }
