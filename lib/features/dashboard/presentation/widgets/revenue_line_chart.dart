@@ -4,6 +4,7 @@ import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/formatters/formatters.dart';
 import '../../../../core/helper/helper_fun.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/dashboard_analytics_model.dart';
 
 class RevenueLineChart extends StatelessWidget {
@@ -39,7 +40,7 @@ class RevenueLineChart extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Revenue & Sales Trajectory',
+                      'revenue_chart_title'.tr,
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.w700,
@@ -48,7 +49,7 @@ class RevenueLineChart extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'Weekly revenue performance in Egyptian Pounds (EGP)',
+                      'revenue_chart_subtitle'.tr,
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
@@ -64,9 +65,9 @@ class RevenueLineChart extends StatelessWidget {
                   color: AppColor.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
                 ),
-                child: const Text(
-                  'Last 7 Days',
-                  style: TextStyle(
+                child: Text(
+                  'last_7_days'.tr,
+                  style: const TextStyle(
                     color: AppColor.primary,
                     fontWeight: FontWeight.w700,
                     fontSize: 11,
@@ -89,7 +90,7 @@ class RevenueLineChart extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSizes.sm),
                     Text(
-                      'No revenue history for the last 7 days yet',
+                      'no_revenue_history_7_days'.tr,
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,

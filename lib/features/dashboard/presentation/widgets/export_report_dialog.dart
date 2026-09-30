@@ -102,7 +102,7 @@ class ExportReportDialog extends StatelessWidget {
                 color: AppColor.primary,
                 title: 'export_executive_summary'.tr,
                 subtitle: 'export_executive_summary_desc'.tr,
-                badge: 'KPIs & Trends',
+                badge: 'summary_report_badge'.tr,
                 onDownload: () async {
                   Navigator.pop(context);
                   final csv = DashboardReportExporter.generateExecutiveSummaryCsv(
@@ -118,7 +118,7 @@ class ExportReportDialog extends StatelessWidget {
                       'export_csv'.tr,
                       'export_download_success'.tr.replaceAll(
                             '{name}',
-                            'Executive Summary',
+                            'executive_summary_file'.tr,
                           ),
                     );
                   }
@@ -134,7 +134,7 @@ class ExportReportDialog extends StatelessWidget {
                 color: AppColor.secondary,
                 title: 'export_orders_report'.tr,
                 subtitle: 'export_orders_report_desc'.tr,
-                badge: '${orders.length} Orders',
+                badge: 'orders_manifest_badge'.tr.replaceAll('{count}', '${orders.length}'),
                 onDownload: () async {
                   Navigator.pop(context);
                   final csv = DashboardReportExporter.generateOrdersReportCsv(
@@ -149,7 +149,7 @@ class ExportReportDialog extends StatelessWidget {
                       'export_csv'.tr,
                       'export_download_success'.tr.replaceAll(
                             '{name}',
-                            'Orders & Sales Manifest',
+                            'orders_manifest_file'.tr,
                           ),
                     );
                   }
@@ -165,7 +165,7 @@ class ExportReportDialog extends StatelessWidget {
                 color: AppColor.warning,
                 title: 'export_inventory_report'.tr,
                 subtitle: 'export_inventory_report_desc'.tr,
-                badge: '${products.length} Products',
+                badge: 'inventory_report_badge'.tr.replaceAll('{count}', '${products.length}'),
                 onDownload: () async {
                   Navigator.pop(context);
                   final csv = DashboardReportExporter.generateInventoryReportCsv(
@@ -181,7 +181,7 @@ class ExportReportDialog extends StatelessWidget {
                       'export_csv'.tr,
                       'export_download_success'.tr.replaceAll(
                             '{name}',
-                            'Inventory Health',
+                            'inventory_status_file'.tr,
                           ),
                     );
                   }
@@ -197,7 +197,7 @@ class ExportReportDialog extends StatelessWidget {
                 color: const Color(0xFF10B981),
                 title: 'export_master_report'.tr,
                 subtitle: 'export_master_report_desc'.tr,
-                badge: 'All Datasets',
+                badge: 'master_report_badge'.tr,
                 onDownload: () async {
                   Navigator.pop(context);
                   final csv = DashboardReportExporter.generateMasterReportCsv(
@@ -215,7 +215,7 @@ class ExportReportDialog extends StatelessWidget {
                       'export_csv'.tr,
                       'export_download_success'.tr.replaceAll(
                             '{name}',
-                            'All-in-One Master Report',
+                            'master_full_file'.tr,
                           ),
                     );
                   }

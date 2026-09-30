@@ -575,6 +575,7 @@ class ProductFormCubit extends Cubit<ProductFormState> {
         images: product.images,
         isBadgeEnabled: product.isBadgeEnabled,
         badgeId: product.badgeId,
+        isOnline: product.isOnline,
         variations: product.productVariations,
         liquidOrigin: specs['liquidOrigin']?.toString() ??
             (specs['isLocal'] == true
@@ -732,6 +733,7 @@ class ProductFormCubit extends Cubit<ProductFormState> {
     List<String>? images,
     bool? isBadgeEnabled,
     String? badgeId,
+    bool? isOnline,
   }) {
     List<String>? updatedImages =
         images != null ? List<String>.from(images) : List<String>.from(state.images);
@@ -761,8 +763,13 @@ class ProductFormCubit extends Cubit<ProductFormState> {
         images: updatedImages,
         isBadgeEnabled: isBadgeEnabled,
         badgeId: badgeId,
+        isOnline: isOnline,
       ),
     );
+  }
+
+  void setIsOnline(bool isOnline) {
+    emit(state.copyWith(isOnline: isOnline));
   }
 
   void setThumbnail(String url) {
@@ -1436,14 +1443,41 @@ class ProductFormCubit extends Cubit<ProductFormState> {
   // DYNAMIC VARIATIONS MATRIX GENERATOR (Delegated to VariationMatrixEngine)
   void generateDynamicVariations() {
     final newVars = VariationMatrixEngine.generateVariations(state);
-    emit(state.copyWith(variations: newVars));
+    emit(state.copyWith(
+      variations: newVars,
+      matrixRevision: state.matrixRevision + 1,
+    ));
+  }
+
+  /// Atomically generates variations and advances from Dynamic Specs (Step 1) to Variations Matrix (Step 2)
+  /// in a single smooth frame to eliminate any transition lag.
+  void advanceFromSpecsToMatrix() {
+    final newVars = state.variations.isNotEmpty
+        ? state.variations
+        : VariationMatrixEngine.generateVariations(state);
+    emit(state.copyWith(
+      variations: newVars,
+      currentStep: 2,
+      matrixRevision: state.matrixRevision + 1,
+    ));
   }
 
   void updateVariation(int index, ProductVariationModel updated) {
     if (index >= 0 && index < state.variations.length) {
       final list = List<ProductVariationModel>.from(state.variations);
       list[index] = updated;
-      emit(state.copyWith(variations: list));
+      double newBase = state.basePrice;
+      double newSale = state.salePrice;
+      double newCost = state.baseCostPrice;
+      if (newBase == 0 && updated.price > 0) newBase = updated.price;
+      if (newSale == 0 && updated.salePrice > 0) newSale = updated.salePrice;
+      if (newCost == 0 && updated.costPrice > 0) newCost = updated.costPrice;
+      emit(state.copyWith(
+        variations: list,
+        basePrice: newBase,
+        salePrice: newSale,
+        baseCostPrice: newCost,
+      ));
     }
   }
 
@@ -1455,7 +1489,10 @@ class ProductFormCubit extends Cubit<ProductFormState> {
     if (index >= 0 && index < state.variations.length) {
       final list = List<ProductVariationModel>.from(state.variations);
       list.removeAt(index);
-      emit(state.copyWith(variations: list));
+      emit(state.copyWith(
+        variations: list,
+        matrixRevision: state.matrixRevision + 1,
+      ));
     }
   }
 
@@ -1464,7 +1501,10 @@ class ProductFormCubit extends Cubit<ProductFormState> {
   }
 
   void clearVariations() {
-    emit(state.copyWith(variations: const []));
+    emit(state.copyWith(
+      variations: const [],
+      matrixRevision: state.matrixRevision + 1,
+    ));
   }
 
   void applyBulkPriceAndStock(double basePrice, double salePrice, int stock, [double? costPrice]) {
@@ -1475,48 +1515,130 @@ class ProductFormCubit extends Cubit<ProductFormState> {
       costPrice: costPrice,
       stock: stock,
     );
-    emit(state.copyWith(variations: list));
+    emit(state.copyWith(
+      variations: list,
+      basePrice: basePrice > 0 ? basePrice : state.basePrice,
+      salePrice: salePrice > 0 ? salePrice : state.salePrice,
+      baseCostPrice: (costPrice != null && costPrice > 0) ? costPrice : state.baseCostPrice,
+      baseStock: stock >= 0 ? stock : state.baseStock,
+      matrixRevision: state.matrixRevision + 1,
+    ));
   }
 
   void bulkUpdateCostPrice(double costPrice) {
     final list = state.variations
         .map((v) => v.copyWith(costPrice: costPrice))
         .toList();
-    emit(state.copyWith(variations: list));
+    emit(state.copyWith(
+      variations: list,
+      baseCostPrice: costPrice > 0 ? costPrice : state.baseCostPrice,
+      matrixRevision: state.matrixRevision + 1,
+    ));
   }
 
   void applyLiquidTierPrices({
     String? targetSize,
     double? mtlStandardPrice,
     double? mtlStandardSalePrice,
+    double? mtlStandardCostPrice,
+    int? mtlStandardStock,
     double? dl3mgPrice,
     double? dl3mgSalePrice,
+    double? dl3mgCostPrice,
+    int? dl3mgStock,
     double? dl6mgPrice,
     double? dl6mgSalePrice,
+    double? dl6mgCostPrice,
+    int? dl6mgStock,
     double? mtl18mgPrice,
     double? mtl18mgSalePrice,
+    double? mtl18mgCostPrice,
+    int? mtl18mgStock,
     double? salt30mgPrice,
     double? salt30mgSalePrice,
+    double? salt30mgCostPrice,
+    int? salt30mgStock,
     double? salt50mgPrice,
     double? salt50mgSalePrice,
+    double? salt50mgCostPrice,
+    int? salt50mgStock,
   }) {
     final list = VariationMatrixEngine.applyLiquidTierPrices(
       variations: state.variations,
       targetSize: targetSize,
       mtlStandardPrice: mtlStandardPrice,
       mtlStandardSalePrice: mtlStandardSalePrice,
+      mtlStandardCostPrice: mtlStandardCostPrice,
+      mtlStandardStock: mtlStandardStock,
       dl3mgPrice: dl3mgPrice,
       dl3mgSalePrice: dl3mgSalePrice,
+      dl3mgCostPrice: dl3mgCostPrice,
+      dl3mgStock: dl3mgStock,
       dl6mgPrice: dl6mgPrice,
       dl6mgSalePrice: dl6mgSalePrice,
+      dl6mgCostPrice: dl6mgCostPrice,
+      dl6mgStock: dl6mgStock,
       mtl18mgPrice: mtl18mgPrice,
       mtl18mgSalePrice: mtl18mgSalePrice,
+      mtl18mgCostPrice: mtl18mgCostPrice,
+      mtl18mgStock: mtl18mgStock,
       salt30mgPrice: salt30mgPrice,
       salt30mgSalePrice: salt30mgSalePrice,
+      salt30mgCostPrice: salt30mgCostPrice,
+      salt30mgStock: salt30mgStock,
       salt50mgPrice: salt50mgPrice,
       salt50mgSalePrice: salt50mgSalePrice,
+      salt50mgCostPrice: salt50mgCostPrice,
+      salt50mgStock: salt50mgStock,
     );
-    emit(state.copyWith(variations: list));
+
+    double newBasePrice = state.basePrice;
+    double newSalePrice = state.salePrice;
+    double newCostPrice = state.baseCostPrice;
+
+    final prices = [
+      mtlStandardPrice,
+      dl3mgPrice,
+      dl6mgPrice,
+      salt30mgPrice,
+      salt50mgPrice,
+      mtl18mgPrice,
+    ].where((p) => p != null && p > 0).cast<double>().toList();
+    if (prices.isNotEmpty) {
+      newBasePrice = prices.first;
+    }
+
+    final salePrices = [
+      mtlStandardSalePrice,
+      dl3mgSalePrice,
+      dl6mgSalePrice,
+      salt30mgSalePrice,
+      salt50mgSalePrice,
+      mtl18mgSalePrice,
+    ].where((p) => p != null && p > 0).cast<double>().toList();
+    if (salePrices.isNotEmpty) {
+      newSalePrice = salePrices.first;
+    }
+
+    final costPrices = [
+      mtlStandardCostPrice,
+      dl3mgCostPrice,
+      dl6mgCostPrice,
+      salt30mgCostPrice,
+      salt50mgCostPrice,
+      mtl18mgCostPrice,
+    ].where((p) => p != null && p > 0).cast<double>().toList();
+    if (costPrices.isNotEmpty) {
+      newCostPrice = costPrices.first;
+    }
+
+    emit(state.copyWith(
+      variations: list,
+      basePrice: newBasePrice > 0 ? newBasePrice : state.basePrice,
+      salePrice: newSalePrice > 0 ? newSalePrice : state.salePrice,
+      baseCostPrice: newCostPrice > 0 ? newCostPrice : state.baseCostPrice,
+      matrixRevision: state.matrixRevision + 1,
+    ));
   }
 
   void removeLiquidTierVariations({
@@ -1528,19 +1650,31 @@ class ProductFormCubit extends Cubit<ProductFormState> {
       targetSize: targetSize,
       tierKey: tierKey,
     );
-    emit(state.copyWith(variations: list));
+    emit(state.copyWith(
+      variations: list,
+      matrixRevision: state.matrixRevision + 1,
+    ));
   }
 
   void bulkUpdatePrice(double price) {
     final list = state.variations
         .map((v) => v.copyWith(salePrice: price, price: price))
         .toList();
-    emit(state.copyWith(variations: list));
+    emit(state.copyWith(
+      variations: list,
+      basePrice: price > 0 ? price : state.basePrice,
+      salePrice: price > 0 ? price : state.salePrice,
+      matrixRevision: state.matrixRevision + 1,
+    ));
   }
 
   void bulkUpdateStock(int stock) {
     final list = state.variations.map((v) => v.copyWith(stock: stock)).toList();
-    emit(state.copyWith(variations: list));
+    emit(state.copyWith(
+      variations: list,
+      baseStock: stock >= 0 ? stock : state.baseStock,
+      matrixRevision: state.matrixRevision + 1,
+    ));
   }
 
   void setVariationImage(int index, String imageUrl) {

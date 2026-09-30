@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/helper/helper_fun.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/dashboard_analytics_model.dart';
 
 class BrandShareDonutChart extends StatelessWidget {
@@ -33,7 +34,7 @@ class BrandShareDonutChart extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Brand Market Distribution',
+            'brand_share_title'.tr,
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -42,7 +43,7 @@ class BrandShareDonutChart extends StatelessWidget {
           ),
           const SizedBox(height: 2),
           Text(
-            'Hardware & E-Liquid catalog share',
+            'brand_share_subtitle'.tr,
             style: TextStyle(
               fontSize: 12,
               color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
@@ -62,7 +63,7 @@ class BrandShareDonutChart extends StatelessWidget {
                     ),
                     const SizedBox(height: AppSizes.sm),
                     Text(
-                      'No brand distribution data available',
+                      'no_brand_distribution_data'.tr,
                       style: TextStyle(
                         fontSize: 12,
                         color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,

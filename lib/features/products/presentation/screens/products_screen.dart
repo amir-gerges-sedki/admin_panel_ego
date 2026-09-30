@@ -197,6 +197,26 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                                 style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFFF59E0B)),
                                               ),
                                             ),
+                                          if (!p.isOnline)
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                                                borderRadius: BorderRadius.circular(3),
+                                                border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.point_of_sale_rounded, size: 10, color: Color(0xFFF59E0B)),
+                                                  const SizedBox(width: 3),
+                                                  Text(
+                                                    'pos_only'.tr,
+                                                    style: const TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFFF59E0B)),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
                                         ],
                                       ),
                                       if (p.flavors.isNotEmpty)

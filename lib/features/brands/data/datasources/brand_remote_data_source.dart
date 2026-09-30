@@ -10,7 +10,6 @@ abstract class BrandRemoteDataSource {
   Future<Map<String, int>> getProductCountsPerBrand();
   Future<void> addBrand(BrandModel brand);
   Future<void> updateBrand(BrandModel brand);
-
   Future<void> updateBrandOrdersBatch(Map<String, int> brandOrders);
   Future<void> deleteBrand(String id);
 }
@@ -19,10 +18,13 @@ class BrandRemoteDataSourceImpl implements BrandRemoteDataSource {
   final FirebaseFirestore _firestore;
 
   BrandRemoteDataSourceImpl({FirebaseFirestore? firestore})
-    : _firestore = firestore ?? FirebaseFirestore.instance;
+      : _firestore = firestore ?? FirebaseService.firestore;
 
   CollectionReference<Map<String, dynamic>> get _brandsCollection =>
-      _firestore.collection('Brands');
+      FirebaseService.brandsCollection;
+
+  CollectionReference<Map<String, dynamic>> get _productsCollection =>
+      FirebaseService.productsCollection;
 
   @override
   Future<List<BrandModel>> getBrands() async {
@@ -40,15 +42,10 @@ class BrandRemoteDataSourceImpl implements BrandRemoteDataSource {
   @override
   Future<Map<String, int>> getProductCountsPerBrand() async {
     try {
-      final docs = await FirebaseService.getMultipleCollectionsDocs([
-        'Products',
-        'products',
-        'Items',
-        'items',
-      ]);
+      final snapshot = await _productsCollection.get();
       final Map<String, int> counts = {};
 
-      for (final doc in docs) {
+      for (final doc in snapshot.docs) {
         final data = doc.data();
         final brandMap = data['brand'];
         String? bId;
@@ -57,9 +54,6 @@ class BrandRemoteDataSourceImpl implements BrandRemoteDataSource {
         if (brandMap is Map) {
           bId = brandMap['id']?.toString().trim().toLowerCase();
           bName = brandMap['name']?.toString().trim().toLowerCase();
-        } else if (data['brandId'] != null || data['brandName'] != null) {
-          bId = data['brandId']?.toString().trim().toLowerCase();
-          bName = data['brandName']?.toString().trim().toLowerCase();
         }
 
         if (bId != null && bId.isNotEmpty) {

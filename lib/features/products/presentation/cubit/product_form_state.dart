@@ -21,6 +21,7 @@ class ProductFormState extends Equatable {
   final List<String> images;
   final bool isBadgeEnabled;
   final String badgeId;
+  final bool isOnline;
   final bool isSubmitting;
   final String? errorMessage;
   final bool isSuccess;
@@ -88,12 +89,14 @@ class ProductFormState extends Equatable {
 
   // Variations Matrix
   final List<ProductVariationModel> variations;
+  final int matrixRevision;
 
   const ProductFormState({
     this.currentStep = 0,
     this.categoryType = ProductCategoryType.liquid,
     this.isEditMode = false,
     this.initialProductId,
+    this.matrixRevision = 0,
     this.title = '',
     this.description = '',
     this.brandId = '',
@@ -107,6 +110,7 @@ class ProductFormState extends Equatable {
     this.images = const [],
     this.isBadgeEnabled = false,
     this.badgeId = '',
+    this.isOnline = true,
     this.isSubmitting = false,
     this.errorMessage,
     this.isSuccess = false,
@@ -241,6 +245,7 @@ class ProductFormState extends Equatable {
     List<String>? images,
     bool? isBadgeEnabled,
     String? badgeId,
+    bool? isOnline,
     bool? isSubmitting,
     String? errorMessage,
     bool? isSuccess,
@@ -292,12 +297,14 @@ class ProductFormState extends Equatable {
     String? puffsCount,
     String? disposableBatteryCapacity,
     List<ProductVariationModel>? variations,
+    int? matrixRevision,
   }) {
     return ProductFormState(
       currentStep: currentStep ?? this.currentStep,
       categoryType: categoryType ?? this.categoryType,
       isEditMode: isEditMode ?? this.isEditMode,
       initialProductId: initialProductId ?? this.initialProductId,
+      matrixRevision: matrixRevision ?? this.matrixRevision,
       title: title ?? this.title,
       description: description ?? this.description,
       brandId: brandId ?? this.brandId,
@@ -311,6 +318,7 @@ class ProductFormState extends Equatable {
       images: images ?? this.images,
       isBadgeEnabled: isBadgeEnabled ?? this.isBadgeEnabled,
       badgeId: badgeId ?? this.badgeId,
+      isOnline: isOnline ?? this.isOnline,
       isSubmitting: isSubmitting ?? this.isSubmitting,
       errorMessage: errorMessage,
       isSuccess: isSuccess ?? this.isSuccess,
@@ -389,6 +397,7 @@ class ProductFormState extends Equatable {
     categoryType,
     isEditMode,
     initialProductId,
+    matrixRevision,
     title,
     description,
     brandId,
@@ -402,6 +411,7 @@ class ProductFormState extends Equatable {
     images,
     isBadgeEnabled,
     badgeId,
+    isOnline,
     isSubmitting,
     errorMessage,
     isSuccess,

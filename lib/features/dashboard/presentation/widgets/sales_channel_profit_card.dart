@@ -3,6 +3,7 @@ import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/formatters/formatters.dart';
 import '../../../../core/helper/helper_fun.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/dashboard_analytics_model.dart';
 
 import '../screens/product_sales_report_screen.dart';
@@ -62,7 +63,7 @@ class SalesChannelProfitCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'مقارنة المبيعات وصافي الأرباح (القنوات)',
+                            'sales_channel_title'.tr,
                             style: TextStyle(
                               fontSize: 15,
                               fontWeight: FontWeight.w900,
@@ -70,7 +71,7 @@ class SalesChannelProfitCard extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'فصل مبيعات وأرباح تطبيق الأونلاين عن كاشير الفرع مع الإجمالي',
+                            'sales_channel_subtitle'.tr,
                             style: TextStyle(
                               fontSize: 11,
                               color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
@@ -91,7 +92,11 @@ class SalesChannelProfitCard extends StatelessWidget {
                   border: Border.all(color: AppColor.primary.withValues(alpha: 0.3)),
                 ),
                 child: Text(
-                  analytics.periodLabel,
+                  analytics.periodType == DashboardPeriodType.today
+                      ? 'filter_today'.tr
+                      : (analytics.periodType == DashboardPeriodType.allTime
+                          ? 'filter_all'.tr
+                          : analytics.periodLabel),
                   style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: AppColor.primary),
                 ),
               ),
@@ -112,7 +117,7 @@ class SalesChannelProfitCard extends StatelessWidget {
                         const Icon(Icons.circle, size: 10, color: Color(0xFF3B82F6)),
                         const SizedBox(width: 4),
                         Text(
-                          'تطبيق الأونلاين: ${onlineShare.toStringAsFixed(1)}%',
+                          'channel_online_share'.trParams({'percent': onlineShare.toStringAsFixed(1)}),
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF3B82F6)),
                         ),
                       ],
@@ -122,7 +127,7 @@ class SalesChannelProfitCard extends StatelessWidget {
                         const Icon(Icons.circle, size: 10, color: Color(0xFF8B5CF6)),
                         const SizedBox(width: 4),
                         Text(
-                          'كاشير الفرع: ${posShare.toStringAsFixed(1)}%',
+                          'channel_pos_share'.trParams({'percent': posShare.toStringAsFixed(1)}),
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: Color(0xFF8B5CF6)),
                         ),
                       ],
@@ -161,8 +166,8 @@ class SalesChannelProfitCard extends StatelessWidget {
               final onlineCard = _buildChannelMetricBox(
                 context: context,
                 isDark: isDark,
-                channelTitle: 'تطبيق الأونلاين (App)',
-                channelSubtitle: 'طلبات التوصيل والشحن',
+                channelTitle: 'channel_online_title'.tr,
+                channelSubtitle: 'channel_online_subtitle'.tr,
                 icon: Icons.phone_android_rounded,
                 accentColor: const Color(0xFF3B82F6),
                 metrics: online,
@@ -172,8 +177,8 @@ class SalesChannelProfitCard extends StatelessWidget {
               final posCard = _buildChannelMetricBox(
                 context: context,
                 isDark: isDark,
-                channelTitle: 'كاشير الفرع (POS)',
-                channelSubtitle: 'مبيعات مباشرة بالمتجر',
+                channelTitle: 'channel_pos_title'.tr,
+                channelSubtitle: 'channel_pos_subtitle'.tr,
                 icon: Icons.storefront_rounded,
                 accentColor: const Color(0xFF8B5CF6),
                 metrics: pos,
@@ -183,8 +188,8 @@ class SalesChannelProfitCard extends StatelessWidget {
               final consolidatedCard = _buildChannelMetricBox(
                 context: context,
                 isDark: isDark,
-                channelTitle: 'الإجمالي المجمّع (Total)',
-                channelSubtitle: 'أونلاين + كاشير الفرع',
+                channelTitle: 'channel_total_title'.tr,
+                channelSubtitle: 'channel_total_subtitle'.tr,
                 icon: Icons.account_balance_wallet_rounded,
                 accentColor: const Color(0xFF10B981),
                 metrics: combined,
@@ -258,7 +263,7 @@ class SalesChannelProfitCard extends StatelessWidget {
                         Row(
                           children: [
                             Text(
-                              'عرض تفاصيل مبيعات المنتجات والأصناف',
+                              'btn_view_product_sales'.tr,
                               style: TextStyle(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w800,
@@ -273,7 +278,7 @@ class SalesChannelProfitCard extends StatelessWidget {
                                 borderRadius: BorderRadius.circular(10),
                               ),
                               child: Text(
-                                '${analytics.productSales.length} منتج مباع',
+                                'products_sold_count_badge'.trParams({'count': analytics.productSales.length.toString()}),
                                 style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white),
                               ),
                             ),
@@ -281,7 +286,7 @@ class SalesChannelProfitCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 2),
                         Text(
-                          'عرض كميات كل صنف مباع في التطبيق والفرع، التكلفة، وصافي الربح لكل منتج',
+                          'btn_view_product_sales_subtitle'.tr,
                           style: TextStyle(
                             fontSize: 11,
                             color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
@@ -364,7 +369,7 @@ class SalesChannelProfitCard extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Text(
-                  '${metrics.count} عملية',
+                  'transactions_count_badge'.trParams({'count': metrics.count.toString()}),
                   style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: accentColor),
                 ),
               ),
@@ -375,7 +380,7 @@ class SalesChannelProfitCard extends StatelessWidget {
           // Total Revenue
           _buildRowItem(
             isDark: isDark,
-            label: 'إجمالي المبيعات:',
+            label: 'metric_total_sales_label'.tr,
             value: AppFormatters.formatEGP(metrics.revenue),
             isBold: true,
             valueColor: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
@@ -386,7 +391,7 @@ class SalesChannelProfitCard extends StatelessWidget {
           // Cost of Goods Sold (COGS)
           _buildRowItem(
             isDark: isDark,
-            label: 'تكلفة البضاعة (COGS):',
+            label: 'metric_cogs_label'.tr,
             value: AppFormatters.formatEGP(metrics.cost),
             valueColor: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
             fontSize: 11.5,
@@ -409,9 +414,9 @@ class SalesChannelProfitCard extends StatelessWidget {
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'صافي المكسب (Net Profit):',
-                      style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                    Text(
+                      'metric_net_profit_label'.tr,
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                     ),
                     Text(
                       AppFormatters.formatEGP(metrics.netProfit),
@@ -442,7 +447,7 @@ class SalesChannelProfitCard extends StatelessWidget {
           // Average Ticket Value
           _buildRowItem(
             isDark: isDark,
-            label: 'متوسط العملية:',
+            label: 'metric_avg_ticket_label'.tr,
             value: AppFormatters.formatEGP(metrics.averageTicket),
             valueColor: accentColor,
             fontSize: 11,
@@ -452,7 +457,7 @@ class SalesChannelProfitCard extends StatelessWidget {
             const SizedBox(height: 6),
             _buildRowItem(
               isDark: isDark,
-              label: 'مرتجعات ومبالغ مستردة (${metrics.returnedCount}):',
+              label: 'metric_refunds_label'.trParams({'count': metrics.returnedCount.toString()}),
               value: '-${AppFormatters.formatEGP(metrics.refundedAmount)}',
               valueColor: const Color(0xFFF97316),
               fontSize: 11,

@@ -840,7 +840,7 @@ class OrderDetailsDrawer extends StatelessWidget {
               child: ElevatedButton.icon(
                 onPressed: () => OrderInvoicePrinter.printThermalOrderReceipt(order),
                 icon: const Icon(Icons.receipt_rounded, size: 15),
-                label: const Text('إيصال حراري', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                label: Text('thermal_receipt'.tr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFF97316),
                   foregroundColor: Colors.white,

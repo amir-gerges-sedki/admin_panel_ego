@@ -25,8 +25,23 @@ class AppLocalizations {
   };
 
   String translate(String key) {
+    if (key.isEmpty) return '';
     final languageCode = locale.languageCode;
-    return _localizedValues[languageCode]?[key] ?? _localizedValues['en']?[key] ?? key;
+    final val = _localizedValues[languageCode]?[key] ?? _localizedValues['en']?[key];
+    if (val != null && val.isNotEmpty) {
+      return val;
+    }
+
+    // Never expose raw identifiers with underscores to the user in the UI.
+    // Replace underscores with clean spaces and capitalize words.
+    if (key.contains('_')) {
+      final words = key.split('_');
+      return words
+          .where((w) => w.isNotEmpty)
+          .map((w) => '${w[0].toUpperCase()}${w.substring(1)}')
+          .join(' ');
+    }
+    return key;
   }
 
   static AppLocalizations of(BuildContext context) {

@@ -27,6 +27,7 @@ class ProductModel extends Equatable {
   final ProductCategoryType categoryType;
   final bool isBadgeEnabled;
   final String badgeId;
+  final bool isOnline; // If true, visible in E-Commerce Mobile App. If false, POS/Store only.
   final String productType; // 'simple' or 'variable'
   final List<ProductAttribute> productAttributes;
   final List<ProductVariationModel> productVariations;
@@ -47,6 +48,7 @@ class ProductModel extends Equatable {
     this.categoryType = ProductCategoryType.liquid,
     this.isBadgeEnabled = false,
     this.badgeId = '',
+    this.isOnline = true,
     this.productType = 'simple',
     this.productAttributes = const [],
     this.productVariations = const [],
@@ -144,6 +146,7 @@ class ProductModel extends Equatable {
     ProductCategoryType? categoryType,
     bool? isBadgeEnabled,
     String? badgeId,
+    bool? isOnline,
     String? productType,
     List<ProductAttribute>? productAttributes,
     List<ProductVariationModel>? productVariations,
@@ -164,6 +167,7 @@ class ProductModel extends Equatable {
       categoryType: categoryType ?? this.categoryType,
       isBadgeEnabled: isBadgeEnabled ?? this.isBadgeEnabled,
       badgeId: badgeId ?? this.badgeId,
+      isOnline: isOnline ?? this.isOnline,
       productType: productType ?? this.productType,
       productAttributes: productAttributes ?? this.productAttributes,
       productVariations: productVariations ?? this.productVariations,
@@ -209,6 +213,10 @@ class ProductModel extends Equatable {
         json['hasBadge'] == true ||
         rawBadgeId.isNotEmpty;
 
+    final isOnlineVal = json['isOnline'] is bool
+        ? json['isOnline'] as bool
+        : (json['isOnline']?.toString().toLowerCase() != 'false');
+
     return ProductModel(
       id: json['id']?.toString() ?? json['Id']?.toString() ?? '',
       title: resolvedTitle,
@@ -239,6 +247,7 @@ class ProductModel extends Equatable {
       categoryType: determinedType,
       isBadgeEnabled: hasBadge,
       badgeId: rawBadgeId,
+      isOnline: isOnlineVal,
       productType:
           (json['productType'] ??
                   json['ProductType'] ??
@@ -278,6 +287,7 @@ class ProductModel extends Equatable {
       if (!isLiquid) ...{'title': title, 'name': title},
       'isBadgeEnabled': isBadgeEnabled,
       'badgeId': isBadgeEnabled ? badgeId : '',
+      'isOnline': isOnline,
       'productType': productVariations.isNotEmpty ? 'variable' : productType,
       'productAttributes': productAttributes.map((e) => e.toJson()).toList(),
       'productVariations': productVariations.map((e) => e.toJson()).toList(),
@@ -517,6 +527,7 @@ class ProductModel extends Equatable {
     categoryType,
     isBadgeEnabled,
     badgeId,
+    isOnline,
     productType,
     productAttributes,
     productVariations,

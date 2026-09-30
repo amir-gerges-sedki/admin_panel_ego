@@ -59,8 +59,12 @@ enum AdminPermission {
   customers('customers', 'permission_customers', Icons.people_rounded),
   notifications('notifications', 'permission_notifications', Icons.campaign_rounded),
   suppliers('suppliers', 'permission_suppliers', Icons.business_rounded),
+  expenses('expenses', 'permission_expenses', Icons.receipt_long_rounded),
+  damagedStock('damaged_stock', 'permission_damaged_stock', Icons.delete_sweep_rounded),
+  employees('employees', 'permission_employees', Icons.badge_rounded),
   settings('settings', 'permission_settings', Icons.settings_rounded),
-  roles('roles', 'permission_roles', Icons.shield_rounded);
+  roles('roles', 'permission_roles', Icons.shield_rounded),
+  viewCostPrice('view_cost_price', 'permission_view_cost_price', Icons.attach_money_rounded);
 
   final String id;
   final String labelKey;
@@ -84,7 +88,7 @@ class RolePermissionsModel {
 
   /// Default predefined permission configuration:
   /// - superAdmin: All modules
-  /// - admin: POS, Products, Brands, Orders, Suppliers, Banners, Coupons, Customers, Notifications
+  /// - admin: POS, Products, Brands, Orders, Suppliers, Expenses, DamagedStock, Employees, Banners, Coupons, Customers, Notifications, ViewCostPrice
   /// - staff / guest: POS & Orders
   factory RolePermissionsModel.defaultPermissions() {
     return RolePermissionsModel(
@@ -96,10 +100,14 @@ class RolePermissionsModel {
           AdminPermission.brands,
           AdminPermission.orders,
           AdminPermission.suppliers,
+          AdminPermission.expenses,
+          AdminPermission.damagedStock,
+          AdminPermission.employees,
           AdminPermission.banners,
           AdminPermission.coupons,
           AdminPermission.customers,
           AdminPermission.notifications,
+          AdminPermission.viewCostPrice,
         },
         AdminRole.staff: {
           AdminPermission.pos,

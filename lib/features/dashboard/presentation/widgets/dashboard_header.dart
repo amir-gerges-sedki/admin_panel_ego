@@ -45,7 +45,7 @@ class DashboardHeader extends StatelessWidget {
               () {
                 HelperFun.successSnackbar(
                   'export_csv'.tr,
-                  'CSV summary generated successfully!',
+                  'export_download_success'.tr.replaceAll('{name}', 'executive_summary_file'.tr),
                 );
               },
           icon: const Icon(Icons.download_rounded, size: 16),

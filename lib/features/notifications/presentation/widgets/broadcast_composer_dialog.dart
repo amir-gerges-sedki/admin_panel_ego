@@ -261,7 +261,7 @@ class _BroadcastComposerDialogState extends State<BroadcastComposerDialog> {
               ElevatedButton.icon(
                 onPressed: _submit,
                 icon: const Icon(Icons.send_rounded, size: 16),
-                label: const Text('Send Push to All Users', style: TextStyle(fontWeight: FontWeight.w700)),
+                label: Text('send_push_to_all'.tr, style: const TextStyle(fontWeight: FontWeight.w700)),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.primary,
                   foregroundColor: Colors.white,

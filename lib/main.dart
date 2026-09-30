@@ -13,7 +13,10 @@ import 'features/banners/presentation/cubit/banner_cubit.dart';
 import 'features/brands/presentation/cubit/brand_cubit.dart';
 import 'features/coupons/presentation/cubit/coupon_cubit.dart';
 import 'features/customers/presentation/cubit/customer_cubit.dart';
+import 'features/damaged_stock/presentation/cubit/damaged_stock_cubit.dart';
 import 'features/dashboard/presentation/cubit/dashboard_cubit.dart';
+import 'features/employees/presentation/cubit/employee_cubit.dart';
+import 'features/expenses/presentation/cubit/expense_cubit.dart';
 import 'features/notifications/presentation/cubit/notification_cubit.dart';
 import 'features/orders/presentation/cubit/order_cubit.dart';
 import 'features/pos/presentation/cubit/pos_cubit.dart';
@@ -59,6 +62,24 @@ class EgoAdminApp extends StatelessWidget {
         BlocProvider<SupplierCubit>(
           create: (_) => sl<SupplierCubit>()..loadSuppliersData(),
         ),
+        BlocProvider<ExpenseCubit>(
+          create: (_) => (sl.isRegistered<ExpenseCubit>()
+                  ? sl<ExpenseCubit>()
+                  : ExpenseCubit())
+              ..loadExpenses(),
+        ),
+        BlocProvider<DamagedStockCubit>(
+          create: (_) => (sl.isRegistered<DamagedStockCubit>()
+                  ? sl<DamagedStockCubit>()
+                  : DamagedStockCubit())
+              ..loadDamagedStock(),
+        ),
+        BlocProvider<EmployeeCubit>(
+          create: (_) => (sl.isRegistered<EmployeeCubit>()
+                  ? sl<EmployeeCubit>()
+                  : EmployeeCubit())
+              ..loadEmployeesData(),
+        ),
         BlocProvider<BrandCubit>(
           create: (_) => sl<BrandCubit>()..loadBrands(),
         ),
@@ -93,27 +114,17 @@ class EgoAdminApp extends StatelessWidget {
                 darkTheme: AppTheme.darkTheme,
                 themeMode: themeState.themeMode,
                 locale: localeState.locale,
+                supportedLocales: const [
+                  Locale('ar'),
+                  Locale('en'),
+                ],
                 localizationsDelegates: const [
                   AppLocalizations.delegate,
                   GlobalMaterialLocalizations.delegate,
                   GlobalWidgetsLocalizations.delegate,
                   GlobalCupertinoLocalizations.delegate,
                 ],
-                initialRoute: '/',
-                onGenerateInitialRoutes: (initialRoute) => [
-                  MaterialPageRoute(
-                    settings: RouteSettings(name: initialRoute),
-                    builder: (_) => const AdminMainShell(),
-                  ),
-                ],
-                onGenerateRoute: (settings) => MaterialPageRoute(
-                  settings: settings,
-                  builder: (_) => const AdminMainShell(),
-                ),
-                onUnknownRoute: (settings) => MaterialPageRoute(
-                  settings: settings,
-                  builder: (_) => const AdminMainShell(),
-                ),
+                home: const AdminMainShell(),
               );
             },
           );

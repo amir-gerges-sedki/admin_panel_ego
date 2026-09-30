@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/helper/helper_fun.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/dashboard_analytics_model.dart';
 import '../cubit/dashboard_cubit.dart';
 
@@ -21,9 +22,9 @@ class DashboardDateFilterBar extends StatelessWidget {
       initialDate: initial,
       firstDate: DateTime(2020),
       lastDate: DateTime(now.year + 2),
-      helpText: 'اختر تاريخ البداية (من تاريخ)',
-      cancelText: 'إلغاء',
-      confirmText: 'تأكيد البداية',
+      helpText: 'select_start_date'.tr,
+      cancelText: 'cancel'.tr,
+      confirmText: 'confirm'.tr,
       builder: (context, child) => _buildPickerTheme(context, child!),
     );
 
@@ -48,9 +49,9 @@ class DashboardDateFilterBar extends StatelessWidget {
       initialDate: initial,
       firstDate: DateTime(2020),
       lastDate: DateTime(now.year + 2),
-      helpText: 'اختر تاريخ النهاية (إلى تاريخ)',
-      cancelText: 'إلغاء',
-      confirmText: 'تأكيد النهاية',
+      helpText: 'select_end_date'.tr,
+      cancelText: 'cancel'.tr,
+      confirmText: 'confirm'.tr,
       builder: (context, child) => _buildPickerTheme(context, child!),
     );
 
@@ -96,10 +97,10 @@ class DashboardDateFilterBar extends StatelessWidget {
 
     final startLabel = analytics.filterStartDate != null
         ? dateFormat.format(analytics.filterStartDate!)
-        : 'تاريخ البداية';
+        : 'from_date'.tr;
     final endLabel = analytics.filterEndDate != null
         ? dateFormat.format(analytics.filterEndDate!)
-        : 'تاريخ النهاية';
+        : 'to_date'.tr;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -138,12 +139,16 @@ class DashboardDateFilterBar extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Text(
-                    'تحديد فترة المبيعات والأرباح:',
-                    style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey),
+                  Text(
+                    'dashboard_date_filter_title'.tr,
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.grey),
                   ),
                   Text(
-                    analytics.periodLabel,
+                    activePeriod == DashboardPeriodType.today
+                        ? 'filter_today'.tr
+                        : (activePeriod == DashboardPeriodType.allTime
+                            ? 'filter_all'.tr
+                            : (analytics.filterStartDate != null ? '$startLabel - $endLabel' : 'filter_all'.tr)),
                     style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w800,
@@ -164,7 +169,7 @@ class DashboardDateFilterBar extends StatelessWidget {
               // Button 1: اليوم (Today)
               _buildActionButton(
                 context: context,
-                label: 'اليوم',
+                label: 'filter_today'.tr,
                 icon: Icons.today_rounded,
                 isSelected: activePeriod == DashboardPeriodType.today,
                 isDark: isDark,
@@ -174,7 +179,7 @@ class DashboardDateFilterBar extends StatelessWidget {
               // Button 2: كافة الفترات (All Time)
               _buildActionButton(
                 context: context,
-                label: 'كافة الفترات',
+                label: 'filter_all'.tr,
                 icon: Icons.all_inclusive_rounded,
                 isSelected: activePeriod == DashboardPeriodType.allTime,
                 isDark: isDark,
@@ -191,7 +196,7 @@ class DashboardDateFilterBar extends StatelessWidget {
               // Calendar 1: من تاريخ (Start Date)
               _buildDatePickerPill(
                 context: context,
-                prefixText: 'من:',
+                prefixText: 'from_label'.tr,
                 dateText: startLabel,
                 isDark: isDark,
                 isActive: activePeriod == DashboardPeriodType.custom,
@@ -208,7 +213,7 @@ class DashboardDateFilterBar extends StatelessWidget {
               // Calendar 2: إلى تاريخ (End Date)
               _buildDatePickerPill(
                 context: context,
-                prefixText: 'إلى:',
+                prefixText: 'to_label'.tr,
                 dateText: endLabel,
                 isDark: isDark,
                 isActive: activePeriod == DashboardPeriodType.custom,

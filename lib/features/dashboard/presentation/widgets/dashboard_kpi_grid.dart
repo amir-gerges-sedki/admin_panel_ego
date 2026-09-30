@@ -25,11 +25,19 @@ class DashboardKpiGrid extends StatelessWidget {
       KpiMetricCard(
         title: 'kpi_total_revenue'.tr,
         value: AppFormatters.formatCompactEGP(analytics.totalRevenue),
-        delta: analytics.totalRevenue > 0 ? 'Active' : '0 EGP',
+        delta: analytics.totalRevenue > 0 ? 'kpi_status_active'.tr : AppFormatters.formatCompactEGP(0),
         isPositive: true,
         icon: Icons.account_balance_wallet_outlined,
         accentColor: AppColor.primary,
         sparklineData: revenueSparkline.any((v) => v > 0) ? revenueSparkline : null,
+      ),
+      KpiMetricCard(
+        title: 'expenses'.tr,
+        value: AppFormatters.formatCompactEGP((analytics.totalExpenses as num?)?.toDouble() ?? 0.0),
+        delta: ((analytics.totalExpenses as num?)?.toDouble() ?? 0.0) > 0 ? 'kpi_status_opex'.tr : AppFormatters.formatCompactEGP(0),
+        isPositive: false,
+        icon: Icons.receipt_long_rounded,
+        accentColor: const Color(0xFFF59E0B),
       ),
       KpiMetricCard(
         title: 'kpi_net_profit'.tr,
@@ -45,8 +53,8 @@ class DashboardKpiGrid extends StatelessWidget {
         title: 'kpi_supplier_payables'.tr,
         value: AppFormatters.formatCompactEGP(analytics.totalSupplierBalanceDue),
         delta: analytics.totalSupplierBalanceDue > 0
-            ? '${AppFormatters.formatCompactEGP(analytics.totalSupplierBalanceDue)} Due'
-            : 'Settled',
+            ? '${AppFormatters.formatCompactEGP(analytics.totalSupplierBalanceDue)} ${"kpi_status_due".tr}'
+            : 'kpi_status_settled'.tr,
         isPositive: analytics.totalSupplierBalanceDue == 0,
         icon: Icons.business_center_rounded,
         accentColor: analytics.totalSupplierBalanceDue > 0
@@ -55,8 +63,8 @@ class DashboardKpiGrid extends StatelessWidget {
       ),
       KpiMetricCard(
         title: 'kpi_today_orders'.tr,
-        value: '${analytics.todayOrders} Orders',
-        delta: '${analytics.todayOrders} today',
+        value: 'kpi_orders_count_badge'.trParams({'count': analytics.todayOrders.toString()}),
+        delta: 'kpi_orders_count_today'.trParams({'count': analytics.todayOrders.toString()}),
         isPositive: analytics.todayOrders > 0,
         icon: Icons.shopping_bag_outlined,
         accentColor: AppColor.secondary,
@@ -64,8 +72,10 @@ class DashboardKpiGrid extends StatelessWidget {
       ),
       KpiMetricCard(
         title: 'kpi_low_stock_alerts'.tr,
-        value: '${analytics.lowStockAlertsCount} Items',
-        delta: analytics.lowStockAlertsCount > 0 ? '${analytics.lowStockAlertsCount} urgent' : 'Healthy',
+        value: 'kpi_items_count_badge'.trParams({'count': analytics.lowStockAlertsCount.toString()}),
+        delta: analytics.lowStockAlertsCount > 0
+            ? 'kpi_low_stock_urgent'.trParams({'count': analytics.lowStockAlertsCount.toString()})
+            : 'kpi_low_stock_healthy'.tr,
         isPositive: analytics.lowStockAlertsCount == 0,
         icon: Icons.warning_amber_rounded,
         accentColor: analytics.lowStockAlertsCount > 0 ? AppColor.warning : AppColor.success,
@@ -76,7 +86,7 @@ class DashboardKpiGrid extends StatelessWidget {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
 
-        if (width >= 1100) {
+        if (width >= 1350) {
           return Row(
             children: cards
                 .map((c) => Expanded(
@@ -87,7 +97,7 @@ class DashboardKpiGrid extends StatelessWidget {
                     ))
                 .toList(),
           );
-        } else if (width >= 650) {
+        } else if (width >= 700) {
           return Column(
             children: [
               Row(
@@ -104,7 +114,7 @@ class DashboardKpiGrid extends StatelessWidget {
               const SizedBox(height: AppSizes.md),
               Row(
                 children: cards
-                    .sublist(3, 5)
+                    .sublist(3, 6)
                     .map((c) => Expanded(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 5),

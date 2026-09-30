@@ -1,12 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/constant/app_colors.dart';
-import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../cubit/pos_cubit.dart';
 import '../cubit/pos_state.dart';
-import 'pos_variation_selector_dialog.dart';
 
 /// Top Barcode & Search Bar with hardware barcode scanner integration
 class PosBarcodeSearchBar extends StatefulWidget {
@@ -42,16 +40,9 @@ class _PosBarcodeSearchBarState extends State<PosBarcodeSearchBar> {
     final matchedProduct = cubit.handleBarcodeScanned(clean, showErrorIfNotFound: false);
 
     if (matchedProduct != null && mounted) {
-      final variation = await PosVariationSelectorDialog.show(
-        context,
-        matchedProduct,
-        initialQuery: clean,
-      );
-      if (variation != null && mounted) {
-        cubit.addToCart(matchedProduct, variation: variation);
-      }
-      _searchController.clear();
-      cubit.filterProducts(query: '');
+      // If a multi-variant product was scanned by its parent barcode or title,
+      // filter the catalog directly to show all its variations immediately in the list/grid!
+      cubit.filterProducts(query: matchedProduct.title);
       widget.focusNode.requestFocus();
       return;
     }
@@ -88,24 +79,31 @@ class _PosBarcodeSearchBarState extends State<PosBarcodeSearchBar> {
       },
       builder: (context, state) {
         return Container(
-          padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: isDark ? AppColor.darkCard : Colors.white,
-            borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+            borderRadius: BorderRadius.circular(10),
             border: Border.all(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
             children: [
               // Scanner Status Indicator Icon
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(9),
                 decoration: BoxDecoration(
                   color: const Color(0xFF10B981).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Icon(Icons.qr_code_scanner_rounded, size: 20, color: Color(0xFF10B981)),
+                child: const Icon(Icons.qr_code_scanner_rounded, size: 22, color: Color(0xFF10B981)),
               ),
-              const SizedBox(width: AppSizes.sm + 4),
+              const SizedBox(width: 12),
 
               // Search & Barcode TextField
               Expanded(
@@ -114,10 +112,15 @@ class _PosBarcodeSearchBarState extends State<PosBarcodeSearchBar> {
                   focusNode: widget.focusNode,
                   autofocus: widget.autofocus,
                   textInputAction: TextInputAction.search,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                   decoration: InputDecoration(
                     hintText: 'pos_barcode_search_bar_hint'.tr,
                     hintStyle: TextStyle(
-                      fontSize: 12.5,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
                       color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
                     ),
                     border: InputBorder.none,
@@ -138,24 +141,27 @@ class _PosBarcodeSearchBarState extends State<PosBarcodeSearchBar> {
                     context.read<PosCubit>().filterProducts(query: '');
                     widget.focusNode.requestFocus();
                   },
-                  icon: const Icon(Icons.clear_rounded, size: 18),
+                  icon: const Icon(Icons.clear_rounded, size: 20),
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
                   tooltip: 'clear_search'.tr,
                 ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 10),
 
               // Enter submit button
               ElevatedButton.icon(
                 onPressed: () => _onSubmitted(_searchController.text),
-                icon: const Icon(Icons.add_shopping_cart_rounded, size: 15),
-                label: Text('enter_key_submit'.tr, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                icon: const Icon(Icons.add_shopping_cart_rounded, size: 17),
+                label: Text(
+                  'enter_key_submit'.tr,
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColor.primary,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
                   elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
                 ),
               ),
             ],

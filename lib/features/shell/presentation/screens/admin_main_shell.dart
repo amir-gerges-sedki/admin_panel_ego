@@ -16,6 +16,12 @@ import '../../../coupons/presentation/screens/coupons_screen.dart';
 import '../../../customers/presentation/cubit/customer_cubit.dart';
 import '../../../customers/presentation/screens/customers_screen.dart';
 import '../../../dashboard/presentation/screens/dashboard_screen.dart';
+import '../../../damaged_stock/presentation/cubit/damaged_stock_cubit.dart';
+import '../../../damaged_stock/presentation/screens/damaged_stock_screen.dart';
+import '../../../employees/presentation/cubit/employee_cubit.dart';
+import '../../../employees/presentation/screens/employees_screen.dart';
+import '../../../expenses/presentation/cubit/expense_cubit.dart';
+import '../../../expenses/presentation/screens/expenses_screen.dart';
 import '../../../notifications/presentation/cubit/notification_cubit.dart';
 import '../../../notifications/presentation/screens/broadcast_screen.dart';
 import '../../../orders/presentation/cubit/order_cubit.dart';
@@ -40,6 +46,7 @@ class AdminMainShell extends StatefulWidget {
 class _AdminMainShellState extends State<AdminMainShell> {
   int _selectedTabIndex = 0;
   bool _isSidebarCollapsed = false;
+  AdminWorkspaceMode _workspaceMode = AdminWorkspaceMode.all;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   final List<String> _tabTitles = [
@@ -49,6 +56,9 @@ class _AdminMainShellState extends State<AdminMainShell> {
     'brands',
     'orders',
     'suppliers',
+    'expenses',
+    'damaged_stock',
+    'employees',
     'banners',
     'coupons',
     'customers',
@@ -64,12 +74,15 @@ class _AdminMainShellState extends State<AdminMainShell> {
     3: AdminPermission.brands,
     4: AdminPermission.orders,
     5: AdminPermission.suppliers,
-    6: AdminPermission.banners,
-    7: AdminPermission.coupons,
-    8: AdminPermission.customers,
-    9: AdminPermission.notifications,
-    10: AdminPermission.settings,
-    11: AdminPermission.roles,
+    6: AdminPermission.expenses,
+    7: AdminPermission.damagedStock,
+    8: AdminPermission.employees,
+    9: AdminPermission.banners,
+    10: AdminPermission.coupons,
+    11: AdminPermission.customers,
+    12: AdminPermission.notifications,
+    13: AdminPermission.settings,
+    14: AdminPermission.roles,
   };
 
   void _handleGlobalSearch(String query) {
@@ -87,15 +100,24 @@ class _AdminMainShellState extends State<AdminMainShell> {
         context.read<SupplierCubit>().filterSuppliers(query);
         break;
       case 6:
-        context.read<BannerCubit>().filterBanners(query);
+        context.read<ExpenseCubit>().filterExpenses(query: query);
         break;
       case 7:
-        context.read<CouponCubit>().filterCoupons(query);
+        context.read<DamagedStockCubit>().filterDamagedStock(query: query);
         break;
       case 8:
-        context.read<CustomerCubit>().filterCustomers(query);
+        context.read<EmployeeCubit>().filterEmployees(query: query);
         break;
       case 9:
+        context.read<BannerCubit>().filterBanners(query);
+        break;
+      case 10:
+        context.read<CouponCubit>().filterCoupons(query);
+        break;
+      case 11:
+        context.read<CustomerCubit>().filterCustomers(query);
+        break;
+      case 12:
         context.read<NotificationCubit>().filterBroadcasts(query);
         break;
       default:
@@ -151,6 +173,9 @@ class _AdminMainShellState extends State<AdminMainShell> {
               const BrandsScreen(),
               const OrdersScreen(),
               const SuppliersScreen(),
+              const ExpensesScreen(),
+              const DamagedStockScreen(),
+              const EmployeesScreen(),
               const BannersScreen(),
               const CouponsScreen(),
               const CustomersScreen(),
@@ -191,6 +216,7 @@ class _AdminMainShellState extends State<AdminMainShell> {
                               isCollapsed: false,
                               onToggleCollapse: () {},
                               pendingOrdersCount: pendingOrdersCount,
+                              workspaceMode: _workspaceMode,
                             ),
                           )
                         : null,
@@ -203,6 +229,7 @@ class _AdminMainShellState extends State<AdminMainShell> {
                             isCollapsed: _isSidebarCollapsed,
                             onToggleCollapse: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
                             pendingOrdersCount: pendingOrdersCount,
+                            workspaceMode: _workspaceMode,
                           ),
                         Expanded(
                           child: Column(
@@ -220,6 +247,8 @@ class _AdminMainShellState extends State<AdminMainShell> {
                                   context.read<OrderCubit>().filterOrders(status: 'Pending', query: '');
                                 },
                                 onNavigateTab: (index) => setState(() => _selectedTabIndex = index),
+                                workspaceMode: _workspaceMode,
+                                onWorkspaceModeChanged: (mode) => setState(() => _workspaceMode = mode),
                               ),
 
                               Expanded(

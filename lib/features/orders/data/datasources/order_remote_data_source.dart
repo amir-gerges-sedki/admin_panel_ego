@@ -25,77 +25,24 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
   OrderRemoteDataSourceImpl({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseService.firestore;
 
+  CollectionReference<Map<String, dynamic>> get _ordersCollection =>
+      FirebaseService.ordersCollection;
+
   @override
   Future<List<OrderModel>> getOrders() async {
     try {
-      final List<OrderModel> allOrders = [];
-      final Set<String> seenIds = {};
+      final snap = await _ordersCollection.get();
+      final List<OrderModel> orders = [];
 
-      // 1. Fetch from canonical 'Orders' collection (PascalCase)
-      try {
-        final snap = await _firestore
-            .collection('Orders')
-            .get()
-            .timeout(
-              const Duration(seconds: 5),
-              onTimeout: () => _firestore
-                  .collection('Orders')
-                  .get(const GetOptions(source: Source.cache)),
-            );
-
-        for (final doc in snap.docs) {
-          final data = doc.data();
-          data['id'] = doc.id;
-          data['_docId'] = doc.id;
-          var model = OrderModel.fromJson(data);
-
-          // If items array is empty in main doc, inspect subcollections
-          if (model.items.isEmpty) {
-            final subItems = await _fetchSubcollectionItems(doc.reference);
-            if (subItems.isNotEmpty) {
-              model = model.copyWith(items: subItems);
-            }
-          }
-
-          if (seenIds.add(model.id)) {
-            allOrders.add(model);
-          }
-        }
-      } catch (e) {
-        debugPrint('Firestore Orders fetch note: $e');
+      for (final doc in snap.docs) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        data['_docId'] = doc.id;
+        orders.add(OrderModel.fromJson(data));
       }
 
-      // 2. Fallback check on 'orders' if root Orders was empty
-      if (allOrders.isEmpty) {
-        try {
-          final snap = await _firestore
-              .collection('orders')
-              .get()
-              .timeout(const Duration(seconds: 3));
-
-          for (final doc in snap.docs) {
-            final data = doc.data();
-            data['id'] = doc.id;
-            data['_docId'] = doc.id;
-            var model = OrderModel.fromJson(data);
-
-            if (model.items.isEmpty) {
-              final subItems = await _fetchSubcollectionItems(doc.reference);
-              if (subItems.isNotEmpty) {
-                model = model.copyWith(items: subItems);
-              }
-            }
-
-            if (seenIds.add(model.id)) {
-              allOrders.add(model);
-            }
-          }
-        } catch (_) {}
-      }
-
-      // 3. Sort by date descending
-      allOrders.sort((a, b) => b.orderDate.compareTo(a.orderDate));
-      return allOrders;
+      orders.sort((a, b) => b.orderDate.compareTo(a.orderDate));
+      return orders;
     } catch (e) {
       debugPrint('Firestore Orders fetch error: $e');
       return [];
@@ -104,24 +51,20 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
 
   @override
   Stream<List<OrderModel>> getOrdersStream() {
-    return _firestore
-        .collection('Orders')
-        .snapshots()
-        .map((snapshot) {
-          final List<OrderModel> orders = [];
-          for (final doc in snapshot.docs) {
-            final data = doc.data();
-            data['id'] = doc.id;
-            data['_docId'] = doc.id;
-            orders.add(OrderModel.fromJson(data));
-          }
-          orders.sort((a, b) => b.orderDate.compareTo(a.orderDate));
-          return orders;
-        })
-        .handleError((error) {
-          debugPrint('Orders Stream error: $error');
-          return <OrderModel>[];
-        });
+    return _ordersCollection.snapshots().map((snapshot) {
+      final List<OrderModel> orders = [];
+      for (final doc in snapshot.docs) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        data['_docId'] = doc.id;
+        orders.add(OrderModel.fromJson(data));
+      }
+      orders.sort((a, b) => b.orderDate.compareTo(a.orderDate));
+      return orders;
+    }).handleError((error) {
+      debugPrint('Orders Stream error: $error');
+      return <OrderModel>[];
+    });
   }
 
   @override
@@ -137,13 +80,10 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
       DocumentSnapshot<Map<String, dynamic>>? matchedDoc;
       String? targetUserId;
 
-      // 1. Try finding the document in 'Orders' collection by direct ID variants
+      // 1. Try finding the document in 'Orders' collection by direct ID
       for (final idVar in idVariants) {
         try {
-          final docSnap = await _firestore
-              .collection('Orders')
-              .doc(idVar)
-              .get();
+          final docSnap = await _ordersCollection.doc(idVar).get();
           if (docSnap.exists) {
             matchedDoc = docSnap;
             break;
@@ -151,11 +91,10 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         } catch (_) {}
       }
 
-      // 2. If not found by direct doc ID, query 'Orders' collection by 'orderId' field
+      // 2. Query 'Orders' collection by 'orderId' or 'id' field if not matched by doc ID
       if (matchedDoc == null) {
         try {
-          final querySnap = await _firestore
-              .collection('Orders')
+          final querySnap = await _ordersCollection
               .where('orderId', whereIn: idVariants)
               .limit(1)
               .get();
@@ -165,11 +104,9 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         } catch (_) {}
       }
 
-      // 3. Fallback: Query 'Orders' collection by 'id' field
       if (matchedDoc == null) {
         try {
-          final querySnap = await _firestore
-              .collection('Orders')
+          final querySnap = await _ordersCollection
               .where('id', whereIn: idVariants)
               .limit(1)
               .get();
@@ -179,30 +116,22 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         } catch (_) {}
       }
 
-      // 4. Update the matched order document in Firestore & adjust stock dynamically
+      // 3. Update the matched order document in Firestore & adjust stock dynamically
       if (matchedDoc != null && matchedDoc.exists) {
         final orderData = matchedDoc.data() ?? {};
-        targetUserId =
-            orderData['userId']?.toString() ??
-            orderData['uid']?.toString() ??
+        targetUserId = orderData['userId']?.toString() ??
             orderData['customerId']?.toString() ??
-            orderData['user_id']?.toString() ??
-            orderData['customer_id']?.toString() ??
-            orderData['customer']?['id']?.toString() ??
-            orderData['customer']?['uid']?.toString() ??
-            orderData['user']?['id']?.toString() ??
-            orderData['user']?['uid']?.toString() ??
             orderData['shippingAddress']?['userId']?.toString();
 
         final rawItems = (orderData['items'] is List && (orderData['items'] as List).isNotEmpty)
             ? (orderData['items'] as List)
-            : (orderData['orderItems'] is List ? orderData['orderItems'] as List : []);
+            : [];
 
-        final prevStatus = (orderData['status'] ?? orderData['orderStatus'] ?? 'pending').toString().toLowerCase().trim();
+        final prevStatus = (orderData['status'] ?? 'pending').toString().toLowerCase().trim();
         final targetStatus = newStatus.toLowerCase().trim();
         final isCancelledTarget = targetStatus == 'cancelled' || targetStatus == 'canceled' || targetStatus == 'rejected' || targetStatus == 'returned';
         final isCancelledPrev = prevStatus == 'cancelled' || prevStatus == 'canceled' || prevStatus == 'rejected' || prevStatus == 'returned';
-        final bool currentlyDeducted = orderData['stockDeducted'] != false; // default true if not set
+        final bool currentlyDeducted = orderData['stockDeducted'] != false;
 
         bool newStockDeducted = currentlyDeducted;
 
@@ -210,19 +139,6 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         if (isCancelledTarget && currentlyDeducted) {
           if (rawItems.isNotEmpty) {
             await _adjustStockForItems(rawItems, isRestock: true);
-          } else {
-            final subItems = await _fetchSubcollectionItems(matchedDoc.reference);
-            if (subItems.isNotEmpty) {
-              await _adjustStockForItems(
-                subItems.map((e) => {
-                  'productId': e.productId,
-                  'quantity': e.quantity,
-                  'sku': e.sku,
-                  'selectedVariation': e.selectedVariation,
-                }).toList(),
-                isRestock: true,
-              );
-            }
           }
           newStockDeducted = false;
         }
@@ -230,19 +146,6 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         else if (isCancelledPrev && !isCancelledTarget && !currentlyDeducted) {
           if (rawItems.isNotEmpty) {
             await _adjustStockForItems(rawItems, isRestock: false);
-          } else {
-            final subItems = await _fetchSubcollectionItems(matchedDoc.reference);
-            if (subItems.isNotEmpty) {
-              await _adjustStockForItems(
-                subItems.map((e) => {
-                  'productId': e.productId,
-                  'quantity': e.quantity,
-                  'sku': e.sku,
-                  'selectedVariation': e.selectedVariation,
-                }).toList(),
-                isRestock: false,
-              );
-            }
           }
           newStockDeducted = true;
         }
@@ -252,15 +155,9 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         );
         await matchedDoc.reference.update({
           'status': targetStatus,
-          'orderStatus': targetStatus,
-          'Status': newStatus,
-          'OrderStatus': newStatus,
           'stockDeducted': newStockDeducted,
           'isRead': false,
-          'read': false,
-          'is_read': false,
           'updatedAt': nowIso,
-          'updated_at': nowIso,
         });
       } else {
         debugPrint(
@@ -268,7 +165,7 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         );
       }
 
-      // 5. Send Push Notification ONLY to the customer (Device Token & User Topic)
+      // 4. Send Push Notification ONLY to the customer (Device Token & User Topic)
       _dispatchCustomerPush(
         targetUserId: targetUserId,
         title: notifTitle,
@@ -300,18 +197,15 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
       final List<String> customerTokens = [];
       final extraData = {
         'orderId': orderId,
-        'order_id': orderId,
         'status': newStatus.toLowerCase(),
         'type': 'order_status_update',
         'targetRoute': '/orders',
         'targetScreen': '/orders/$orderId',
-        'screen': '/orders/$orderId',
       };
 
       // Retrieve customer's device tokens from canonical 'Users' collection
       try {
-        final userDoc = await _firestore
-            .collection('Users')
+        final userDoc = await FirebaseService.usersCollection
             .doc(targetUserId)
             .get();
         if (userDoc.exists) {
@@ -325,12 +219,9 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         debugPrint('Error fetching customer FCM token from Users: $e');
       }
 
-      // Send EXACTLY ONE targeted push notification to avoid duplicate spam
+      // Send push notification to customer device
       if (customerTokens.isNotEmpty) {
         final uniqueTokens = customerTokens.toSet().toList();
-        debugPrint(
-          '📱 Sending single push to customer device for user $targetUserId...',
-        );
         await FcmPushService.sendSingleTokenPush(
           deviceToken: uniqueTokens.first,
           title: title,
@@ -342,7 +233,6 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
         );
       } else {
         // Fallback to customer's personal topic if token is missing
-        debugPrint('📡 Sending push to customer topic user_$targetUserId...');
         await FcmPushService.sendTopicPush(
           topic: 'user_$targetUserId',
           title: title,
@@ -375,65 +265,23 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     }
   }
 
-  Future<List<OrderItemModel>> _fetchSubcollectionItems(
-    DocumentReference docRef,
-  ) async {
-    try {
-      final possibleSubcollections = [
-        'Items',
-        'items',
-        'OrderItems',
-        'orderItems',
-        'order_items',
-        'products',
-        'Products',
-        'CartItems',
-        'cartItems',
-        'details',
-      ];
-
-      for (final col in possibleSubcollections) {
-        final snap = await docRef
-            .collection(col)
-            .get()
-            .timeout(
-              const Duration(seconds: 2),
-              onTimeout: () => docRef
-                  .collection(col)
-                  .get(const GetOptions(source: Source.cache)),
-            );
-
-        if (snap.docs.isNotEmpty) {
-          final List<OrderItemModel> items = [];
-          for (final d in snap.docs) {
-            final data = d.data();
-            data['id'] ??= d.id;
-            items.add(OrderItemModel.fromJson(data));
-          }
-          if (items.isNotEmpty) return items;
-        }
-      }
-    } catch (_) {}
-    return [];
-  }
-
   Future<void> _adjustStockForItems(List<dynamic> rawItems, {required bool isRestock}) async {
     for (final rawItem in rawItems) {
       if (rawItem is! Map) continue;
       final item = Map<String, dynamic>.from(rawItem);
-      final productId = (item['productId'] ?? item['id'] ?? item['product_id'])?.toString().trim();
-      final quantity = (item['quantity'] ?? item['qty'] ?? item['count'] as num?)?.toInt() ?? 1;
-      final variationId = (item['variationId'] ?? item['variation_id'])?.toString().trim();
+      final productId = item['productId']?.toString().trim() ?? '';
+      final quantity = (item['quantity'] as num?)?.toInt() ?? 1;
+      final variationId = item['variationId']?.toString().trim();
       final sku = item['sku']?.toString().trim();
       final selectedVar = (item['selectedVariation'] is Map)
           ? Map<String, dynamic>.from(item['selectedVariation'] as Map)
           : null;
 
-      if (productId == null || productId.isEmpty) continue;
+      if (productId.isEmpty) continue;
 
       try {
         await _firestore.runTransaction((transaction) async {
-          final prodRef = _firestore.collection('Products').doc(productId);
+          final prodRef = FirebaseService.productsCollection.doc(productId);
           final prodSnap = await transaction.get(prodRef);
           if (!prodSnap.exists) return;
 
@@ -542,7 +390,7 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
       // 1. Locate the order document
       for (final idVar in idVariants) {
         try {
-          final docSnap = await _firestore.collection('Orders').doc(idVar).get();
+          final docSnap = await _ordersCollection.doc(idVar).get();
           if (docSnap.exists) {
             matchedDoc = docSnap;
             break;
@@ -552,22 +400,8 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
 
       if (matchedDoc == null) {
         try {
-          final querySnap = await _firestore
-              .collection('Orders')
+          final querySnap = await _ordersCollection
               .where('orderId', whereIn: idVariants)
-              .limit(1)
-              .get();
-          if (querySnap.docs.isNotEmpty) {
-            matchedDoc = querySnap.docs.first;
-          }
-        } catch (_) {}
-      }
-
-      if (matchedDoc == null) {
-        try {
-          final querySnap = await _firestore
-              .collection('Orders')
-              .where('id', whereIn: idVariants)
               .limit(1)
               .get();
           if (querySnap.docs.isNotEmpty) {
@@ -579,10 +413,7 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
       if (matchedDoc != null && matchedDoc.exists) {
         final orderData = matchedDoc.data() ?? {};
         targetUserId = orderData['userId']?.toString() ??
-            orderData['uid']?.toString() ??
             orderData['customerId']?.toString() ??
-            orderData['user_id']?.toString() ??
-            orderData['customer_id']?.toString() ??
             orderData['shippingAddress']?['userId']?.toString();
 
         final returnRecord = {
@@ -602,7 +433,7 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
 
           for (final item in itemsToReturn) {
             try {
-              final prodId = (item['productId'] ?? item['id'])?.toString() ?? '';
+              final prodId = item['productId']?.toString() ?? '';
               final title = item['title']?.toString() ?? 'Item';
               final qty = (item['quantity'] as num?)?.toInt() ?? 1;
               final sku = item['sku']?.toString() ?? '';
@@ -610,7 +441,7 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
                   ? Map<String, String>.from(item['selectedVariation'] as Map)
                   : <String, String>{};
 
-              await _firestore.collection('StockMovements').add({
+              await FirebaseService.stockMovementsCollection.add({
                 'productId': prodId,
                 'productTitle': title,
                 'variationSku': sku,
@@ -642,9 +473,6 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
 
         if (isFullReturn) {
           updatePayload['status'] = 'returned';
-          updatePayload['orderStatus'] = 'returned';
-          updatePayload['Status'] = 'Returned';
-          updatePayload['OrderStatus'] = 'Returned';
         }
 
         await matchedDoc.reference.update(updatePayload);

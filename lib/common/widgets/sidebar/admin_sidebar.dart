@@ -7,6 +7,18 @@ import '../../../core/localization/app_localizations.dart';
 import '../../../features/roles/domain/models/admin_role.dart';
 import '../../../features/roles/presentation/cubit/auth_role_cubit.dart';
 
+enum AdminWorkspaceMode {
+  all,
+  ecommerce,
+  erp,
+}
+
+enum AdminItemDomain {
+  common,
+  ecommerce,
+  erp,
+}
+
 class SidebarItem {
   final int index;
   final String titleKey;
@@ -14,6 +26,7 @@ class SidebarItem {
   final IconData icon;
   final IconData selectedIcon;
   final int? badgeCount;
+  final AdminItemDomain domain;
 
   const SidebarItem({
     required this.index,
@@ -22,16 +35,18 @@ class SidebarItem {
     required this.icon,
     required this.selectedIcon,
     this.badgeCount,
+    this.domain = AdminItemDomain.common,
   });
 }
 
-/// Collapsible responsive Sidebar navigation for EGO Admin Panel with RBAC support
+/// Collapsible responsive Sidebar navigation for EGO Admin Panel with RBAC & Workspace Mode support
 class AdminSidebar extends StatelessWidget {
   final int selectedIndex;
   final ValueChanged<int> onItemSelected;
   final bool isCollapsed;
   final VoidCallback onToggleCollapse;
   final int pendingOrdersCount;
+  final AdminWorkspaceMode workspaceMode;
 
   const AdminSidebar({
     super.key,
@@ -40,6 +55,7 @@ class AdminSidebar extends StatelessWidget {
     this.isCollapsed = false,
     required this.onToggleCollapse,
     this.pendingOrdersCount = 0,
+    this.workspaceMode = AdminWorkspaceMode.all,
   });
 
   List<SidebarItem> get _allItems => [
@@ -49,6 +65,7 @@ class AdminSidebar extends StatelessWidget {
           permission: AdminPermission.dashboard,
           icon: Icons.grid_view_outlined,
           selectedIcon: Icons.grid_view_rounded,
+          domain: AdminItemDomain.common,
         ),
         const SidebarItem(
           index: 1,
@@ -56,6 +73,7 @@ class AdminSidebar extends StatelessWidget {
           permission: AdminPermission.pos,
           icon: Icons.point_of_sale_outlined,
           selectedIcon: Icons.point_of_sale_rounded,
+          domain: AdminItemDomain.erp,
         ),
         const SidebarItem(
           index: 2,
@@ -63,6 +81,7 @@ class AdminSidebar extends StatelessWidget {
           permission: AdminPermission.products,
           icon: Icons.inventory_2_outlined,
           selectedIcon: Icons.inventory_2_rounded,
+          domain: AdminItemDomain.common,
         ),
         const SidebarItem(
           index: 3,
@@ -70,6 +89,7 @@ class AdminSidebar extends StatelessWidget {
           permission: AdminPermission.brands,
           icon: Icons.branding_watermark_outlined,
           selectedIcon: Icons.branding_watermark_rounded,
+          domain: AdminItemDomain.ecommerce,
         ),
         SidebarItem(
           index: 4,
@@ -78,6 +98,7 @@ class AdminSidebar extends StatelessWidget {
           icon: Icons.local_shipping_outlined,
           selectedIcon: Icons.local_shipping_rounded,
           badgeCount: pendingOrdersCount > 0 ? pendingOrdersCount : null,
+          domain: AdminItemDomain.ecommerce,
         ),
         const SidebarItem(
           index: 5,
@@ -85,48 +106,79 @@ class AdminSidebar extends StatelessWidget {
           permission: AdminPermission.suppliers,
           icon: Icons.business_outlined,
           selectedIcon: Icons.business_rounded,
+          domain: AdminItemDomain.erp,
         ),
         const SidebarItem(
           index: 6,
+          titleKey: 'expenses',
+          permission: AdminPermission.expenses,
+          icon: Icons.receipt_long_outlined,
+          selectedIcon: Icons.receipt_long_rounded,
+          domain: AdminItemDomain.erp,
+        ),
+        const SidebarItem(
+          index: 7,
+          titleKey: 'damaged_stock',
+          permission: AdminPermission.damagedStock,
+          icon: Icons.delete_sweep_outlined,
+          selectedIcon: Icons.delete_sweep_rounded,
+          domain: AdminItemDomain.erp,
+        ),
+        const SidebarItem(
+          index: 8,
+          titleKey: 'employees',
+          permission: AdminPermission.employees,
+          icon: Icons.badge_outlined,
+          selectedIcon: Icons.badge_rounded,
+          domain: AdminItemDomain.erp,
+        ),
+        const SidebarItem(
+          index: 9,
           titleKey: 'banners',
           permission: AdminPermission.banners,
           icon: Icons.view_carousel_outlined,
           selectedIcon: Icons.view_carousel_rounded,
+          domain: AdminItemDomain.ecommerce,
         ),
         const SidebarItem(
-          index: 7,
+          index: 10,
           titleKey: 'coupons',
           permission: AdminPermission.coupons,
           icon: Icons.local_offer_outlined,
           selectedIcon: Icons.local_offer_rounded,
+          domain: AdminItemDomain.ecommerce,
         ),
         const SidebarItem(
-          index: 8,
+          index: 11,
           titleKey: 'customers',
           permission: AdminPermission.customers,
           icon: Icons.people_outline_rounded,
           selectedIcon: Icons.people_rounded,
+          domain: AdminItemDomain.ecommerce,
         ),
         const SidebarItem(
-          index: 9,
+          index: 12,
           titleKey: 'notifications',
           permission: AdminPermission.notifications,
           icon: Icons.campaign_outlined,
           selectedIcon: Icons.campaign_rounded,
+          domain: AdminItemDomain.ecommerce,
         ),
         const SidebarItem(
-          index: 10,
+          index: 13,
           titleKey: 'settings',
           permission: AdminPermission.settings,
           icon: Icons.settings_outlined,
           selectedIcon: Icons.settings_rounded,
+          domain: AdminItemDomain.common,
         ),
         const SidebarItem(
-          index: 11,
+          index: 14,
           titleKey: 'roles_permissions',
           permission: AdminPermission.roles,
           icon: Icons.shield_outlined,
           selectedIcon: Icons.shield_rounded,
+          domain: AdminItemDomain.common,
         ),
       ];
 
@@ -137,10 +189,12 @@ class AdminSidebar extends StatelessWidget {
 
     return BlocBuilder<AuthRoleCubit, AuthRoleState>(
       builder: (context, authState) {
-        // Filter items dynamically according to active role permissions
-        final allowedItems = _allItems
+        // Filter items dynamically according to active role permissions & active workspace mode
+        final permittedItems = _allItems
             .where((item) => authState.hasPermission(item.permission))
             .toList();
+
+        final allowedItems = _filterItemsByMode(permittedItems);
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 250),
@@ -164,7 +218,7 @@ class AdminSidebar extends StatelessWidget {
               Expanded(
                 child: ListView.separated(
                   padding: const EdgeInsets.symmetric(
-                    vertical: AppSizes.md,
+                    vertical: AppSizes.sm,
                     horizontal: AppSizes.sm,
                   ),
                   itemCount: allowedItems.length,
@@ -185,6 +239,25 @@ class AdminSidebar extends StatelessWidget {
         );
       },
     );
+  }
+
+  List<SidebarItem> _filterItemsByMode(List<SidebarItem> items) {
+    switch (workspaceMode) {
+      case AdminWorkspaceMode.ecommerce:
+        return items
+            .where((item) =>
+                item.domain == AdminItemDomain.ecommerce ||
+                item.domain == AdminItemDomain.common)
+            .toList();
+      case AdminWorkspaceMode.erp:
+        return items
+            .where((item) =>
+                item.domain == AdminItemDomain.erp ||
+                item.domain == AdminItemDomain.common)
+            .toList();
+      case AdminWorkspaceMode.all:
+        return items;
+    }
   }
 
   Widget _buildBrandHeader(bool isDark, AuthRoleState authState) {

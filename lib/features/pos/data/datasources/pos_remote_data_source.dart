@@ -18,28 +18,20 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
 
   @override
   Stream<List<ProductModel>> getProductsStream() {
-    return _firestore.collection('Products').snapshots().asyncMap((snapshot) async {
-      if (snapshot.docs.isNotEmpty) {
-        return snapshot.docs.map((doc) {
-          final data = Map<String, dynamic>.from(doc.data());
-          data['id'] = doc.id;
-          return ProductModel.fromJson(data);
-        }).toList();
-      }
-      return await getProducts();
+    return _firestore.collection('Products').snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = Map<String, dynamic>.from(doc.data());
+        data['id'] = doc.id;
+        return ProductModel.fromJson(data);
+      }).toList();
     });
   }
 
   @override
   Future<List<ProductModel>> getProducts() async {
     try {
-      final docs = await FirebaseService.getMultipleCollectionsDocs([
-        'Products',
-        'products',
-        'Items',
-        'items',
-      ]);
-      return docs.map((doc) {
+      final snapshot = await _firestore.collection('Products').get();
+      return snapshot.docs.map((doc) {
         final data = Map<String, dynamic>.from(doc.data());
         data['id'] = doc.id;
         return ProductModel.fromJson(data);

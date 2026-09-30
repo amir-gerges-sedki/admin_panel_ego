@@ -82,7 +82,7 @@ class _RolesManagementScreenState extends State<RolesManagementScreen> with Sing
     if (superPass.isEmpty || adminPass.isEmpty) {
       HelperFun.warningSnackbar(
         title: 'warning'.tr,
-        message: 'Passcodes cannot be empty',
+        message: 'passcodes_cannot_be_empty'.tr,
       );
       return;
     }

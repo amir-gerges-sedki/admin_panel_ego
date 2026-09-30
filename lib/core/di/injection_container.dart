@@ -14,8 +14,17 @@ import '../../features/coupons/presentation/cubit/coupon_cubit.dart';
 import '../../features/customers/data/datasources/customer_remote_data_source.dart';
 import '../../features/customers/data/repositories/customer_repository.dart';
 import '../../features/customers/presentation/cubit/customer_cubit.dart';
+import '../../features/damaged_stock/data/datasources/damaged_stock_remote_data_source.dart';
+import '../../features/damaged_stock/data/repositories/damaged_stock_repository.dart';
+import '../../features/damaged_stock/presentation/cubit/damaged_stock_cubit.dart';
 import '../../features/dashboard/data/repositories/dashboard_repository.dart';
 import '../../features/dashboard/presentation/cubit/dashboard_cubit.dart';
+import '../../features/employees/data/datasources/employees_remote_data_source.dart';
+import '../../features/employees/data/repositories/employees_repository.dart';
+import '../../features/employees/presentation/cubit/employee_cubit.dart';
+import '../../features/expenses/data/datasources/expense_remote_data_source.dart';
+import '../../features/expenses/data/repositories/expense_repository.dart';
+import '../../features/expenses/presentation/cubit/expense_cubit.dart';
 import '../../features/notifications/data/datasources/notification_remote_data_source.dart';
 import '../../features/notifications/data/repositories/notification_repository.dart';
 import '../../features/notifications/presentation/cubit/notification_cubit.dart';
@@ -69,6 +78,12 @@ Future<void> initDependencies() async {
       StockMovementRemoteDataSourceImpl.new);
   sl.registerLazySingleton<SupplierRemoteDataSource>(
       SupplierRemoteDataSourceImpl.new);
+  sl.registerLazySingleton<ExpenseRemoteDataSource>(
+      ExpenseRemoteDataSourceImpl.new);
+  sl.registerLazySingleton<DamagedStockRemoteDataSource>(
+      DamagedStockRemoteDataSourceImpl.new);
+  sl.registerLazySingleton<EmployeesRemoteDataSource>(
+      EmployeesRemoteDataSourceImpl.new);
   sl.registerLazySingleton<SettingsRemoteDataSource>(
       SettingsRemoteDataSourceImpl.new);
   sl.registerLazySingleton<RolesRemoteDataSource>(
@@ -89,6 +104,19 @@ Future<void> initDependencies() async {
           ));
   sl.registerLazySingleton<SupplierRepository>(
       () => SupplierRepositoryImpl(remoteDataSource: sl<SupplierRemoteDataSource>()));
+  sl.registerLazySingleton<ExpenseRepository>(
+      () => ExpenseRepositoryImpl(remoteDataSource: sl<ExpenseRemoteDataSource>()));
+  sl.registerLazySingleton<DamagedStockRepository>(
+      () => DamagedStockRepositoryImpl(
+            remoteDataSource: sl<DamagedStockRemoteDataSource>(),
+            productRepository: sl<ProductRepository>(),
+            movementDataSource: sl<StockMovementRemoteDataSource>(),
+          ));
+  sl.registerLazySingleton<EmployeesRepository>(
+      () => EmployeesRepositoryImpl(
+            remoteDataSource: sl<EmployeesRemoteDataSource>(),
+            expenseRepository: sl<ExpenseRepository>(),
+          ));
   sl.registerLazySingleton<BadgeRepository>(
       () => BadgeRepositoryImpl(remoteDataSource: sl<BadgeRemoteDataSource>()));
   sl.registerLazySingleton<OrderRepository>(
@@ -111,6 +139,9 @@ Future<void> initDependencies() async {
             customerRepository: sl<CustomerRepository>(),
             productRepository: sl<ProductRepository>(),
             supplierRepository: sl<SupplierRepository>(),
+            expenseRepository: sl<ExpenseRepository>(),
+            damagedStockRepository: sl<DamagedStockRepository>(),
+            employeesRepository: sl<EmployeesRepository>(),
             settingsRepository: sl<SettingsRepository>(),
           ));
 
@@ -123,6 +154,9 @@ Future<void> initDependencies() async {
   sl.registerFactory<ProductFormCubit>(() => ProductFormCubit(sl<ProductRepository>()));
   sl.registerFactory<StockMovementCubit>(() => StockMovementCubit(sl<StockMovementRepository>()));
   sl.registerFactory<SupplierCubit>(() => SupplierCubit(sl<SupplierRepository>()));
+  sl.registerFactory<ExpenseCubit>(() => ExpenseCubit(sl<ExpenseRepository>()));
+  sl.registerFactory<DamagedStockCubit>(() => DamagedStockCubit(sl<DamagedStockRepository>()));
+  sl.registerFactory<EmployeeCubit>(() => EmployeeCubit(sl<EmployeesRepository>()));
   sl.registerFactory<BrandCubit>(() => BrandCubit(sl<BrandRepository>()));
   sl.registerFactory<BadgeCubit>(() => BadgeCubit(sl<BadgeRepository>()));
   sl.registerFactory<OrderCubit>(() => OrderCubit(sl<OrderRepository>()));

@@ -316,7 +316,7 @@ class SupplierFinancialsCard extends StatelessWidget {
                       ),
                       if (onNavigateTab != null)
                         InkWell(
-                          onTap: () => onNavigateTab!(4), // Tab 4 is Suppliers Screen in Shell
+                          onTap: () => onNavigateTab!(5), // Tab 5 is Suppliers Screen in Shell
                           child: Text(
                             'view_full_directory'.tr,
                             style: const TextStyle(

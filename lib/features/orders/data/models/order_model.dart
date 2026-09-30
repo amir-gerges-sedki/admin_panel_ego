@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:equatable/equatable.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 double _parseDouble(dynamic val) {
   if (val == null) return 0.0;
@@ -1220,6 +1221,37 @@ class OrderModel extends Equatable {
   /// Human readable cashier name if this is an in-store transaction
   String get cashierName => rawDocData['cashierName']?.toString() ?? '';
 
+  /// Human readable payment method formatted cleanly without underscores
+  String get displayPaymentMethod {
+    final clean = paymentMethod.trim();
+    if (clean.isEmpty) return '—';
+    final lower = clean.toLowerCase();
+    if (lower == 'cod' || lower == 'cash_on_delivery' || lower == 'cash on delivery') {
+      return 'cash_on_delivery'.tr;
+    }
+    if (lower == 'pos_cash' || lower == 'cash' || lower == 'كاش') {
+      return 'payment_method_cash'.tr;
+    }
+    if (lower == 'pos_card' || lower == 'card' || lower == 'visa' || lower == 'credit_card' || lower == 'فيزا') {
+      return 'payment_method_card'.tr;
+    }
+    if (lower == 'instapay' || lower == 'insta_pay') {
+      return 'payment_method_instapay'.tr;
+    }
+    if (lower == 'vodafone_cash' || lower == 'vodafone') {
+      return 'payment_method_vodafone_cash'.tr;
+    }
+    if (lower == 'bank_transfer') {
+      return 'payment_method_bank_transfer'.tr;
+    }
+    return clean.replaceAll('_', ' ');
+  }
+
   /// Source label formatted for Arabic/English display
-  String get sourceDisplayLabel => isPosSale ? 'كاشير الفرع (POS)' : 'تطبيق أونلاين (App)';
+  String get sourceDisplayLabel {
+    final isAr = AppLocalizations.current.locale.languageCode == 'ar';
+    return isPosSale
+        ? (isAr ? 'كاشير الفرع (POS)' : 'Branch POS')
+        : (isAr ? 'تطبيق أونلاين (App)' : 'Online App');
+  }
 }

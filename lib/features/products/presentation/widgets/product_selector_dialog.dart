@@ -4,6 +4,7 @@ import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/di/injection_container.dart';
 import '../../../../core/helper/helper_fun.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/product_model.dart';
 import '../../data/repositories/product_repository.dart';
 
@@ -185,7 +186,7 @@ class _ProductSelectorDialogState extends State<ProductSelectorDialog> {
             ElevatedButton.icon(
               onPressed: _fetchProducts,
               icon: const Icon(Icons.refresh_rounded, size: 16),
-              label: const Text('إعادة المحاولة'),
+              label: Text('retry'.tr),
             ),
           ],
         ),
@@ -205,7 +206,7 @@ class _ProductSelectorDialogState extends State<ProductSelectorDialog> {
               child: TextField(
                 controller: _searchController,
                 decoration: InputDecoration(
-                  hintText: 'ابحث باسم الجهاز، الموديل، الماركة، أو الـ SKU...',
+                  hintText: 'search_products_hint'.tr,
                   prefixIcon: const Icon(Icons.search_rounded, size: 20),
                   suffixIcon: _searchQuery.isNotEmpty
                       ? IconButton(
@@ -497,7 +498,7 @@ class _ProductSelectorDialogState extends State<ProductSelectorDialog> {
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                'تم تحديد ${_selectedProductsMap.length} منتج',
+                'products_selected_count'.trParams({'count': '${_selectedProductsMap.length}'}),
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -510,7 +511,7 @@ class _ProductSelectorDialogState extends State<ProductSelectorDialog> {
               children: [
                 TextButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('إلغاء'),
+                  child: Text('cancel'.tr),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
@@ -519,7 +520,7 @@ class _ProductSelectorDialogState extends State<ProductSelectorDialog> {
                     Navigator.of(context).pop();
                   },
                   icon: const Icon(Icons.check_rounded, size: 16),
-                  label: const Text('تأكيد واختيار'),
+                  label: Text('confirm_and_select'.tr),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF6366F1),
                     foregroundColor: Colors.white,

@@ -4,6 +4,7 @@ import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/formatters/formatters.dart';
 import '../../../../core/helper/helper_fun.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../../orders/data/models/order_model.dart';
 
 class LiveOrdersStreamWidget extends StatelessWidget {
@@ -47,7 +48,7 @@ class LiveOrdersStreamWidget extends StatelessWidget {
                     const SizedBox(width: AppSizes.sm),
                     Expanded(
                       child: Text(
-                        'Live Order Dispatch Feed',
+                        'live_orders_feed_title'.tr,
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -66,9 +67,9 @@ class LiveOrdersStreamWidget extends StatelessWidget {
                   color: AppColor.primary.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
                 ),
-                child: const Text(
-                  'Real-Time Stream',
-                  style: TextStyle(
+                child: Text(
+                  'real_time_stream_badge'.tr,
+                  style: const TextStyle(
                     color: AppColor.primary,
                     fontWeight: FontWeight.w700,
                     fontSize: 11,
@@ -130,7 +131,11 @@ class LiveOrdersStreamWidget extends StatelessWidget {
                               ],
                             ),
                             Text(
-                              '${order.items.length} item(s) • ${order.paymentMethod} • ${order.shippingAddress.city}',
+                              'order_items_summary'.trParams({
+                                'count': '${order.items.length}',
+                                'method': order.displayPaymentMethod,
+                                'city': order.shippingAddress.city,
+                              }),
                               style: TextStyle(
                                 fontSize: 11,
                                 color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,

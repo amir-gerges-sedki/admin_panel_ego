@@ -21,14 +21,17 @@ class ChangeLocaleEvent extends LocaleEvent {
 class LocaleState extends Equatable {
   final Locale locale;
   const LocaleState(this.locale);
+
+  bool get isArabic => locale.languageCode == 'ar';
+
   @override
   List<Object?> get props => [locale];
 }
 
 // Bloc
 class LocaleBloc extends Bloc<LocaleEvent, LocaleState> {
-  LocaleBloc() : super(const LocaleState(Locale('en'))) {
-    AppLocalizations.setLocale(const Locale('en'));
+  LocaleBloc() : super(const LocaleState(Locale('ar'))) {
+    AppLocalizations.setLocale(const Locale('ar'));
     on<ChangeLocaleEvent>((event, emit) {
       AppLocalizations.setLocale(event.locale);
       emit(LocaleState(event.locale));
@@ -36,10 +39,14 @@ class LocaleBloc extends Bloc<LocaleEvent, LocaleState> {
   }
 
   void toggleLocale() {
-    if (state.locale.languageCode == 'en') {
-      add(const ChangeLocaleEvent(Locale('ar')));
-    } else {
+    if (state.locale.languageCode == 'ar') {
       add(const ChangeLocaleEvent(Locale('en')));
+    } else {
+      add(const ChangeLocaleEvent(Locale('ar')));
     }
+  }
+
+  void setLocale(Locale locale) {
+    add(ChangeLocaleEvent(locale));
   }
 }

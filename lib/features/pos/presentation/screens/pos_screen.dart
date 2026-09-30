@@ -26,11 +26,14 @@ class PosScreen extends StatefulWidget {
 
 class _PosScreenState extends State<PosScreen> {
   final FocusNode _scannerFocusNode = FocusNode();
-  final FocusNode _keyboardFocusNode = FocusNode();
+  bool _isDialogOpen = false;
 
   @override
   void initState() {
     super.initState();
+    // Register global hardware keyboard listener for instant F-keys response
+    HardwareKeyboard.instance.addHandler(_handleHardwareKey);
+
     // Auto-focus scanner on entry if requested
     if (widget.autoFocusScanner) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -41,25 +44,76 @@ class _PosScreenState extends State<PosScreen> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleHardwareKey);
     _scannerFocusNode.dispose();
-    _keyboardFocusNode.dispose();
     super.dispose();
   }
 
-  void _handleKeyEvent(KeyEvent event) {
+  bool _handleHardwareKey(KeyEvent event) {
     if (event is KeyDownEvent) {
       if (event.logicalKey == LogicalKeyboardKey.f2) {
-        _scannerFocusNode.requestFocus();
+        _onF2Pressed();
+        return true;
       } else if (event.logicalKey == LogicalKeyboardKey.f4) {
-        final state = context.read<PosCubit>().state;
-        if (state.hasItems) {
-          PosCheckoutDialog.show(context);
-        }
+        _onF4Pressed();
+        return true;
       } else if (event.logicalKey == LogicalKeyboardKey.f8) {
-        PosReturnDialog.show(context);
+        _onF8Pressed();
+        return true;
       } else if (event.logicalKey == LogicalKeyboardKey.f9) {
-        context.read<PosCubit>().clearCart();
+        _onF9Pressed();
+        return true;
       }
+    }
+    return false;
+  }
+
+  void _onF2Pressed() {
+    if (_isDialogOpen) return;
+    _scannerFocusNode.requestFocus();
+  }
+
+  Future<void> _onF4Pressed() async {
+    if (_isDialogOpen) return;
+
+    final state = context.read<PosCubit>().state;
+    if (state.hasItems) {
+      _isDialogOpen = true;
+      try {
+        await PosCheckoutDialog.show(context);
+      } finally {
+        if (mounted) {
+          _isDialogOpen = false;
+          _scannerFocusNode.requestFocus();
+        }
+      }
+    } else {
+      HelperFun.showNotificationAlert(
+        title: 'pos_register_title'.tr,
+        message: 'empty_cart_title'.tr,
+      );
+    }
+  }
+
+  Future<void> _onF8Pressed() async {
+    if (_isDialogOpen) return;
+
+    _isDialogOpen = true;
+    try {
+      await PosReturnDialog.show(context);
+    } finally {
+      if (mounted) {
+        _isDialogOpen = false;
+        _scannerFocusNode.requestFocus();
+      }
+    }
+  }
+
+  void _onF9Pressed() {
+    if (_isDialogOpen) return;
+    final state = context.read<PosCubit>().state;
+    if (state.hasItems) {
+      context.read<PosCubit>().clearCart();
     }
   }
 
@@ -68,123 +122,211 @@ class _PosScreenState extends State<PosScreen> {
     final isDark = HelperFun.isDarkMode(context);
     final isDesktop = ResponsiveHelper.isDesktop(context);
 
-    return KeyboardListener(
-      focusNode: _keyboardFocusNode,
-      onKeyEvent: _handleKeyEvent,
-      child: Scaffold(
-        backgroundColor: isDark ? AppColor.darkSurface : AppColor.lightSurface,
-        body: Padding(
-          padding: const EdgeInsets.fromLTRB(AppSizes.md, AppSizes.sm, AppSizes.md, AppSizes.md),
+    return Scaffold(
+      backgroundColor: isDark ? AppColor.darkSurface : AppColor.lightSurface,
+      body: Padding(
+        padding: const EdgeInsets.fromLTRB(AppSizes.md, AppSizes.sm, AppSizes.md, AppSizes.md),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // 1. POS Top Status Bar
+            _buildTopHeader(isDark),
+            const SizedBox(height: AppSizes.sm),
+
+            // 2. Barcode & Search Input Bar
+            PosBarcodeSearchBar(
+              focusNode: _scannerFocusNode,
+              autofocus: widget.autoFocusScanner,
+            ),
+            const SizedBox(height: AppSizes.sm + 4),
+
+            // 3. Main Working Area
+            Expanded(
+              child: isDesktop
+                  ? const Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Left 65%: Product Grid & Category Filters
+                        Expanded(
+                          flex: 7,
+                          child: PosProductGrid(),
+                        ),
+                        SizedBox(width: AppSizes.md),
+
+                        // Right 35%: Cart & Payment Register
+                        Expanded(
+                          flex: 5,
+                          child: PosCartPanel(),
+                        ),
+                      ],
+                    )
+                  : _buildMobileTabletLayout(isDark),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Responsive Tab-based layout for mobile and tablet to prevent vertical squashing
+  Widget _buildMobileTabletLayout(bool isDark) {
+    return BlocBuilder<PosCubit, PosState>(
+      builder: (context, state) {
+        return DefaultTabController(
+          length: 2,
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // 1. POS Top Status Bar
-              _buildTopHeader(isDark),
-              const SizedBox(height: AppSizes.sm),
-
-              // 2. Barcode & Search Input Bar
-              PosBarcodeSearchBar(
-                focusNode: _scannerFocusNode,
-                autofocus: widget.autoFocusScanner,
-              ),
-              const SizedBox(height: AppSizes.sm + 4),
-
-              // 3. Main Working Area
-              Expanded(
-                child: isDesktop
-                    ? const Row(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
+              Container(
+                height: 38,
+                margin: const EdgeInsets.only(bottom: 8),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+                ),
+                child: TabBar(
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  indicator: BoxDecoration(
+                    color: AppColor.primary,
+                    borderRadius: BorderRadius.circular(7),
+                  ),
+                  labelColor: Colors.white,
+                  unselectedLabelColor: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+                  labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+                  dividerColor: Colors.transparent,
+                  tabs: [
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Left 65%: Product Grid & Category Filters
-                          Expanded(
-                            flex: 7,
-                            child: PosProductGrid(),
-                          ),
-                          SizedBox(width: AppSizes.md),
-
-                          // Right 35%: Cart & Payment Register
-                          Expanded(
-                            flex: 5,
-                            child: PosCartPanel(),
-                          ),
-                        ],
-                      )
-                    : const Column(
-                        children: [
-                          Expanded(
-                            flex: 5,
-                            child: PosProductGrid(),
-                          ),
-                          SizedBox(height: AppSizes.md),
-                          Expanded(
-                            flex: 5,
-                            child: PosCartPanel(),
-                          ),
+                          const Icon(Icons.grid_view_rounded, size: 16),
+                          const SizedBox(width: 6),
+                          Text('pos_tab_catalog'.tr),
                         ],
                       ),
+                    ),
+                    Tab(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          const Icon(Icons.shopping_cart_outlined, size: 16),
+                          const SizedBox(width: 6),
+                          Text('pos_tab_cart'.tr),
+                          if (state.hasItems) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(999),
+                              ),
+                              child: Text(
+                                '${state.totalItemsCount}',
+                                style: const TextStyle(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w900,
+                                  color: AppColor.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Expanded(
+                child: TabBarView(
+                  children: [
+                    PosProductGrid(),
+                    PosCartPanel(),
+                  ],
+                ),
               ),
             ],
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
   Widget _buildTopHeader(bool isDark) {
     return BlocBuilder<PosCubit, PosState>(
       builder: (context, state) {
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: AppColor.primary.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-                  ),
-                  child: const Icon(Icons.point_of_sale_rounded, color: AppColor.primary, size: 20),
-                ),
-                const SizedBox(width: AppSizes.sm),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'pos_register_title'.tr,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
-                    ),
-                    Text(
-                      'pos_register_subtitle'.tr,
-                      style: TextStyle(
-                        fontSize: 11.5,
-                        color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isCompact = constraints.maxWidth < 680;
+            final isVeryCompact = constraints.maxWidth < 480;
 
-            // Keyboard Shortcuts & Return Action Pills
-            Row(
+            return Row(
               children: [
-                _buildShortcutBadge('F2', 'shortcut_f2_scan'.tr, isDark),
-                const SizedBox(width: 6),
-                _buildShortcutBadge('F4', 'shortcut_f4_pay'.tr, isDark),
-                const SizedBox(width: 6),
-                _buildShortcutBadge(
-                  'F8',
-                  'shortcut_f8_returns'.tr,
-                  isDark,
-                  color: const Color(0xFFF97316),
-                  onTap: () => PosReturnDialog.show(context),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(7),
+                        decoration: BoxDecoration(
+                          color: AppColor.primary.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+                        ),
+                        child: const Icon(Icons.point_of_sale_rounded, color: AppColor.primary, size: 18),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'pos_register_title'.tr,
+                              style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            if (!isCompact)
+                              Text(
+                                'pos_register_subtitle'.tr,
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(width: 6),
-                _buildShortcutBadge('F9', 'shortcut_f9_clear'.tr, isDark),
+                const SizedBox(width: 8),
+
+                // Keyboard Shortcuts & Action Pills
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _buildShortcutBadge('F2', isVeryCompact ? null : 'shortcut_f2_scan'.tr, isDark, onTap: _onF2Pressed),
+                      const SizedBox(width: 5),
+                      _buildShortcutBadge('F4', isVeryCompact ? null : 'shortcut_f4_pay'.tr, isDark, onTap: _onF4Pressed),
+                      const SizedBox(width: 5),
+                      _buildShortcutBadge(
+                        'F8',
+                        isVeryCompact ? null : 'shortcut_f8_returns'.tr,
+                        isDark,
+                        color: const Color(0xFFF97316),
+                        onTap: _onF8Pressed,
+                      ),
+                      const SizedBox(width: 5),
+                      _buildShortcutBadge('F9', isVeryCompact ? null : 'shortcut_f9_clear'.tr, isDark, onTap: _onF9Pressed),
+                    ],
+                  ),
+                ),
               ],
-            ),
-          ],
+            );
+          },
         );
       },
     );
@@ -192,14 +334,14 @@ class _PosScreenState extends State<PosScreen> {
 
   Widget _buildShortcutBadge(
     String keyText,
-    String label,
+    String? label,
     bool isDark, {
     Color? color,
     VoidCallback? onTap,
   }) {
     final effectiveColor = color ?? AppColor.primary;
     final badge = Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: EdgeInsets.symmetric(horizontal: label != null ? 7 : 5, vertical: 3.5),
       decoration: BoxDecoration(
         color: color != null
             ? color.withValues(alpha: 0.12)
@@ -213,25 +355,27 @@ class _PosScreenState extends State<PosScreen> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+            padding: const EdgeInsets.symmetric(horizontal: 4.5, vertical: 1),
             decoration: BoxDecoration(
               color: effectiveColor,
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(3.5),
             ),
             child: Text(
               keyText,
-              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w900, color: Colors.white),
+              style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w900, color: Colors.white),
             ),
           ),
-          const SizedBox(width: 5),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: color ?? (isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
+          if (label != null) ...[
+            const SizedBox(width: 4.5),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10.5,
+                fontWeight: FontWeight.w700,
+                color: color ?? (isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

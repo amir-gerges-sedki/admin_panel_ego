@@ -15,11 +15,13 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
   NotificationRemoteDataSourceImpl({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseService.firestore;
 
+  CollectionReference<Map<String, dynamic>> get _broadcastsCollection =>
+      _firestore.collection('AdminBroadcasts');
+
   @override
   Future<List<BroadcastModel>> getBroadcasts() async {
     try {
-      final bcastSnap = await _firestore
-          .collection('Broadcasts')
+      final bcastSnap = await _broadcastsCollection
           .orderBy('sentAt', descending: true)
           .get();
 
@@ -31,7 +33,7 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
         }).toList();
       }
     } catch (bcastError) {
-      debugPrint('Firestore root Broadcasts collection note: $bcastError');
+      debugPrint('Firestore AdminBroadcasts collection note: $bcastError');
     }
 
     return [];
@@ -43,7 +45,6 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
     final List<String> gatheredDeviceTokens = [];
 
     // 1. Fetch users only to count audience and gather FCM tokens for fallback push
-    // NOTE: Broadcast messages are NEVER written into Users/{uid}/Notifications
     try {
       final usersSnap = await _firestore.collection('Users').get();
       if (usersSnap.docs.isNotEmpty) {
@@ -65,14 +66,13 @@ class NotificationRemoteDataSourceImpl implements NotificationRemoteDataSource {
       totalRecipients = 1890;
     }
 
-    // 2. Save broadcast document to root 'Broadcasts' collection only
+    // 2. Save broadcast document to 'AdminBroadcasts' collection (triggers Cloud Function & syncs with App)
     try {
-      await _firestore
-          .collection('Broadcasts')
+      await _broadcastsCollection
           .doc(broadcast.id)
           .set(broadcast.toJson());
     } catch (saveBcastErr) {
-      debugPrint('Note saving to root Broadcasts collection: $saveBcastErr');
+      debugPrint('Note saving to AdminBroadcasts collection: $saveBcastErr');
     }
 
     // 3. Dispatch Live FCM Push Message to Topic

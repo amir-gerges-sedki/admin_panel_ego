@@ -1,6 +1,7 @@
 import 'package:equatable/equatable.dart';
 import '../../../products/data/models/product_model.dart';
 import '../../data/models/pos_cart_item_model.dart';
+import '../../data/models/pos_catalog_item.dart';
 import '../../data/models/pos_sale_model.dart';
 
 enum PosSaleStatus { initial, loading, success, failure }
@@ -39,6 +40,38 @@ class PosState extends Equatable {
     this.errorMessage,
     this.barcodeFeedbackMessage,
   });
+
+  /// All flattened saleable units across the entire catalog (every variation as a separate item)
+  List<PosCatalogItem> get allCatalogItems {
+    final List<PosCatalogItem> list = [];
+    for (final product in allProducts) {
+      if (product.isVariable && product.productVariations.isNotEmpty) {
+        for (final variation in product.productVariations) {
+          list.add(PosCatalogItem(product: product, variation: variation));
+        }
+      } else {
+        list.add(PosCatalogItem(product: product));
+      }
+    }
+    return list;
+  }
+
+  /// Filtered saleable units matching active category and search query
+  List<PosCatalogItem> get filteredCatalogItems {
+    var items = allCatalogItems;
+
+    if (selectedCategory != null) {
+      items = items.where((i) => i.categoryType == selectedCategory).toList();
+    }
+
+    final q = searchQuery.trim().toLowerCase();
+    if (q.isNotEmpty) {
+      final words = q.split(RegExp(r'\s+')).where((w) => w.isNotEmpty).toList();
+      items = items.where((i) => i.matchesSearch(words)).toList();
+    }
+
+    return items;
+  }
 
   /// Total sum of all line items before any discounts
   double get subTotal => cartItems.fold(0.0, (sum, itm) => sum + itm.originalLineTotal);

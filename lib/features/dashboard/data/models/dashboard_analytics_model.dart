@@ -210,19 +210,36 @@ class DashboardAnalyticsModel extends Equatable {
   final int activeSuppliersCount;
   final List<SupplierDueSummary> topSuppliersDue;
 
+  // General Operational Expenses in period
+  final double totalExpenses;
+  final int periodExpensesCount;
+  final String topExpenseCategory;
+
+  // Inventory Waste & Damaged Goods Loss in period
+  final double totalDamagedLoss;
+  final int periodDamagedUnitsCount;
+  final int periodDamagedCount;
+  final String topDamageReason;
+
+  // HR, Employees & Payroll in period
+  final int activeEmployeesCount;
+  final double monthlySalariesPool;
+  final double periodAdvancesTotal;
+  final double periodPaidSalariesTotal;
+
   const DashboardAnalyticsModel({
-    required this.totalRevenue,
-    this.totalCost = 0.0,
-    this.netProfit = 0.0,
-    this.profitMargin = 0.0,
-    required this.todayOrders,
-    required this.activeCustomers,
-    required this.avgOrderValue,
-    required this.lowStockAlertsCount,
-    required this.pendingOrdersCount,
-    required this.weeklyTrend,
-    required this.categorySales,
-    required this.brandShares,
+    double? totalRevenue,
+    double? totalCost,
+    double? netProfit,
+    double? profitMargin,
+    int? todayOrders,
+    int? activeCustomers,
+    double? avgOrderValue,
+    int? lowStockAlertsCount,
+    int? pendingOrdersCount,
+    List<RevenuePoint>? weeklyTrend,
+    List<CategorySalesData>? categorySales,
+    List<BrandShareData>? brandShares,
     this.onlineMetrics = const ChannelFinancialMetrics.zero(),
     this.posMetrics = const ChannelFinancialMetrics.zero(),
     this.combinedMetrics = const ChannelFinancialMetrics.zero(),
@@ -231,12 +248,49 @@ class DashboardAnalyticsModel extends Equatable {
     this.filterStartDate,
     this.filterEndDate,
     this.periodLabel = 'كافة الفترات',
-    this.totalSupplierPurchases = 0.0,
-    this.totalSupplierPaid = 0.0,
-    this.totalSupplierBalanceDue = 0.0,
-    this.activeSuppliersCount = 0,
+    double? totalSupplierPurchases,
+    double? totalSupplierPaid,
+    double? totalSupplierBalanceDue,
+    int? activeSuppliersCount,
     this.topSuppliersDue = const [],
-  });
+    double? totalExpenses,
+    int? periodExpensesCount,
+    String? topExpenseCategory,
+    double? totalDamagedLoss,
+    int? periodDamagedUnitsCount,
+    int? periodDamagedCount,
+    String? topDamageReason,
+    int? activeEmployeesCount,
+    double? monthlySalariesPool,
+    double? periodAdvancesTotal,
+    double? periodPaidSalariesTotal,
+  })  : totalRevenue = totalRevenue ?? 0.0,
+        totalCost = totalCost ?? 0.0,
+        netProfit = netProfit ?? 0.0,
+        profitMargin = profitMargin ?? 0.0,
+        todayOrders = todayOrders ?? 0,
+        activeCustomers = activeCustomers ?? 0,
+        avgOrderValue = avgOrderValue ?? 0.0,
+        lowStockAlertsCount = lowStockAlertsCount ?? 0,
+        pendingOrdersCount = pendingOrdersCount ?? 0,
+        weeklyTrend = weeklyTrend ?? const [],
+        categorySales = categorySales ?? const [],
+        brandShares = brandShares ?? const [],
+        totalSupplierPurchases = totalSupplierPurchases ?? 0.0,
+        totalSupplierPaid = totalSupplierPaid ?? 0.0,
+        totalSupplierBalanceDue = totalSupplierBalanceDue ?? 0.0,
+        activeSuppliersCount = activeSuppliersCount ?? 0,
+        totalExpenses = totalExpenses ?? 0.0,
+        periodExpensesCount = periodExpensesCount ?? 0,
+        topExpenseCategory = topExpenseCategory ?? '',
+        totalDamagedLoss = totalDamagedLoss ?? 0.0,
+        periodDamagedUnitsCount = periodDamagedUnitsCount ?? 0,
+        periodDamagedCount = periodDamagedCount ?? 0,
+        topDamageReason = topDamageReason ?? '',
+        activeEmployeesCount = activeEmployeesCount ?? 0,
+        monthlySalariesPool = monthlySalariesPool ?? 0.0,
+        periodAdvancesTotal = periodAdvancesTotal ?? 0.0,
+        periodPaidSalariesTotal = periodPaidSalariesTotal ?? 0.0;
 
   const DashboardAnalyticsModel.empty()
       : totalRevenue = 0.0,
@@ -263,7 +317,18 @@ class DashboardAnalyticsModel extends Equatable {
         totalSupplierPaid = 0.0,
         totalSupplierBalanceDue = 0.0,
         activeSuppliersCount = 0,
-        topSuppliersDue = const [];
+        topSuppliersDue = const [],
+        totalExpenses = 0.0,
+        periodExpensesCount = 0,
+        topExpenseCategory = '',
+        totalDamagedLoss = 0.0,
+        periodDamagedUnitsCount = 0,
+        periodDamagedCount = 0,
+        topDamageReason = '',
+        activeEmployeesCount = 0,
+        monthlySalariesPool = 0.0,
+        periodAdvancesTotal = 0.0,
+        periodPaidSalariesTotal = 0.0;
 
   @override
   List<Object?> get props => [
@@ -292,5 +357,17 @@ class DashboardAnalyticsModel extends Equatable {
         totalSupplierBalanceDue,
         activeSuppliersCount,
         topSuppliersDue,
+        totalExpenses,
+        periodExpensesCount,
+        topExpenseCategory,
+        totalDamagedLoss,
+        periodDamagedUnitsCount,
+        periodDamagedCount,
+        topDamageReason,
+        activeEmployeesCount,
+        monthlySalariesPool,
+        periodAdvancesTotal,
+        periodPaidSalariesTotal,
       ];
 }
+

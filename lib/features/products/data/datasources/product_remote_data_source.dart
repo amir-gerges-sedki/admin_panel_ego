@@ -15,17 +15,15 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
   ProductRemoteDataSourceImpl({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseService.firestore;
 
+  CollectionReference<Map<String, dynamic>> get _productsCollection =>
+      _firestore.collection('Products');
+
   @override
   Future<List<ProductModel>> getProducts() async {
     try {
-      final docs = await FirebaseService.getMultipleCollectionsDocs([
-        'Products',
-        'products',
-        'Items',
-        'items',
-      ]);
-      return docs.map((doc) {
-        final data = doc.data();
+      final snapshot = await _productsCollection.get();
+      return snapshot.docs.map((doc) {
+        final data = Map<String, dynamic>.from(doc.data());
         data['id'] = doc.id;
         return ProductModel.fromJson(data);
       }).toList();
@@ -38,11 +36,11 @@ class ProductRemoteDataSourceImpl implements ProductRemoteDataSource {
   @override
   Future<void> saveProduct(ProductModel product) async {
     final json = product.toJson();
-    await _firestore.collection('Products').doc(product.id).set(json);
+    await _productsCollection.doc(product.id).set(json);
   }
 
   @override
   Future<void> deleteProduct(String productId) async {
-    await _firestore.collection('Products').doc(productId).delete();
+    await _productsCollection.doc(productId).delete();
   }
 }

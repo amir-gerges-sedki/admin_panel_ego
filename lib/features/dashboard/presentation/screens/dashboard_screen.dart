@@ -8,12 +8,15 @@ import '../../../orders/presentation/cubit/order_cubit.dart';
 import '../../../orders/presentation/widgets/order_details_drawer.dart';
 import '../cubit/dashboard_cubit.dart';
 import '../widgets/brand_share_donut_chart.dart';
+import '../widgets/damaged_goods_summary_card.dart';
 import '../widgets/dashboard_date_filter_bar.dart';
 import '../widgets/dashboard_header.dart';
 import '../widgets/dashboard_kpi_grid.dart';
+import '../widgets/expenses_summary_card.dart';
 import '../widgets/export_report_dialog.dart';
 import '../widgets/live_orders_stream_widget.dart';
 import '../widgets/low_stock_alert_card.dart';
+import '../widgets/payroll_hr_summary_card.dart';
 import '../widgets/revenue_line_chart.dart';
 import '../widgets/sales_channel_profit_card.dart';
 import '../widgets/supplier_financials_card.dart';
@@ -66,6 +69,46 @@ class DashboardScreen extends StatelessWidget {
                   analytics: data,
                   onNavigateTab: onNavigateTab,
                 ),
+                const SizedBox(height: AppSizes.lg),
+
+                // Staff, Payroll & HR Commitments Overview
+                PayrollHrSummaryCard(
+                  analytics: data,
+                  onNavigateTab: onNavigateTab,
+                ),
+                const SizedBox(height: AppSizes.lg),
+
+                // Operational Expenses (OpEx) & Inventory Damaged Goods / Waste
+                if (isDesktop)
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: ExpensesSummaryCard(
+                          analytics: data,
+                          onNavigateTab: onNavigateTab,
+                        ),
+                      ),
+                      const SizedBox(width: AppSizes.lg),
+                      Expanded(
+                        child: DamagedGoodsSummaryCard(
+                          analytics: data,
+                          onNavigateTab: onNavigateTab,
+                        ),
+                      ),
+                    ],
+                  )
+                else ...[
+                  ExpensesSummaryCard(
+                    analytics: data,
+                    onNavigateTab: onNavigateTab,
+                  ),
+                  const SizedBox(height: AppSizes.lg),
+                  DamagedGoodsSummaryCard(
+                    analytics: data,
+                    onNavigateTab: onNavigateTab,
+                  ),
+                ],
                 const SizedBox(height: AppSizes.lg),
 
                 // Charts Row

@@ -15,13 +15,16 @@ class CustomerRemoteDataSourceImpl implements CustomerRemoteDataSource {
   CustomerRemoteDataSourceImpl({FirebaseFirestore? firestore})
       : _firestore = firestore ?? FirebaseService.firestore;
 
+  CollectionReference<Map<String, dynamic>> get _usersCollection =>
+      _firestore.collection('Users');
+
+  CollectionReference<Map<String, dynamic>> get _ordersCollection =>
+      _firestore.collection('Orders');
+
   @override
   Future<List<Map<String, dynamic>>> getRawUsers() async {
     try {
-      var snapshot = await _firestore.collection('Users').get();
-      if (snapshot.docs.isEmpty) {
-        snapshot = await _firestore.collection('users').get();
-      }
+      final snapshot = await _usersCollection.get();
       return snapshot.docs.map((doc) {
         final data = Map<String, dynamic>.from(doc.data());
         data['id'] = doc.id;
@@ -36,10 +39,7 @@ class CustomerRemoteDataSourceImpl implements CustomerRemoteDataSource {
   @override
   Future<List<Map<String, dynamic>>> getRawOrders() async {
     try {
-      var snapshot = await _firestore.collection('Orders').get();
-      if (snapshot.docs.isEmpty) {
-        snapshot = await _firestore.collection('orders').get();
-      }
+      final snapshot = await _ordersCollection.get();
       return snapshot.docs.map((doc) {
         final data = Map<String, dynamic>.from(doc.data());
         data['id'] = doc.id;
@@ -54,7 +54,7 @@ class CustomerRemoteDataSourceImpl implements CustomerRemoteDataSource {
   @override
   Stream<Map<String, dynamic>?> watchRawUser(String userId) {
     if (userId.isEmpty) return const Stream.empty();
-    return _firestore.collection('Users').doc(userId).snapshots().map((snapshot) {
+    return _usersCollection.doc(userId).snapshots().map((snapshot) {
       if (!snapshot.exists || snapshot.data() == null) return null;
       final data = Map<String, dynamic>.from(snapshot.data()!);
       data['id'] = snapshot.id;
@@ -64,7 +64,7 @@ class CustomerRemoteDataSourceImpl implements CustomerRemoteDataSource {
 
   @override
   Stream<List<Map<String, dynamic>>> watchRawUsers() {
-    return _firestore.collection('Users').snapshots().map((snapshot) {
+    return _usersCollection.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         final data = Map<String, dynamic>.from(doc.data());
         data['id'] = doc.id;

@@ -69,7 +69,7 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'طلبات وفواتير: ${product.productTitle}',
+                          'orders_and_invoices_for'.tr.replaceAll('{title}', product.productTitle),
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w900,
@@ -79,7 +79,7 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
                           overflow: TextOverflow.ellipsis,
                         ),
                         Text(
-                          'إجمالي ${matchingOrders.length} طلب / فاتورة',
+                          'total_matching_orders'.tr.replaceAll('{count}', '${matchingOrders.length}'),
                           style: TextStyle(
                             fontSize: 12,
                             color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
@@ -103,7 +103,7 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
                 child: matchingOrders.isEmpty
                     ? Center(
                         child: Text(
-                          'لا توجد طلبات مسجلة',
+                          'no_orders_for_product'.tr,
                           style: TextStyle(color: isDark ? Colors.white60 : Colors.black54),
                         ),
                       )
@@ -146,7 +146,9 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'طلب #${ord.id}',
+                                        ord.isPosSale
+                                            ? 'pos_invoice_badge'.tr.replaceAll('{id}', ord.id)
+                                            : 'order_num_badge'.tr.replaceAll('{id}', ord.id),
                                         style: TextStyle(
                                           fontSize: 13,
                                           fontWeight: FontWeight.w800,
@@ -167,7 +169,7 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.end,
                                   children: [
                                     Text(
-                                      'الكمية: $qty قطعة',
+                                      'item_qty_count'.tr.replaceAll('{qty}', '$qty'),
                                       style: const TextStyle(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w800,
@@ -233,12 +235,12 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
-                  'تقرير تفاصيل مبيعات المنتجات والأصناف',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
+                Text(
+                  'product_sales_report_title'.tr,
+                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w900),
                 ),
                 Text(
-                  'تفاصيل الكميات المباعة، التكلفة، وصافي الربح لكل منتج',
+                  'product_sales_report_subtitle'.tr,
                   style: TextStyle(
                     fontSize: 11,
                     color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
@@ -351,27 +353,27 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
           isDark: isDark,
           icon: Icons.shopping_bag_rounded,
           iconColor: const Color(0xFF3B82F6),
-          title: 'إجمالي القطع المباعة',
-          value: '$totalUnitsSold قطعة',
-          subtitle: 'من $uniqueProductsCount منتج مختلف',
+          title: 'total_units_sold_title'.tr,
+          value: 'units_count_label'.tr.replaceAll('{count}', '$totalUnitsSold'),
+          subtitle: 'from_x_products'.tr.replaceAll('{count}', '$uniqueProductsCount'),
         );
 
         final card2 = _buildKpiBox(
           isDark: isDark,
           icon: Icons.payments_rounded,
           iconColor: const Color(0xFF8B5CF6),
-          title: 'إجمالي مبيعات المنتجات',
+          title: 'total_product_sales_title'.tr,
           value: AppFormatters.formatEGP(totalRevenue),
-          subtitle: 'التكلفة: ${AppFormatters.formatEGP(totalCost)}',
+          subtitle: 'total_cost_subtitle'.tr.replaceAll('{cost}', AppFormatters.formatEGP(totalCost)),
         );
 
         final card3 = _buildKpiBox(
           isDark: isDark,
           icon: Icons.trending_up_rounded,
           iconColor: const Color(0xFF10B981),
-          title: 'صافي أرباح المنتجات',
+          title: 'total_product_profit_title'.tr,
           value: AppFormatters.formatEGP(totalNetProfit),
-          subtitle: 'هامش الربح: ${totalRevenue > 0 ? ((totalNetProfit / totalRevenue) * 100).toStringAsFixed(1) : '0'}%',
+          subtitle: 'profit_margin_subtitle'.tr.replaceAll('{margin}', totalRevenue > 0 ? ((totalNetProfit / totalRevenue) * 100).toStringAsFixed(1) : '0'),
           isProfit: true,
         );
 
@@ -488,7 +490,7 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
                 color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
               ),
               decoration: InputDecoration(
-                hintText: 'ابحث باسم المنتج، البراند أو الـ SKU...',
+                hintText: 'search_product_sales_hint'.tr,
                 hintStyle: TextStyle(
                   fontSize: 12,
                   color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
@@ -512,21 +514,21 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildFilterChip(
-                  label: 'كافة القنوات',
+                  label: 'filter_channel_all'.tr,
                   isSelected: _channelFilter == 'ALL',
                   isDark: isDark,
                   onTap: () => setState(() => _channelFilter = 'ALL'),
                 ),
                 const SizedBox(width: 6),
                 _buildFilterChip(
-                  label: '📱 أونلاين فقط',
+                  label: 'filter_channel_online'.tr,
                   isSelected: _channelFilter == 'ONLINE',
                   isDark: isDark,
                   onTap: () => setState(() => _channelFilter = 'ONLINE'),
                 ),
                 const SizedBox(width: 6),
                 _buildFilterChip(
-                  label: '🏪 كاشير الفرع فقط',
+                  label: 'filter_channel_pos'.tr,
                   isSelected: _channelFilter == 'POS',
                   isDark: isDark,
                   onTap: () => setState(() => _channelFilter = 'POS'),
@@ -705,7 +707,7 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '📱 أونلاين: ${prod.onlineQuantity}',
+                          'online_badge_with_count'.tr.replaceAll('{count}', '${prod.onlineQuantity}'),
                           style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF3B82F6)),
                         ),
                       ),
@@ -717,7 +719,7 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          '🏪 الفرع: ${prod.posQuantity}',
+                          'pos_badge_with_count'.tr.replaceAll('{count}', '${prod.posQuantity}'),
                           style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: Color(0xFF8B5CF6)),
                         ),
                       ),
@@ -731,12 +733,12 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text(
-                          'إجمالي المباع',
-                          style: TextStyle(fontSize: 10, color: Colors.grey),
+                        Text(
+                          'total_sold_label'.tr,
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
                         ),
                         Text(
-                          '${prod.totalQuantity} قطعة',
+                          'units_count_label'.tr.replaceAll('{count}', '${prod.totalQuantity}'),
                           style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900),
                         ),
                       ],
@@ -747,9 +749,9 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text(
-                          'إجمالي المبيعات',
-                          style: TextStyle(fontSize: 10, color: Colors.grey),
+                        Text(
+                          'total_sales_label'.tr,
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
                         ),
                         Text(
                           AppFormatters.formatEGP(prod.totalRevenue),
@@ -767,9 +769,9 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
-                        const Text(
-                          'صافي الربح',
-                          style: TextStyle(fontSize: 10, color: Colors.grey),
+                        Text(
+                          'net_profit_label'.tr,
+                          style: const TextStyle(fontSize: 10, color: Colors.grey),
                         ),
                         Row(
                           children: [
@@ -817,7 +819,7 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
                           const Icon(Icons.receipt_long_rounded, size: 13),
                           const SizedBox(width: 4),
                           Text(
-                            'الطلبات (${prod.ordersCount})',
+                            'orders_count_badge'.tr.replaceAll('{count}', '${prod.ordersCount}'),
                             style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
                           ),
                         ],
@@ -874,7 +876,7 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
           Icon(Icons.inventory_2_outlined, size: 48, color: isDark ? Colors.white30 : Colors.black26),
           const SizedBox(height: 12),
           Text(
-            'لا توجد منتجات مباعة في الفترة المحددة',
+            'no_product_sales_found'.tr,
             style: TextStyle(
               fontSize: 15,
               fontWeight: FontWeight.w800,
@@ -883,7 +885,7 @@ class _ProductSalesReportScreenState extends State<ProductSalesReportScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'جرّب تغيير الفترة الزمنية بالتقويم أو إزالة الفلاتر',
+            'try_changing_date_or_filters'.tr,
             style: TextStyle(
               fontSize: 12,
               color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
