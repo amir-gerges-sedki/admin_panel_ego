@@ -56,20 +56,108 @@ class ExpenseRemoteDataSourceImpl implements ExpenseRemoteDataSource {
 
   @override
   Future<ExpenseModel> addExpense(ExpenseModel expense) async {
-    final docRef = await _firestore.collection('expenses').add(expense.toMap());
-    return expense.copyWith(id: docRef.id);
+    try {
+      final expenseDocRef = _firestore.collection('expenses').doc();
+      final txDocRef = _firestore.collection('treasury_transactions').doc();
+
+      // Map payment method to PaymentChannelType
+      String channelStr = 'cash';
+      final method = expense.paymentMethod.toLowerCase();
+      if (method.contains('card') || method.contains('visa') || method.contains('pos') || method.contains('bank')) {
+        channelStr = 'card';
+      } else if (method.contains('insta')) {
+        channelStr = 'instapay';
+      } else if (method.contains('voda') || method.contains('wallet')) {
+        channelStr = 'vodafoneCash';
+      }
+
+      final fullExpense = expense.copyWith(
+        id: expenseDocRef.id,
+        treasuryTransactionId: txDocRef.id,
+      );
+
+      final batch = _firestore.batch();
+      batch.set(expenseDocRef, fullExpense.toMap());
+
+      final reasonStr = expense.title.isNotEmpty
+          ? '${expense.title}${expense.notes.isNotEmpty ? ' - ${expense.notes}' : ''}'
+          : 'مصروف تشغيلي';
+
+      final txData = <String, dynamic>{
+        'id': txDocRef.id,
+        'type': 'expense',
+        'channel': channelStr,
+        'amount': expense.amount,
+        'reason': reasonStr,
+        'performedBy': expense.recordedBy.isNotEmpty ? expense.recordedBy : 'Admin',
+        'expenseId': expenseDocRef.id,
+        'createdAt': Timestamp.fromDate(expense.date),
+      };
+      if (expense.branchId != null && expense.branchId!.isNotEmpty) {
+        txData['branchId'] = expense.branchId;
+      }
+      if (expense.shiftId != null && expense.shiftId!.isNotEmpty) {
+        txData['shiftId'] = expense.shiftId;
+      }
+
+      batch.set(txDocRef, txData);
+      await batch.commit();
+
+      return fullExpense;
+    } catch (e) {
+      debugPrint('Firestore addExpense error: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<void> updateExpense(ExpenseModel expense) async {
-    await _firestore
-        .collection('expenses')
-        .doc(expense.id)
-        .update(expense.toMap());
+    try {
+      final batch = _firestore.batch();
+      final expDocRef = _firestore.collection('expenses').doc(expense.id);
+      batch.update(expDocRef, expense.toMap());
+
+      if (expense.treasuryTransactionId != null && expense.treasuryTransactionId!.isNotEmpty) {
+        final txDocRef = _firestore.collection('treasury_transactions').doc(expense.treasuryTransactionId);
+        batch.update(txDocRef, {
+          'amount': expense.amount,
+          'reason': '${expense.title}${expense.notes.isNotEmpty ? ' - ${expense.notes}' : ''}',
+          'performedBy': expense.recordedBy,
+        });
+      }
+
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Firestore updateExpense error: $e');
+      rethrow;
+    }
   }
 
   @override
   Future<void> deleteExpense(String id) async {
-    await _firestore.collection('expenses').doc(id).delete();
+    try {
+      final doc = await _firestore.collection('expenses').doc(id).get();
+      final txId = doc.data()?['treasuryTransactionId']?.toString();
+
+      final batch = _firestore.batch();
+      batch.delete(_firestore.collection('expenses').doc(id));
+
+      if (txId != null && txId.isNotEmpty) {
+        batch.delete(_firestore.collection('treasury_transactions').doc(txId));
+      } else {
+        final linkedSnap = await _firestore
+            .collection('treasury_transactions')
+            .where('expenseId', isEqualTo: id)
+            .get();
+        for (final d in linkedSnap.docs) {
+          batch.delete(d.reference);
+        }
+      }
+
+      await batch.commit();
+    } catch (e) {
+      debugPrint('Firestore deleteExpense error: $e');
+      rethrow;
+    }
   }
 }

@@ -11,6 +11,7 @@ class ProductVariationModel extends Equatable {
   final int? lowStockThreshold;
   final String image;
   final Map<String, String> attributeValues;
+  final Map<String, int> branchStock;
 
   const ProductVariationModel({
     required this.id,
@@ -22,11 +23,30 @@ class ProductVariationModel extends Equatable {
     this.lowStockThreshold,
     this.image = '',
     required this.attributeValues,
+    this.branchStock = const {},
   });
 
   double get effectivePrice => salePrice > 0 ? salePrice : price;
   double get profitPerUnit => (effectivePrice - costPrice).clamp(0.0, double.infinity);
   double get profitMarginPercent => effectivePrice > 0 ? ((effectivePrice - costPrice) / effectivePrice) * 100 : 0.0;
+
+  /// Returns stock for a specific branch or sum of all branches
+  int getStockForBranch(String? branchId) {
+    final bStock = branchStock;
+    if (branchId == null || branchId == 'all' || branchId.isEmpty) {
+      if (bStock.isNotEmpty) {
+        return bStock.values.fold<int>(0, (sum, val) => sum + val);
+      }
+      return stock;
+    }
+    if (bStock.containsKey(branchId)) {
+      return bStock[branchId] ?? 0;
+    }
+    if (bStock.isEmpty && (branchId == 'main_branch' || branchId == 'primary')) {
+      return stock;
+    }
+    return 0;
+  }
 
   factory ProductVariationModel.fromJson(Map<String, dynamic> json) {
     final rawAttrs =
@@ -41,6 +61,16 @@ class ProductVariationModel extends Equatable {
         if (keyStr.toLowerCase() != 'wattage' &&
             keyStr.toLowerCase() != 'watt') {
           attrs[keyStr] = v.toString();
+        }
+      });
+    }
+
+    final rawBranchStock = json['branchStock'] ?? json['BranchStock'] ?? {};
+    final Map<String, int> parsedBranchStock = {};
+    if (rawBranchStock is Map) {
+      rawBranchStock.forEach((k, v) {
+        if (v is num) {
+          parsedBranchStock[k.toString()] = v.toInt();
         }
       });
     }
@@ -71,6 +101,7 @@ class ProductVariationModel extends Equatable {
       lowStockThreshold: (json['lowStockThreshold'] as num?)?.toInt(),
       image: json['image']?.toString() ?? json['Image']?.toString() ?? '',
       attributeValues: attrs,
+      branchStock: parsedBranchStock,
     );
   }
 
@@ -84,6 +115,7 @@ class ProductVariationModel extends Equatable {
     int? lowStockThreshold,
     String? image,
     Map<String, String>? attributeValues,
+    Map<String, int>? branchStock,
   }) {
     return ProductVariationModel(
       id: id ?? this.id,
@@ -95,6 +127,7 @@ class ProductVariationModel extends Equatable {
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
       image: image ?? this.image,
       attributeValues: attributeValues ?? this.attributeValues,
+      branchStock: branchStock ?? this.branchStock,
     );
   }
 
@@ -108,6 +141,7 @@ class ProductVariationModel extends Equatable {
     if (lowStockThreshold != null) 'lowStockThreshold': lowStockThreshold,
     'image': image,
     'attributeValues': attributeValues,
+    if (branchStock.isNotEmpty) 'branchStock': branchStock,
   };
 
   @override
@@ -121,5 +155,6 @@ class ProductVariationModel extends Equatable {
     lowStockThreshold,
     image,
     attributeValues,
+    branchStock,
   ];
 }

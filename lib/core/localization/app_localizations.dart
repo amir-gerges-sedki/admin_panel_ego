@@ -17,6 +17,9 @@ class AppLocalizations {
 
   static AppLocalizations get current => _current ?? AppLocalizations(const Locale('en'));
 
+  bool get isArabic => locale.languageCode == 'ar';
+  bool get isEnglish => locale.languageCode == 'en';
+
   static const LocalizationsDelegate<AppLocalizations> delegate = _AppLocalizationsDelegate();
 
   static final Map<String, Map<String, String>> _localizedValues = {

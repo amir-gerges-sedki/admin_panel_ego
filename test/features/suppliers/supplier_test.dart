@@ -11,39 +11,57 @@ import 'package:admin_panel_ego/features/suppliers/utils/supplier_invoice_printe
 import 'package:admin_panel_ego/core/localization/app_localizations.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 
+import 'package:admin_panel_ego/features/suppliers/data/datasources/purchase_invoice_data_source.dart';
+import 'package:admin_panel_ego/features/suppliers/data/datasources/supplier_payment_data_source.dart';
+import 'package:admin_panel_ego/features/suppliers/data/repositories/purchase_invoice_repository.dart';
+import 'package:admin_panel_ego/features/suppliers/data/repositories/supplier_payment_repository.dart';
+
 class MockSupplierRemoteDataSource implements SupplierRemoteDataSource {
-  final List<SupplierModel> _suppliers = [];
-  final List<PurchaseInvoiceModel> _invoices = [];
-  final List<SupplierPaymentModel> _payments = [];
+  final List<SupplierModel> suppliers;
+
+  MockSupplierRemoteDataSource({List<SupplierModel>? suppliers})
+      : suppliers = suppliers ?? [];
 
   @override
-  Future<List<SupplierModel>> getSuppliers() async => List.from(_suppliers);
+  Future<List<SupplierModel>> getSuppliers() async => List.from(suppliers);
 
   @override
   Future<SupplierModel?> getSupplierById(String id) async =>
-      _suppliers.where((s) => s.id == id).firstOrNull;
+      suppliers.where((s) => s.id == id).firstOrNull;
 
   @override
   Future<SupplierModel> addSupplier(SupplierModel supplier) async {
     final s = supplier.copyWith(
-        id: supplier.id.isNotEmpty ? supplier.id : 'sup_${_suppliers.length + 1}');
-    _suppliers.add(s);
+        id: supplier.id.isNotEmpty ? supplier.id : 'sup_${suppliers.length + 1}');
+    suppliers.add(s);
     return s;
   }
 
   @override
   Future<SupplierModel> updateSupplier(SupplierModel supplier) async {
-    final idx = _suppliers.indexWhere((s) => s.id == supplier.id);
+    final idx = suppliers.indexWhere((s) => s.id == supplier.id);
     if (idx != -1) {
-      _suppliers[idx] = supplier;
+      suppliers[idx] = supplier;
     }
     return supplier;
   }
 
   @override
   Future<void> deleteSupplier(String id) async {
-    _suppliers.removeWhere((s) => s.id == id);
+    suppliers.removeWhere((s) => s.id == id);
   }
+}
+
+class MockPurchaseInvoiceDataSource implements PurchaseInvoiceDataSource {
+  final List<PurchaseInvoiceModel> invoices;
+  final List<SupplierModel> suppliers;
+  final List<SupplierPaymentModel> payments;
+
+  MockPurchaseInvoiceDataSource({
+    List<PurchaseInvoiceModel>? invoices,
+    required this.suppliers,
+    required this.payments,
+  }) : invoices = invoices ?? [];
 
   @override
   Future<List<PurchaseInvoiceModel>> getPurchaseInvoices({
@@ -51,9 +69,9 @@ class MockSupplierRemoteDataSource implements SupplierRemoteDataSource {
     int limit = 100,
   }) async {
     if (supplierId != null) {
-      return _invoices.where((i) => i.supplierId == supplierId).toList();
+      return invoices.where((i) => i.supplierId == supplierId).toList();
     }
-    return List.from(_invoices);
+    return List.from(invoices);
   }
 
   @override
@@ -62,14 +80,14 @@ class MockSupplierRemoteDataSource implements SupplierRemoteDataSource {
     bool autoUpdateStock = true,
   }) async {
     final inv = invoice.copyWith(
-        id: invoice.id.isNotEmpty ? invoice.id : 'inv_${_invoices.length + 1}');
-    _invoices.add(inv);
+        id: invoice.id.isNotEmpty ? invoice.id : 'inv_${invoices.length + 1}');
+    invoices.add(inv);
 
     // Update supplier balance
-    final sIdx = _suppliers.indexWhere((s) => s.id == inv.supplierId);
+    final sIdx = suppliers.indexWhere((s) => s.id == inv.supplierId);
     if (sIdx != -1) {
-      final cur = _suppliers[sIdx];
-      _suppliers[sIdx] = cur.copyWith(
+      final cur = suppliers[sIdx];
+      suppliers[sIdx] = cur.copyWith(
         totalPurchases: cur.totalPurchases + inv.totalAmount,
         totalPaid: cur.totalPaid + inv.paidAmount,
         balanceDue: cur.balanceDue + inv.remainingAmount,
@@ -78,8 +96,8 @@ class MockSupplierRemoteDataSource implements SupplierRemoteDataSource {
     }
 
     if (inv.paidAmount > 0) {
-      _payments.add(SupplierPaymentModel(
-        id: 'pay_init_${_payments.length + 1}',
+      payments.add(SupplierPaymentModel(
+        id: 'pay_init_${payments.length + 1}',
         supplierId: inv.supplierId,
         supplierName: inv.supplierName,
         invoiceId: inv.id,
@@ -94,16 +112,26 @@ class MockSupplierRemoteDataSource implements SupplierRemoteDataSource {
 
   @override
   Future<void> updatePurchaseInvoice(PurchaseInvoiceModel invoice) async {
-    final idx = _invoices.indexWhere((i) => i.id == invoice.id);
+    final idx = invoices.indexWhere((i) => i.id == invoice.id);
     if (idx != -1) {
-      _invoices[idx] = invoice;
+      invoices[idx] = invoice;
     }
   }
 
   @override
   Future<void> deletePurchaseInvoice(String invoiceId) async {
-    _invoices.removeWhere((i) => i.id == invoiceId);
+    invoices.removeWhere((i) => i.id == invoiceId);
   }
+}
+
+class MockSupplierPaymentDataSource implements SupplierPaymentDataSource {
+  final List<SupplierPaymentModel> payments;
+  final List<SupplierModel> suppliers;
+
+  MockSupplierPaymentDataSource({
+    List<SupplierPaymentModel>? payments,
+    required this.suppliers,
+  }) : payments = payments ?? [];
 
   @override
   Future<List<SupplierPaymentModel>> getSupplierPayments({
@@ -111,23 +139,23 @@ class MockSupplierRemoteDataSource implements SupplierRemoteDataSource {
     int limit = 100,
   }) async {
     if (supplierId != null) {
-      return _payments.where((p) => p.supplierId == supplierId).toList();
+      return payments.where((p) => p.supplierId == supplierId).toList();
     }
-    return List.from(_payments);
+    return List.from(payments);
   }
 
   @override
   Future<SupplierPaymentModel> recordSupplierPayment(
       SupplierPaymentModel payment) async {
     final p = payment.copyWith(
-        id: payment.id.isNotEmpty ? payment.id : 'pay_${_payments.length + 1}');
-    _payments.add(p);
+        id: payment.id.isNotEmpty ? payment.id : 'pay_${payments.length + 1}');
+    payments.add(p);
 
     // Update supplier balance
-    final sIdx = _suppliers.indexWhere((s) => s.id == p.supplierId);
+    final sIdx = suppliers.indexWhere((s) => s.id == p.supplierId);
     if (sIdx != -1) {
-      final cur = _suppliers[sIdx];
-      _suppliers[sIdx] = cur.copyWith(
+      final cur = suppliers[sIdx];
+      suppliers[sIdx] = cur.copyWith(
         totalPaid: cur.totalPaid + p.amount,
         balanceDue: cur.balanceDue - p.amount,
       );
@@ -247,14 +275,39 @@ void main() {
   });
 
   group('SupplierRepository & SupplierCubit Tests', () {
-    late MockSupplierRemoteDataSource mockDataSource;
-    late SupplierRepository repository;
+    late MockSupplierRemoteDataSource mockSupplierDataSource;
+    late MockPurchaseInvoiceDataSource mockInvoiceDataSource;
+    late MockSupplierPaymentDataSource mockPaymentDataSource;
+    late SupplierRepository supplierRepository;
+    late PurchaseInvoiceRepository invoiceRepository;
+    late SupplierPaymentRepository paymentRepository;
     late SupplierCubit cubit;
 
     setUp(() {
-      mockDataSource = MockSupplierRemoteDataSource();
-      repository = SupplierRepositoryImpl(remoteDataSource: mockDataSource);
-      cubit = SupplierCubit(repository);
+      final sharedSuppliers = <SupplierModel>[];
+      final sharedInvoices = <PurchaseInvoiceModel>[];
+      final sharedPayments = <SupplierPaymentModel>[];
+
+      mockSupplierDataSource = MockSupplierRemoteDataSource(suppliers: sharedSuppliers);
+      mockInvoiceDataSource = MockPurchaseInvoiceDataSource(
+        invoices: sharedInvoices,
+        suppliers: sharedSuppliers,
+        payments: sharedPayments,
+      );
+      mockPaymentDataSource = MockSupplierPaymentDataSource(
+        payments: sharedPayments,
+        suppliers: sharedSuppliers,
+      );
+
+      supplierRepository = SupplierRepositoryImpl(remoteDataSource: mockSupplierDataSource);
+      invoiceRepository = PurchaseInvoiceRepositoryImpl(dataSource: mockInvoiceDataSource);
+      paymentRepository = SupplierPaymentRepositoryImpl(dataSource: mockPaymentDataSource);
+
+      cubit = SupplierCubit(
+        supplierRepository: supplierRepository,
+        invoiceRepository: invoiceRepository,
+        paymentRepository: paymentRepository,
+      );
     });
 
     tearDown(() {

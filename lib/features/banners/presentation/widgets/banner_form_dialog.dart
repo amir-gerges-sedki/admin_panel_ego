@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../common/widgets/dialogs/unified_modal_sheet.dart';
+import '../../../../common/widgets/image_picker/dual_image_picker_field.dart';
 import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/formatters/formatters.dart';
@@ -178,6 +179,16 @@ class _BannerFormDialogState extends State<BannerFormDialog> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_imageController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('required'.tr),
+          backgroundColor: AppColor.error,
+        ),
+      );
+      return;
+    }
 
     if (_destinationType == 'product' && (_selectedProductId == null || _selectedProductId!.isEmpty)) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -357,55 +368,24 @@ class _BannerFormDialogState extends State<BannerFormDialog> {
           ),
           const SizedBox(height: AppSizes.md),
 
-          // Banner Image URL
-          TextFormField(
-            controller: _imageController,
-            decoration: InputDecoration(
-              labelText: '${'banner_image'.tr} *',
-              hintText: 'https://...',
-              prefixIcon: const Icon(Icons.image_outlined, size: 18),
-            ),
-            validator: (v) => (v == null || v.trim().isEmpty) ? 'required'.tr : null,
+          // Banner Image (URL or Firebase Storage Upload)
+          DualImagePickerField(
+            initialUrl: _imageController.text,
+            label: 'banner_image',
+            storageFolder: 'banners',
+            customFileName: _titleController.text.trim().isNotEmpty
+                ? 'banner_${_titleController.text.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_')}'
+                : null,
+            previewWidth: 140,
+            previewHeight: 80,
+            isRequired: true,
+            onImageChanged: (url) {
+              setState(() {
+                _imageController.text = url;
+              });
+            },
           ),
-          const SizedBox(height: 8),
-
-          // Live Image Preview
-          if (_imageController.text.trim().isNotEmpty) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: Container(
-                height: 120,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
-                  border: Border.all(
-                    color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
-                  ),
-                ),
-                child: Image.network(
-                  _imageController.text.trim(),
-                  fit: BoxFit.cover,
-                  errorBuilder: (context, error, stackTrace) => Center(
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.broken_image_outlined, color: AppColor.error, size: 18),
-                        const SizedBox(width: 8),
-                        Text(
-                          'invalid_image_url'.tr,
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: AppSizes.md),
-          ],
+          const SizedBox(height: AppSizes.md),
 
           // Active Switch
           Container(

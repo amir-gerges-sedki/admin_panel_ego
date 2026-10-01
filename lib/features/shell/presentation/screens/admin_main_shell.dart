@@ -7,6 +7,8 @@ import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/helper/responsive_helper.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../../core/localization/locale_bloc.dart';
+import '../../../accounting/presentation/screens/accounting_screen.dart';
+import '../../../reports/presentation/screens/reports_screen.dart';
 import '../../../banners/presentation/cubit/banner_cubit.dart';
 import '../../../banners/presentation/screens/banners_screen.dart';
 import '../../../brands/presentation/cubit/brand_cubit.dart';
@@ -22,11 +24,16 @@ import '../../../employees/presentation/cubit/employee_cubit.dart';
 import '../../../employees/presentation/screens/employees_screen.dart';
 import '../../../expenses/presentation/cubit/expense_cubit.dart';
 import '../../../expenses/presentation/screens/expenses_screen.dart';
+import '../../../inventory_transfers/presentation/cubit/stock_transfer_cubit.dart';
+import '../../../inventory_transfers/presentation/cubit/stock_transfer_state.dart';
+import '../../../inventory_transfers/data/models/stock_transfer_model.dart';
+import '../../../inventory_transfers/presentation/screens/inventory_transfers_screen.dart';
 import '../../../notifications/presentation/cubit/notification_cubit.dart';
 import '../../../notifications/presentation/screens/broadcast_screen.dart';
 import '../../../orders/presentation/cubit/order_cubit.dart';
 import '../../../orders/presentation/screens/orders_screen.dart';
 import '../../../pos/presentation/screens/pos_screen.dart';
+import '../../../pos/presentation/screens/shifts_history_screen.dart';
 import '../../../products/presentation/cubit/product_cubit.dart';
 import '../../../products/presentation/screens/products_screen.dart';
 import '../../../roles/domain/models/admin_role.dart';
@@ -57,6 +64,10 @@ class _AdminMainShellState extends State<AdminMainShell> {
     'orders',
     'suppliers',
     'expenses',
+    'accounting',
+    'reports',
+    'cashier_shifts',
+    'inventory_transfers',
     'damaged_stock',
     'employees',
     'banners',
@@ -75,14 +86,18 @@ class _AdminMainShellState extends State<AdminMainShell> {
     4: AdminPermission.orders,
     5: AdminPermission.suppliers,
     6: AdminPermission.expenses,
-    7: AdminPermission.damagedStock,
-    8: AdminPermission.employees,
-    9: AdminPermission.banners,
-    10: AdminPermission.coupons,
-    11: AdminPermission.customers,
-    12: AdminPermission.notifications,
-    13: AdminPermission.settings,
-    14: AdminPermission.roles,
+    7: AdminPermission.accounting,
+    8: AdminPermission.reports,
+    9: AdminPermission.shifts,
+    10: AdminPermission.transfers,
+    11: AdminPermission.damagedStock,
+    12: AdminPermission.employees,
+    13: AdminPermission.banners,
+    14: AdminPermission.coupons,
+    15: AdminPermission.customers,
+    16: AdminPermission.notifications,
+    17: AdminPermission.settings,
+    18: AdminPermission.roles,
   };
 
   void _handleGlobalSearch(String query) {
@@ -102,22 +117,25 @@ class _AdminMainShellState extends State<AdminMainShell> {
       case 6:
         context.read<ExpenseCubit>().filterExpenses(query: query);
         break;
-      case 7:
-        context.read<DamagedStockCubit>().filterDamagedStock(query: query);
-        break;
-      case 8:
-        context.read<EmployeeCubit>().filterEmployees(query: query);
-        break;
-      case 9:
-        context.read<BannerCubit>().filterBanners(query);
-        break;
       case 10:
-        context.read<CouponCubit>().filterCoupons(query);
+        context.read<StockTransferCubit>().setSearchQuery(query);
         break;
       case 11:
-        context.read<CustomerCubit>().filterCustomers(query);
+        context.read<DamagedStockCubit>().filterDamagedStock(query: query);
         break;
       case 12:
+        context.read<EmployeeCubit>().filterEmployees(query: query);
+        break;
+      case 13:
+        context.read<BannerCubit>().filterBanners(query);
+        break;
+      case 14:
+        context.read<CouponCubit>().filterCoupons(query);
+        break;
+      case 15:
+        context.read<CustomerCubit>().filterCustomers(query);
+        break;
+      case 16:
         context.read<NotificationCubit>().filterBroadcasts(query);
         break;
       default:
@@ -174,6 +192,10 @@ class _AdminMainShellState extends State<AdminMainShell> {
               const OrdersScreen(),
               const SuppliersScreen(),
               const ExpensesScreen(),
+              const AccountingScreen(),
+              const ReportsScreen(),
+              const ShiftsHistoryScreen(),
+              const InventoryTransfersScreen(),
               const DamagedStockScreen(),
               const EmployeesScreen(),
               const BannersScreen(),
@@ -193,81 +215,91 @@ class _AdminMainShellState extends State<AdminMainShell> {
                       .length;
                 }
 
-                return PopScope(
-                  canPop: false,
-                  onPopInvokedWithResult: (didPop, result) {
-                    if (didPop) return;
-                    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
-                      _scaffoldKey.currentState?.closeDrawer();
-                    }
-                  },
-                  child: Scaffold(
-                    key: _scaffoldKey,
-                    drawer: showMobileDrawer
-                        ? Drawer(
-                            child: AdminSidebar(
-                              selectedIndex: _selectedTabIndex,
-                              onItemSelected: (index) {
-                                setState(() => _selectedTabIndex = index);
-                                if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
-                                  _scaffoldKey.currentState?.closeDrawer();
-                                }
-                              },
-                              isCollapsed: false,
-                              onToggleCollapse: () {},
-                              pendingOrdersCount: pendingOrdersCount,
-                              workspaceMode: _workspaceMode,
-                            ),
-                          )
-                        : null,
-                    body: Row(
-                      children: [
-                        if (showDesktopSidebar)
-                          AdminSidebar(
-                            selectedIndex: _selectedTabIndex,
-                            onItemSelected: (index) => setState(() => _selectedTabIndex = index),
-                            isCollapsed: _isSidebarCollapsed,
-                            onToggleCollapse: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
-                            pendingOrdersCount: pendingOrdersCount,
-                            workspaceMode: _workspaceMode,
-                          ),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              AdminTopBar(
-                                title: _selectedTabIndex < _tabTitles.length
-                                    ? _tabTitles[_selectedTabIndex]
-                                    : 'dashboard',
-                                onMenuPressed: showMobileDrawer
-                                    ? () => _scaffoldKey.currentState?.openDrawer()
-                                    : null,
-                                onGlobalSearch: _handleGlobalSearch,
-                                onNotificationPressed: () {
-                                  setState(() => _selectedTabIndex = 4);
-                                  context.read<OrderCubit>().filterOrders(status: 'Pending', query: '');
-                                },
-                                onNavigateTab: (index) => setState(() => _selectedTabIndex = index),
-                                workspaceMode: _workspaceMode,
-                                onWorkspaceModeChanged: (mode) => setState(() => _workspaceMode = mode),
-                              ),
+                return BlocBuilder<StockTransferCubit, StockTransferState>(
+                  builder: (context, transferState) {
+                    final pendingTransfersCount = transferState.transfers
+                        .where((t) => t.status == StockTransferStatus.pending || t.status == StockTransferStatus.inTransit)
+                        .length;
 
-                              Expanded(
-                                child: AnimatedSwitcher(
-                                  duration: const Duration(milliseconds: 200),
-                                  child: KeyedSubtree(
-                                    key: ValueKey('${localeState.locale.languageCode}_$_selectedTabIndex'),
-                                    child: isCurrentTabAllowed
-                                        ? screens[_selectedTabIndex]
-                                        : _buildAccessDeniedView(context),
-                                  ),
+                    return PopScope(
+                      canPop: false,
+                      onPopInvokedWithResult: (didPop, result) {
+                        if (didPop) return;
+                        if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+                          _scaffoldKey.currentState?.closeDrawer();
+                        }
+                      },
+                      child: Scaffold(
+                        key: _scaffoldKey,
+                        drawer: showMobileDrawer
+                            ? Drawer(
+                                child: AdminSidebar(
+                                  selectedIndex: _selectedTabIndex,
+                                  onItemSelected: (index) {
+                                    setState(() => _selectedTabIndex = index);
+                                    if (_scaffoldKey.currentState?.isDrawerOpen ?? false) {
+                                      _scaffoldKey.currentState?.closeDrawer();
+                                    }
+                                  },
+                                  isCollapsed: false,
+                                  onToggleCollapse: () {},
+                                  pendingOrdersCount: pendingOrdersCount,
+                                  pendingTransfersCount: pendingTransfersCount,
+                                  workspaceMode: _workspaceMode,
                                 ),
+                              )
+                            : null,
+                        body: Row(
+                          children: [
+                            if (showDesktopSidebar)
+                              AdminSidebar(
+                                selectedIndex: _selectedTabIndex,
+                                onItemSelected: (index) => setState(() => _selectedTabIndex = index),
+                                isCollapsed: _isSidebarCollapsed,
+                                onToggleCollapse: () => setState(() => _isSidebarCollapsed = !_isSidebarCollapsed),
+                                pendingOrdersCount: pendingOrdersCount,
+                                pendingTransfersCount: pendingTransfersCount,
+                                workspaceMode: _workspaceMode,
                               ),
-                            ],
-                          ),
+                            Expanded(
+                              child: Column(
+                                children: [
+                                  AdminTopBar(
+                                    title: _selectedTabIndex < _tabTitles.length
+                                        ? _tabTitles[_selectedTabIndex]
+                                        : 'dashboard',
+                                    onMenuPressed: showMobileDrawer
+                                        ? () => _scaffoldKey.currentState?.openDrawer()
+                                        : null,
+                                    onGlobalSearch: _handleGlobalSearch,
+                                    onNotificationPressed: () {
+                                      setState(() => _selectedTabIndex = 4);
+                                      context.read<OrderCubit>().filterOrders(status: 'Pending', query: '');
+                                    },
+                                    onNavigateTab: (index) => setState(() => _selectedTabIndex = index),
+                                    workspaceMode: _workspaceMode,
+                                    onWorkspaceModeChanged: (mode) => setState(() => _workspaceMode = mode),
+                                  ),
+
+                                  Expanded(
+                                    child: AnimatedSwitcher(
+                                      duration: const Duration(milliseconds: 200),
+                                      child: KeyedSubtree(
+                                        key: ValueKey('${localeState.locale.languageCode}_$_selectedTabIndex'),
+                                        child: isCurrentTabAllowed
+                                            ? screens[_selectedTabIndex]
+                                            : _buildAccessDeniedView(context),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
+                      ),
+                    );
+                  },
                 );
               },
             );

@@ -361,13 +361,14 @@ class _RecordPaymentDialogState extends State<RecordPaymentDialog> {
                           Expanded(
                             child: TextFormField(
                               controller: _amountController,
-                              keyboardType: TextInputType.number,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
                               decoration: InputDecoration(
                                 labelText: 'amount_paid_req'.tr,
                                 prefixIcon: const Icon(Icons.attach_money_rounded, size: 18),
                                 suffixText: 'EGP',
                                 isDense: true,
                               ),
+                              onChanged: (_) => setState(() {}),
                               validator: (val) {
                                 if (val == null || val.trim().isEmpty) {
                                   return 'amount_is_required'.tr;
@@ -398,6 +399,57 @@ class _RecordPaymentDialogState extends State<RecordPaymentDialog> {
                           ),
                         ],
                       ),
+                      if ((_selectedInvoice != null && _selectedInvoice!.remainingAmount > 0) ||
+                          (_selectedSupplier != null && _selectedSupplier!.balanceDue > 0)) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            if (_selectedInvoice != null && _selectedInvoice!.remainingAmount > 0) ...[
+                              InkWell(
+                                onTap: () {
+                                  final rem = _selectedInvoice!.remainingAmount;
+                                  _amountController.text = rem % 1 == 0 ? rem.toInt().toString() : rem.toStringAsFixed(2);
+                                  setState(() {});
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+                                  ),
+                                  child: Text(
+                                    '${'pay_full_btn'.tr} (${AppFormatters.formatEGP(_selectedInvoice!.remainingAmount)})',
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Color(0xFF10B981)),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                            ],
+                            if (_selectedSupplier != null && _selectedSupplier!.balanceDue > 0) ...[
+                              InkWell(
+                                onTap: () {
+                                  final bal = _selectedSupplier!.balanceDue;
+                                  _amountController.text = bal % 1 == 0 ? bal.toInt().toString() : bal.toStringAsFixed(2);
+                                  setState(() {});
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: AppColor.primary.withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: AppColor.primary.withValues(alpha: 0.3)),
+                                  ),
+                                  child: Text(
+                                    '${'pay_vendor_btn'.tr} (${AppFormatters.formatEGP(_selectedSupplier!.balanceDue)})',
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.primary),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
                       const SizedBox(height: AppSizes.md),
 
                       // Date & Reference #

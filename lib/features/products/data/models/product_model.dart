@@ -32,6 +32,7 @@ class ProductModel extends Equatable {
   final List<ProductAttribute> productAttributes;
   final List<ProductVariationModel> productVariations;
   final Map<String, dynamic> specifications;
+  final Map<String, int> branchStock;
 
   const ProductModel({
     required this.id,
@@ -53,11 +54,36 @@ class ProductModel extends Equatable {
     this.productAttributes = const [],
     this.productVariations = const [],
     this.specifications = const {},
+    this.branchStock = const {},
   });
 
   double get effectivePrice => salePrice > 0 ? salePrice : price;
   double get profitPerUnit => (effectivePrice - costPrice).clamp(0.0, double.infinity);
   double get profitMarginPercent => effectivePrice > 0 ? ((effectivePrice - costPrice) / effectivePrice) * 100 : 0.0;
+
+  /// Returns stock for a specific branch or sum of all branches
+  int getStockForBranch(String? branchId) {
+    if (isVariable && productVariations.isNotEmpty) {
+      return productVariations.fold<int>(
+        0,
+        (sum, v) => sum + v.getStockForBranch(branchId),
+      );
+    }
+    final bStock = branchStock;
+    if (branchId == null || branchId == 'all' || branchId.isEmpty) {
+      if (bStock.isNotEmpty) {
+        return bStock.values.fold<int>(0, (sum, val) => sum + val);
+      }
+      return stock;
+    }
+    if (bStock.containsKey(branchId)) {
+      return bStock[branchId] ?? 0;
+    }
+    if (bStock.isEmpty && (branchId == 'main_branch' || branchId == 'primary')) {
+      return stock;
+    }
+    return 0;
+  }
 
 
   bool get isVariable =>
@@ -151,6 +177,7 @@ class ProductModel extends Equatable {
     List<ProductAttribute>? productAttributes,
     List<ProductVariationModel>? productVariations,
     Map<String, dynamic>? specifications,
+    Map<String, int>? branchStock,
   }) {
     return ProductModel(
       id: id ?? this.id,
@@ -172,6 +199,7 @@ class ProductModel extends Equatable {
       productAttributes: productAttributes ?? this.productAttributes,
       productVariations: productVariations ?? this.productVariations,
       specifications: specifications ?? this.specifications,
+      branchStock: branchStock ?? this.branchStock,
     );
   }
 
@@ -217,6 +245,16 @@ class ProductModel extends Equatable {
         ? json['isOnline'] as bool
         : (json['isOnline']?.toString().toLowerCase() != 'false');
 
+    final rawBranchStock = json['branchStock'] ?? json['BranchStock'] ?? {};
+    final Map<String, int> parsedBranchStock = {};
+    if (rawBranchStock is Map) {
+      rawBranchStock.forEach((k, v) {
+        if (v is num) {
+          parsedBranchStock[k.toString()] = v.toInt();
+        }
+      });
+    }
+
     return ProductModel(
       id: json['id']?.toString() ?? json['Id']?.toString() ?? '',
       title: resolvedTitle,
@@ -258,6 +296,7 @@ class ProductModel extends Equatable {
       productAttributes: sanitizedAttrs,
       productVariations: sanitizedVars,
       specifications: specsMap,
+      branchStock: parsedBranchStock,
     );
   }
 
@@ -292,6 +331,7 @@ class ProductModel extends Equatable {
       'productAttributes': productAttributes.map((e) => e.toJson()).toList(),
       'productVariations': productVariations.map((e) => e.toJson()).toList(),
       'specifications': specifications,
+      if (branchStock.isNotEmpty) 'branchStock': branchStock,
     };
   }
 
@@ -532,5 +572,6 @@ class ProductModel extends Equatable {
     productAttributes,
     productVariations,
     specifications,
+    branchStock,
   ];
 }

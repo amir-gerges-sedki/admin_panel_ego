@@ -344,6 +344,9 @@ class PosCubit extends Cubit<PosState> {
   Future<bool> completeSale({
     String cashierName = 'Store Staff',
     String cashierId = '',
+    String branchId = 'main_branch',
+    String branchName = 'Main Branch',
+    String shiftId = '',
     bool autoPrint = true,
   }) async {
     if (state.cartItems.isEmpty) {
@@ -364,6 +367,9 @@ class PosCubit extends Cubit<PosState> {
         createdAt: DateTime.now(),
         cashierName: cashierName,
         cashierId: cashierId,
+        branchId: branchId,
+        branchName: branchName,
+        shiftId: shiftId,
         customerName: state.customerName.trim().isNotEmpty
             ? state.customerName.trim()
             : 'Walk-in Customer (عميل مباشر)',

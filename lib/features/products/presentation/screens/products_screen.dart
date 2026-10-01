@@ -9,11 +9,16 @@ import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/product_model.dart';
 import '../cubit/product_cubit.dart';
+import '../widgets/branch_stock_matrix_dialog.dart';
+import '../widgets/physical_stocktake_dialog.dart';
 import '../widgets/product_barcode_print_dialog.dart';
 import '../widgets/product_creation_wizard.dart';
 import '../widgets/product_details_dialog.dart';
 import '../widgets/quick_restock_dialog.dart';
+import '../widgets/stock_adjustment_dialog.dart';
 import '../widgets/stock_movements_dialog.dart';
+import '../../../settings/data/models/store_branch_model.dart';
+import '../../../settings/presentation/cubit/settings_cubit.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -57,51 +62,147 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       ? state.selectedCategory
                       : 'ALL';
 
-                  return Container(
-                    height: 38,
-                    padding: const EdgeInsets.symmetric(horizontal: 10),
-                    decoration: BoxDecoration(
-                      color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(
-                        color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          Icons.sort_rounded,
-                          size: 16,
-                          color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
-                        ),
-                        const SizedBox(width: 6),
-                        DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value: validValue,
-                            isDense: true,
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: isDark ? Colors.white : AppColor.textPrimaryLight,
+                  return Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // 1. Branch / Store Selector Filter
+                      BlocBuilder<SettingsCubit, SettingsState>(
+                        builder: (context, settingsState) {
+                          List<StoreBranchModel> branches = [];
+                          if (settingsState is SettingsLoaded) {
+                            branches = settingsState.settings.branches;
+                          }
+
+                          return Container(
+                            height: 38,
+                            padding: const EdgeInsets.symmetric(horizontal: 10),
+                            decoration: BoxDecoration(
+                              color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: state.selectedBranchId != 'all'
+                                    ? const Color(0xFF06B6D4)
+                                    : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+                              ),
                             ),
-                            dropdownColor: isDark ? AppColor.darkCard : AppColor.lightCard,
-                            items: catItems,
-                            onChanged: (val) {
-                              if (val != null) {
-                                context.read<ProductCubit>().filterProducts(categoryId: val);
-                              }
-                            },
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.storefront_rounded,
+                                  size: 16,
+                                  color: state.selectedBranchId != 'all'
+                                      ? const Color(0xFF06B6D4)
+                                      : (isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
+                                ),
+                                const SizedBox(width: 6),
+                                DropdownButtonHideUnderline(
+                                  child: DropdownButton<String>(
+                                    value: state.selectedBranchId,
+                                    isDense: true,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
+                                      color: state.selectedBranchId != 'all'
+                                          ? const Color(0xFF06B6D4)
+                                          : (isDark ? Colors.white : AppColor.textPrimaryLight),
+                                    ),
+                                    dropdownColor: isDark ? AppColor.darkCard : AppColor.lightCard,
+                                    items: [
+                                      DropdownMenuItem(
+                                        value: 'all',
+                                        child: Text('all_branches_warehouses'.tr),
+                                      ),
+                                      ...branches.map((b) => DropdownMenuItem(
+                                            value: b.id,
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  b.isWarehouse ? Icons.warehouse_rounded : Icons.store_rounded,
+                                                  size: 14,
+                                                  color: b.isWarehouse ? const Color(0xFF06B6D4) : AppColor.primary,
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Text(b.name),
+                                              ],
+                                            ),
+                                          )),
+                                    ],
+                                    onChanged: (val) {
+                                      if (val != null) {
+                                        context.read<ProductCubit>().filterByBranch(val);
+                                      }
+                                    },
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                      const SizedBox(width: 8),
+
+                      // 2. Category Selector Filter
+                      Container(
+                        height: 38,
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        decoration: BoxDecoration(
+                          color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
                           ),
                         ),
-                      ],
-                    ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.sort_rounded,
+                              size: 16,
+                              color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+                            ),
+                            const SizedBox(width: 6),
+                            DropdownButtonHideUnderline(
+                              child: DropdownButton<String>(
+                                value: validValue,
+                                isDense: true,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : AppColor.textPrimaryLight,
+                                ),
+                                dropdownColor: isDark ? AppColor.darkCard : AppColor.lightCard,
+                                items: catItems,
+                                onChanged: (val) {
+                                  if (val != null) {
+                                    context.read<ProductCubit>().filterProducts(categoryId: val);
+                                  }
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   );
                 },
               ),
               trailingHeaderAction: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  OutlinedButton.icon(
+                    onPressed: () => PhysicalStocktakeDialog.show(context),
+                    icon: const Icon(Icons.fact_check_rounded, size: 16),
+                    label: Text('physical_stocktake_btn'.tr),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: AppSizes.sm,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
                   OutlinedButton.icon(
                     onPressed: () => StockMovementsDialog.show(context),
                     icon: const Icon(Icons.history_rounded, size: 16),
@@ -380,7 +481,26 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           ),
                         ),
                         // Stock
-                        DataCell(StatusChip.fromStock(p.stock)),
+                        DataCell(
+                          InkWell(
+                            onTap: () => BranchStockMatrixDialog.show(context, p),
+                            borderRadius: BorderRadius.circular(6),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                StatusChip.fromStock(p.getStockForBranch(state.selectedBranchId)),
+                                if (state.selectedBranchId != 'all') ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    'branch_stock_label'.tr,
+                                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFF06B6D4)),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
                         // Variations Count
                         DataCell(
                           Text(
@@ -403,6 +523,21 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                 icon: const Icon(Icons.visibility_outlined, size: 18),
                                 tooltip: 'view_product_details'.tr,
                                 onPressed: () => ProductDetailsDialog.show(context, p),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.store_mall_directory_rounded, size: 18, color: Color(0xFF06B6D4)),
+                                tooltip: 'branch_stock_action_tooltip'.tr,
+                                onPressed: () => BranchStockMatrixDialog.show(context, p),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.tune_rounded, size: 18, color: Color(0xFF8B5CF6)),
+                                tooltip: isArabic ? 'تسوية وجرد المخزون' : 'Stock Audit / Adjust',
+                                onPressed: () {
+                                  showDialog(
+                                    context: context,
+                                    builder: (_) => StockAdjustmentDialog(product: p),
+                                  );
+                                },
                               ),
                               IconButton(
                                 icon: const Icon(Icons.qr_code_2_rounded, size: 18, color: Color(0xFFF97316)),

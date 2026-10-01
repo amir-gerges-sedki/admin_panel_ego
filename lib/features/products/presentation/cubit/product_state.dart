@@ -22,11 +22,13 @@ class ProductLoaded extends ProductState {
   final String? _searchQuery;
   final String? _selectedCategory;
   final String? _selectedBrand;
+  final String? _selectedBranchId;
 
   List<ProductModel> get filteredProducts => _filteredProducts ?? products;
   String get searchQuery => _searchQuery ?? '';
   String get selectedCategory => _selectedCategory ?? 'ALL';
   String get selectedBrand => _selectedBrand ?? 'ALL';
+  String get selectedBranchId => _selectedBranchId ?? 'all';
 
   const ProductLoaded({
     this.products = const [],
@@ -34,10 +36,12 @@ class ProductLoaded extends ProductState {
     String? searchQuery,
     String? selectedCategory,
     String? selectedBrand,
+    String? selectedBranchId,
   })  : _filteredProducts = filteredProducts ?? products,
         _searchQuery = searchQuery ?? '',
         _selectedCategory = selectedCategory ?? 'ALL',
-        _selectedBrand = selectedBrand ?? 'ALL';
+        _selectedBrand = selectedBrand ?? 'ALL',
+        _selectedBranchId = selectedBranchId ?? 'all';
 
   ProductLoaded copyWith({
     List<ProductModel>? products,
@@ -45,6 +49,7 @@ class ProductLoaded extends ProductState {
     String? searchQuery,
     String? selectedCategory,
     String? selectedBrand,
+    String? selectedBranchId,
   }) {
     final p = products ?? this.products;
     return ProductLoaded(
@@ -53,6 +58,7 @@ class ProductLoaded extends ProductState {
       searchQuery: searchQuery ?? _searchQuery ?? '',
       selectedCategory: selectedCategory ?? _selectedCategory ?? 'ALL',
       selectedBrand: selectedBrand ?? _selectedBrand ?? 'ALL',
+      selectedBranchId: selectedBranchId ?? _selectedBranchId ?? 'all',
     );
   }
 
@@ -63,6 +69,7 @@ class ProductLoaded extends ProductState {
         searchQuery,
         selectedCategory,
         selectedBrand,
+        selectedBranchId,
       ];
 }
 

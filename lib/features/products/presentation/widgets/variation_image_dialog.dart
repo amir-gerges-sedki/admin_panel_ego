@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../../common/widgets/dialogs/unified_modal_sheet.dart';
+import '../../../../common/widgets/image_picker/dual_image_picker_field.dart';
 import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/helper/helper_fun.dart';
@@ -48,26 +49,12 @@ class VariationImageDialog extends StatefulWidget {
 }
 
 class _VariationImageDialogState extends State<VariationImageDialog> {
-  late TextEditingController _urlController;
   String _currentPreviewUrl = '';
 
   @override
   void initState() {
     super.initState();
     _currentPreviewUrl = widget.variation.image;
-    _urlController = TextEditingController(text: _currentPreviewUrl);
-  }
-
-  @override
-  void dispose() {
-    _urlController.dispose();
-    super.dispose();
-  }
-
-  void _onUrlChanged(String val) {
-    setState(() {
-      _currentPreviewUrl = val.trim();
-    });
   }
 
   void _applySingle() {
@@ -131,95 +118,18 @@ class _VariationImageDialogState extends State<VariationImageDialog> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // Live Preview Box
-        Center(
-          child: Container(
-            width: 140,
-            height: 140,
-            decoration: BoxDecoration(
-              color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
-              borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-              border: Border.all(
-                color: _currentPreviewUrl.isNotEmpty
-                    ? AppColor.primary
-                    : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
-                width: _currentPreviewUrl.isNotEmpty ? 2 : 1,
-              ),
-            ),
-            child: _currentPreviewUrl.isNotEmpty
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(
-                      AppSizes.borderRadiusMd - 2,
-                    ),
-                    child: Image.network(
-                      _currentPreviewUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) =>
-                          Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.broken_image_rounded,
-                                size: 32,
-                                color: AppColor.error,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'invalid_url_text'.tr,
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  color: AppColor.error,
-                                ),
-                              ),
-                            ],
-                          ),
-                    ),
-                  )
-                : Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.image_outlined,
-                        size: 38,
-                        color: isDark
-                            ? AppColor.textMutedDark
-                            : AppColor.textMutedLight,
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'no_image_selected_text'.tr,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isDark
-                                ? AppColor.textMutedDark
-                                : AppColor.textMutedLight,
-                        ),
-                      ),
-                    ],
-                  ),
-          ),
-        ),
-        const SizedBox(height: AppSizes.md),
-
-        // URL Input Field
-        TextFormField(
-          controller: _urlController,
-          decoration: InputDecoration(
-            labelText: 'variation_image_url_label'.tr,
-            hintText: 'https://example.com/device-color.png',
-            prefixIcon: const Icon(Icons.link_rounded, size: 18),
-            suffixIcon: _urlController.text.isNotEmpty
-                ? IconButton(
-                    icon: const Icon(Icons.clear_rounded, size: 18),
-                    onPressed: () {
-                      _urlController.clear();
-                      _onUrlChanged('');
-                    },
-                  )
-                : null,
-            isDense: true,
-          ),
-          onChanged: _onUrlChanged,
+        DualImagePickerField(
+          initialUrl: _currentPreviewUrl,
+          label: 'variation_image_url_label',
+          storageFolder: 'variations',
+          customFileName: widget.variation.sku.isNotEmpty
+              ? 'var_${widget.variation.sku.toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_')}'
+              : null,
+          onImageChanged: (url) {
+            setState(() {
+              _currentPreviewUrl = url;
+            });
+          },
         ),
         const SizedBox(height: AppSizes.md),
 
@@ -240,8 +150,9 @@ class _VariationImageDialogState extends State<VariationImageDialog> {
                   padding: const EdgeInsets.only(left: 8),
                   child: InkWell(
                     onTap: () {
-                      _urlController.text = img;
-                      _onUrlChanged(img);
+                      setState(() {
+                        _currentPreviewUrl = img;
+                      });
                     },
                     borderRadius: BorderRadius.circular(8),
                     child: Container(

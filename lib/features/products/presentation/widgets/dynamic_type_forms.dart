@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../common/widgets/image_picker/dual_image_picker_field.dart';
 import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/helper/color_utils.dart';
@@ -4357,7 +4358,6 @@ class AccessoryFormSection extends StatelessWidget {
     bool isDark,
     ProductFormState state,
   ) {
-    final imageController = TextEditingController();
     String previewUrl = '';
     bool setAsThumbnail = state.thumbnail.isEmpty;
     String? selectedColor;
@@ -4388,103 +4388,39 @@ class AccessoryFormSection extends StatelessWidget {
               ],
             ),
             content: SizedBox(
-              width: 440,
+              width: 480,
               child: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    // Preview & URL
+                    DualImagePickerField(
+                      initialUrl: previewUrl,
+                      label: 'رابط أو رفع الصورة',
+                      storageFolder: 'products',
+                      customFileName: state.title.trim().isNotEmpty
+                          ? 'acc_${state.title.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_')}'
+                          : null,
+                      onImageChanged: (url) {
+                        setModalState(() => previewUrl = url);
+                      },
+                    ),
+                    const SizedBox(height: 8),
                     Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          width: 76,
-                          height: 76,
-                          decoration: BoxDecoration(
-                            color: isDark
-                                ? AppColor.darkSubCard
-                                : AppColor.lightSubCard,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(
-                              color: previewUrl.isNotEmpty
-                                  ? _accentColor
-                                  : Colors.grey.shade400,
-                              width: previewUrl.isNotEmpty ? 2 : 1,
-                            ),
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: previewUrl.isNotEmpty
-                              ? Image.network(
-                                  previewUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => const Center(
-                                    child: Icon(
-                                      Icons.broken_image_rounded,
-                                      color: AppColor.error,
-                                      size: 24,
-                                    ),
-                                  ),
-                                )
-                              : const Center(
-                                  child: Icon(
-                                    Icons.image_outlined,
-                                    size: 30,
-                                    color: Colors.grey,
-                                  ),
-                                ),
+                        Checkbox(
+                          value: setAsThumbnail,
+                          activeColor: _accentColor,
+                          materialTapTargetSize:
+                              MaterialTapTargetSize.shrinkWrap,
+                          onChanged: (val) {
+                            setModalState(() =>
+                                setAsThumbnail = val ?? false);
+                          },
                         ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              TextField(
-                                controller: imageController,
-                                autofocus: true,
-                                decoration: InputDecoration(
-                                  labelText: 'رابط الصورة (Image URL)',
-                                  hintText: 'https://example.com/image.png',
-                                  isDense: true,
-                                  prefixIcon: const Icon(Icons.link_rounded,
-                                      size: 18),
-                                  suffixIcon: imageController.text.isNotEmpty
-                                      ? IconButton(
-                                          icon: const Icon(Icons.clear_rounded,
-                                              size: 16),
-                                          onPressed: () {
-                                            imageController.clear();
-                                            setModalState(
-                                                () => previewUrl = '');
-                                          },
-                                        )
-                                      : null,
-                                ),
-                                onChanged: (val) {
-                                  setModalState(() => previewUrl = val.trim());
-                                },
-                              ),
-                              const SizedBox(height: 4),
-                              Row(
-                                children: [
-                                  Checkbox(
-                                    value: setAsThumbnail,
-                                    activeColor: _accentColor,
-                                    materialTapTargetSize:
-                                        MaterialTapTargetSize.shrinkWrap,
-                                    onChanged: (val) {
-                                      setModalState(() =>
-                                          setAsThumbnail = val ?? false);
-                                    },
-                                  ),
-                                  const Text(
-                                    'تعيين كصورة رئيسية (Thumbnail)',
-                                    style: TextStyle(fontSize: 11),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
+                        const Text(
+                          'تعيين كصورة رئيسية (Thumbnail)',
+                          style: TextStyle(fontSize: 11),
                         ),
                       ],
                     ),
@@ -4505,7 +4441,6 @@ class AccessoryFormSection extends StatelessWidget {
                               padding: const EdgeInsets.only(left: 6),
                               child: InkWell(
                                 onTap: () {
-                                  imageController.text = img;
                                   setModalState(() => previewUrl = img);
                                 },
                                 borderRadius: BorderRadius.circular(6),
@@ -4618,11 +4553,11 @@ class AccessoryFormSection extends StatelessWidget {
               ),
               ElevatedButton(
                 onPressed: () {
-                  final imgUrl = imageController.text.trim();
+                  final imgUrl = previewUrl.trim();
                   if (imgUrl.isEmpty) {
                     HelperFun.warningSnackbar(
                       title: 'تنبيه',
-                      message: 'يرجى إدخال رابط الصورة.',
+                      message: 'يرجى إدخال أو رفع صورة.',
                     );
                     return;
                   }

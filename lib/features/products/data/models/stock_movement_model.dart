@@ -82,6 +82,8 @@ class StockMovementModel extends Equatable {
   final String invoiceNumber;
   final String notes;
   final String performedBy;
+  final String branchId;
+  final String branchName;
   final DateTime createdAt;
 
   const StockMovementModel({
@@ -101,6 +103,8 @@ class StockMovementModel extends Equatable {
     this.invoiceNumber = '',
     this.notes = '',
     this.performedBy = 'Admin',
+    this.branchId = '',
+    this.branchName = '',
     required this.createdAt,
   });
 
@@ -152,6 +156,8 @@ class StockMovementModel extends Equatable {
       invoiceNumber: json['invoiceNumber']?.toString() ?? '',
       notes: json['notes']?.toString() ?? '',
       performedBy: json['performedBy']?.toString() ?? 'Admin',
+      branchId: json['branchId']?.toString() ?? '',
+      branchName: json['branchName']?.toString() ?? '',
       createdAt: parsedDate,
     );
   }
@@ -173,6 +179,8 @@ class StockMovementModel extends Equatable {
         'invoiceNumber': invoiceNumber,
         'notes': notes,
         'performedBy': performedBy,
+        'branchId': branchId,
+        'branchName': branchName,
         'createdAt': createdAt.toIso8601String(),
       };
 
@@ -193,6 +201,8 @@ class StockMovementModel extends Equatable {
     String? invoiceNumber,
     String? notes,
     String? performedBy,
+    String? branchId,
+    String? branchName,
     DateTime? createdAt,
   }) {
     return StockMovementModel(
@@ -212,6 +222,8 @@ class StockMovementModel extends Equatable {
       invoiceNumber: invoiceNumber ?? this.invoiceNumber,
       notes: notes ?? this.notes,
       performedBy: performedBy ?? this.performedBy,
+      branchId: branchId ?? this.branchId,
+      branchName: branchName ?? this.branchName,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -234,6 +246,8 @@ class StockMovementModel extends Equatable {
         invoiceNumber,
         notes,
         performedBy,
+        branchId,
+        branchName,
         createdAt,
       ];
 }

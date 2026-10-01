@@ -60,6 +60,11 @@ enum AdminPermission {
   notifications('notifications', 'permission_notifications', Icons.campaign_rounded),
   suppliers('suppliers', 'permission_suppliers', Icons.business_rounded),
   expenses('expenses', 'permission_expenses', Icons.receipt_long_rounded),
+  accounting('accounting', 'permission_accounting', Icons.account_balance_wallet_rounded),
+  reports('reports', 'permission_reports', Icons.bar_chart_rounded),
+  shifts('shifts', 'permission_shifts', Icons.access_time_filled_rounded),
+  transfers('transfers', 'permission_transfers', Icons.swap_horiz_rounded),
+  stockAudit('stock_audit', 'permission_stock_audit', Icons.fact_check_rounded),
   damagedStock('damaged_stock', 'permission_damaged_stock', Icons.delete_sweep_rounded),
   employees('employees', 'permission_employees', Icons.badge_rounded),
   settings('settings', 'permission_settings', Icons.settings_rounded),
@@ -88,8 +93,8 @@ class RolePermissionsModel {
 
   /// Default predefined permission configuration:
   /// - superAdmin: All modules
-  /// - admin: POS, Products, Brands, Orders, Suppliers, Expenses, DamagedStock, Employees, Banners, Coupons, Customers, Notifications, ViewCostPrice
-  /// - staff / guest: POS & Orders
+  /// - admin: POS, Products, Brands, Orders, Suppliers, Expenses, Accounting, Reports, Shifts, Transfers, StockAudit, DamagedStock, Employees, Banners, Coupons, Customers, Notifications, ViewCostPrice
+  /// - staff / guest: POS, Shifts & Orders
   factory RolePermissionsModel.defaultPermissions() {
     return RolePermissionsModel(
       permissions: {
@@ -101,6 +106,11 @@ class RolePermissionsModel {
           AdminPermission.orders,
           AdminPermission.suppliers,
           AdminPermission.expenses,
+          AdminPermission.accounting,
+          AdminPermission.reports,
+          AdminPermission.shifts,
+          AdminPermission.transfers,
+          AdminPermission.stockAudit,
           AdminPermission.damagedStock,
           AdminPermission.employees,
           AdminPermission.banners,
@@ -111,6 +121,8 @@ class RolePermissionsModel {
         },
         AdminRole.staff: {
           AdminPermission.pos,
+          AdminPermission.shifts,
+          AdminPermission.transfers,
           AdminPermission.orders,
         },
       },

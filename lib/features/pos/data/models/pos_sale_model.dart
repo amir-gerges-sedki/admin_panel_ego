@@ -8,6 +8,9 @@ class PosSaleModel extends Equatable {
   final DateTime createdAt;
   final String cashierName;
   final String cashierId;
+  final String branchId;
+  final String branchName;
+  final String shiftId;
   final String customerName;
   final String customerPhone;
   final List<PosCartItemModel> items;
@@ -27,6 +30,9 @@ class PosSaleModel extends Equatable {
     required this.createdAt,
     this.cashierName = 'Store Cashier',
     this.cashierId = '',
+    this.branchId = 'main_branch',
+    this.branchName = 'Main Branch',
+    this.shiftId = '',
     this.customerName = 'Walk-in Customer (عميل مباشر)',
     this.customerPhone = '',
     required this.items,
@@ -49,6 +55,9 @@ class PosSaleModel extends Equatable {
     DateTime? createdAt,
     String? cashierName,
     String? cashierId,
+    String? branchId,
+    String? branchName,
+    String? shiftId,
     String? customerName,
     String? customerPhone,
     List<PosCartItemModel>? items,
@@ -68,6 +77,9 @@ class PosSaleModel extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       cashierName: cashierName ?? this.cashierName,
       cashierId: cashierId ?? this.cashierId,
+      branchId: branchId ?? this.branchId,
+      branchName: branchName ?? this.branchName,
+      shiftId: shiftId ?? this.shiftId,
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
       items: items ?? this.items,
@@ -89,6 +101,9 @@ class PosSaleModel extends Equatable {
         'createdAt': createdAt.toIso8601String(),
         'cashierName': cashierName,
         'cashierId': cashierId,
+        'branchId': branchId,
+        'branchName': branchName,
+        'shiftId': shiftId,
         'customerName': customerName,
         'customerPhone': customerPhone,
         'items': items.map((e) => e.toJson()).toList(),
@@ -114,6 +129,9 @@ class PosSaleModel extends Equatable {
           : DateTime.now(),
       cashierName: json['cashierName']?.toString() ?? 'Store Cashier',
       cashierId: json['cashierId']?.toString() ?? '',
+      branchId: json['branchId']?.toString() ?? 'main_branch',
+      branchName: json['branchName']?.toString() ?? 'Main Branch',
+      shiftId: json['shiftId']?.toString() ?? '',
       customerName: json['customerName']?.toString() ?? 'Walk-in Customer',
       customerPhone: json['customerPhone']?.toString() ?? '',
       items: (json['items'] as List?)
@@ -158,6 +176,10 @@ class PosSaleModel extends Equatable {
     final String cashier = order.rawDocData?['cashierName']?.toString() ??
         (order.cashierName?.toString().isNotEmpty == true ? order.cashierName.toString() : 'Store Cashier');
 
+    final String bId = order.rawDocData?['branchId']?.toString() ?? 'main_branch';
+    final String bName = order.rawDocData?['branchName']?.toString() ?? 'Main Branch';
+    final String sId = order.rawDocData?['shiftId']?.toString() ?? '';
+
     final String custName = order.shippingAddress?.name?.toString().isNotEmpty == true
         ? order.shippingAddress.name.toString()
         : 'Walk-in Customer (عميل مباشر)';
@@ -169,6 +191,9 @@ class PosSaleModel extends Equatable {
       orderNumber: order.rawDocData?['orderNumber']?.toString() ?? order.id ?? '',
       createdAt: order.orderDate ?? DateTime.now(),
       cashierName: cashier,
+      branchId: bId,
+      branchName: bName,
+      shiftId: sId,
       customerName: custName,
       customerPhone: custPhone,
       items: cartItems,
@@ -191,6 +216,9 @@ class PosSaleModel extends Equatable {
         createdAt,
         cashierName,
         cashierId,
+        branchId,
+        branchName,
+        shiftId,
         customerName,
         customerPhone,
         items,

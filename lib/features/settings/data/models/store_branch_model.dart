@@ -9,6 +9,7 @@ class StoreBranchModel extends Equatable {
   final double? latitude;
   final double? longitude;
   final bool isPrimary;
+  final bool isWarehouse;
 
   const StoreBranchModel({
     required this.id,
@@ -19,6 +20,7 @@ class StoreBranchModel extends Equatable {
     this.latitude,
     this.longitude,
     this.isPrimary = false,
+    this.isWarehouse = false,
   });
 
   StoreBranchModel copyWith({
@@ -30,6 +32,7 @@ class StoreBranchModel extends Equatable {
     double? latitude,
     double? longitude,
     bool? isPrimary,
+    bool? isWarehouse,
   }) {
     return StoreBranchModel(
       id: id ?? this.id,
@@ -40,19 +43,23 @@ class StoreBranchModel extends Equatable {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       isPrimary: isPrimary ?? this.isPrimary,
+      isWarehouse: isWarehouse ?? this.isWarehouse,
     );
   }
 
   factory StoreBranchModel.fromJson(Map<String, dynamic> json) {
+    final nameStr = json['name']?.toString() ?? '';
+    final isWarehouseAuto = nameStr.toLowerCase().contains('مخزن') || nameStr.toLowerCase().contains('warehouse');
     return StoreBranchModel(
       id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? '',
+      name: nameStr,
       phone: json['phone']?.toString() ?? '',
       address: json['address']?.toString() ?? '',
       mapsUrl: json['mapsUrl']?.toString() ?? '',
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
       isPrimary: json['isPrimary'] as bool? ?? false,
+      isWarehouse: json['isWarehouse'] as bool? ?? isWarehouseAuto,
     );
   }
 
@@ -65,6 +72,7 @@ class StoreBranchModel extends Equatable {
         if (latitude != null) 'latitude': latitude,
         if (longitude != null) 'longitude': longitude,
         'isPrimary': isPrimary,
+        'isWarehouse': isWarehouse,
       };
 
   @override
@@ -77,5 +85,7 @@ class StoreBranchModel extends Equatable {
         latitude,
         longitude,
         isPrimary,
+        isWarehouse,
       ];
 }
+

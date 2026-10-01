@@ -3,6 +3,7 @@ import '../../../badges/presentation/widgets/badges_management_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../common/widgets/dialogs/unified_modal_sheet.dart';
+import '../../../../common/widgets/image_picker/dual_image_picker_field.dart';
 import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/di/injection_container.dart';
@@ -1225,145 +1226,64 @@ class ProductCreationWizard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardHeader(
-            title: isArabic ? 'الصورة الرئيسية للمنتج' : 'Main Product Image',
-            icon: Icons.image_outlined,
-            color: const Color(0xFF6366F1),
+          DualImagePickerField(
+            initialUrl: state.thumbnail,
+            label: isArabic ? 'الصورة الرئيسية للمنتج' : 'Main Product Image',
+            storageFolder: 'products',
+            customFileName: state.title.trim().isNotEmpty
+                ? 'prod_${state.title.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_')}'
+                : null,
+            onImageChanged: (url) {
+              cubit.updateBasicInfo(thumbnail: url);
+            },
           ),
-          const SizedBox(height: AppSizes.md),
-
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Live Image Preview box with subtle elevation
-              Container(
-                width: 76,
-                height: 76,
-                decoration: BoxDecoration(
-                  color: isDark ? AppColor.darkCard : AppColor.lightCard,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: state.thumbnail.isNotEmpty
-                        ? const Color(0xFF6366F1).withValues(alpha: 0.4)
-                        : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
-                    width: state.thumbnail.isNotEmpty ? 1.5 : 1,
-                  ),
-                  boxShadow: state.thumbnail.isNotEmpty
-                      ? [
-                          BoxShadow(
-                            color: const Color(
-                              0xFF6366F1,
-                            ).withValues(alpha: 0.15),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
-                          ),
-                        ]
-                      : [],
+          if (state.variations.any((v) => v.image.isNotEmpty)) ...[
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 6,
+              runSpacing: 4,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              children: [
+                Text(
+                  isArabic ? 'اختر من صور المتغيرات:' : 'Pick from variations:',
+                  style: const TextStyle(fontSize: 10, color: Colors.grey),
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: state.thumbnail.isNotEmpty
-                    ? Image.network(
-                        state.thumbnail,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Center(
-                              child: Icon(
-                                Icons.broken_image_rounded,
-                                size: 24,
-                                color: AppColor.error,
+                ...state.variations
+                    .where((v) => v.image.isNotEmpty)
+                    .map(
+                      (v) => InkWell(
+                        onTap: () => cubit.setThumbnail(v.image),
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColor.primary.withValues(
+                              alpha: 0.1,
+                            ),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(
+                              color: AppColor.primary.withValues(
+                                alpha: 0.3,
                               ),
                             ),
-                      )
-                    : const Center(
-                        child: Icon(
-                          Icons.image_outlined,
-                          size: 28,
-                          color: Colors.grey,
+                          ),
+                          child: Text(
+                            v.sku,
+                            style: const TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: AppColor.primary,
+                            ),
+                          ),
                         ),
                       ),
-              ),
-              const SizedBox(width: AppSizes.md),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    TextFormField(
-                      key: ValueKey('thumb_${state.thumbnail.isEmpty ? "empty" : "filled"}'),
-                      initialValue: state.thumbnail,
-                      decoration: InputDecoration(
-                        labelText: isArabic
-                            ? 'رابط صورة المنتج الرئيسية'
-                            : 'Main Product Image URL',
-                        hintText: 'https://example.com/image.jpg',
-                        prefixIcon: const Icon(Icons.link_rounded, size: 18),
-                        suffixIcon: state.thumbnail.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(
-                                  Icons.clear_rounded,
-                                  size: 16,
-                                ),
-                                tooltip: isArabic ? 'مسح الرابط' : 'Clear URL',
-                                onPressed: () =>
-                                    cubit.updateBasicInfo(thumbnail: ''),
-                              )
-                            : null,
-                        isDense: true,
-                      ),
-                      onChanged: (v) =>
-                          cubit.updateBasicInfo(thumbnail: v.trim()),
                     ),
-                    if (state.variations.any((v) => v.image.isNotEmpty)) ...[
-                      const SizedBox(height: 6),
-                      Wrap(
-                        spacing: 6,
-                        runSpacing: 4,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          const Text(
-                            'اختر من صور المتغيرات:',
-                            style: TextStyle(fontSize: 10, color: Colors.grey),
-                          ),
-                          ...state.variations
-                              .where((v) => v.image.isNotEmpty)
-                              .map(
-                                (v) => InkWell(
-                                  onTap: () => cubit.setThumbnail(v.image),
-                                  borderRadius: BorderRadius.circular(4),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: AppColor.primary.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      borderRadius: BorderRadius.circular(4),
-                                      border: Border.all(
-                                        color: AppColor.primary.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                      ),
-                                    ),
-                                    child: Text(
-                                      v.sku,
-                                      style: const TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w600,
-                                        color: AppColor.primary,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                        ],
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ],
-          ),
+              ],
+            ),
+          ],
         ],
       ),
     );

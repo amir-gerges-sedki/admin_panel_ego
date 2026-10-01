@@ -8,6 +8,8 @@ import 'core/localization/locale_bloc.dart';
 import 'core/theme/app_theme.dart';
 import 'core/services/firebase_service.dart';
 import 'core/theme/theme_cubit.dart';
+import 'features/accounting/presentation/cubit/accounting_cubit.dart';
+import 'features/reports/presentation/cubit/reports_cubit.dart';
 import 'features/badges/presentation/cubit/badge_cubit.dart';
 import 'features/banners/presentation/cubit/banner_cubit.dart';
 import 'features/brands/presentation/cubit/brand_cubit.dart';
@@ -20,6 +22,8 @@ import 'features/expenses/presentation/cubit/expense_cubit.dart';
 import 'features/notifications/presentation/cubit/notification_cubit.dart';
 import 'features/orders/presentation/cubit/order_cubit.dart';
 import 'features/pos/presentation/cubit/pos_cubit.dart';
+import 'features/pos/presentation/cubit/shift_cubit.dart';
+import 'features/inventory_transfers/presentation/cubit/stock_transfer_cubit.dart';
 import 'features/products/presentation/cubit/product_cubit.dart';
 import 'features/products/presentation/cubit/stock_movement_cubit.dart';
 import 'features/roles/presentation/cubit/auth_role_cubit.dart';
@@ -53,6 +57,10 @@ class EgoAdminApp extends StatelessWidget {
           create: (_) => sl<DashboardCubit>()..loadDashboard(),
         ),
         BlocProvider<PosCubit>(create: (_) => PosCubit()),
+        BlocProvider<ShiftCubit>(create: (_) => sl<ShiftCubit>()),
+        BlocProvider<StockTransferCubit>(
+          create: (_) => sl<StockTransferCubit>()..loadTransfers(),
+        ),
         BlocProvider<ProductCubit>(
           create: (_) => sl<ProductCubit>()..loadProducts(),
         ),
@@ -67,6 +75,12 @@ class EgoAdminApp extends StatelessWidget {
                   ? sl<ExpenseCubit>()
                   : ExpenseCubit())
               ..loadExpenses(),
+        ),
+        BlocProvider<AccountingCubit>(
+          create: (_) => sl<AccountingCubit>()..loadAccountingData(),
+        ),
+        BlocProvider<ReportsCubit>(
+          create: (_) => sl<ReportsCubit>()..loadReport(),
         ),
         BlocProvider<DamagedStockCubit>(
           create: (_) => (sl.isRegistered<DamagedStockCubit>()

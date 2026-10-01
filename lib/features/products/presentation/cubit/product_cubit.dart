@@ -90,6 +90,58 @@ class ProductCubit extends Cubit<ProductState> {
     ));
   }
 
+  void filterByBranch(String branchId) {
+    if (state is! ProductLoaded) return;
+    final currentState = state as ProductLoaded;
+    emit(currentState.copyWith(selectedBranchId: branchId));
+  }
+
+  Future<void> updateBranchStock({
+    required String productId,
+    String? variationSku,
+    required String branchId,
+    required int newQuantity,
+  }) async {
+    if (state is! ProductLoaded) return;
+    final currentState = state as ProductLoaded;
+    final productIndex = currentState.products.indexWhere((p) => p.id == productId);
+    if (productIndex < 0) return;
+
+    final originalProduct = currentState.products[productIndex];
+    ProductModel updatedProduct;
+
+    if (variationSku != null && variationSku.isNotEmpty && originalProduct.productVariations.isNotEmpty) {
+      final updatedVariations = originalProduct.productVariations.map((v) {
+        if (v.sku == variationSku) {
+          final newMap = Map<String, int>.from(v.branchStock);
+          newMap[branchId] = newQuantity;
+          final totalVarStock = newMap.values.fold<int>(0, (sum, val) => sum + val);
+          return v.copyWith(
+            branchStock: newMap,
+            stock: totalVarStock,
+          );
+        }
+        return v;
+      }).toList();
+
+      final totalProdStock = updatedVariations.fold<int>(0, (sum, v) => sum + v.stock);
+      updatedProduct = originalProduct.copyWith(
+        productVariations: updatedVariations,
+        stock: totalProdStock,
+      );
+    } else {
+      final newMap = Map<String, int>.from(originalProduct.branchStock);
+      newMap[branchId] = newQuantity;
+      final totalProdStock = newMap.values.fold<int>(0, (sum, val) => sum + val);
+      updatedProduct = originalProduct.copyWith(
+        branchStock: newMap,
+        stock: totalProdStock,
+      );
+    }
+
+    await updateProduct(updatedProduct);
+  }
+
   Future<void> addProduct(ProductModel product) async {
     GlobalFlavorsPool.harvestFromProducts([product]);
     GlobalDeviceSpecsPool.harvestFromProducts([product]);

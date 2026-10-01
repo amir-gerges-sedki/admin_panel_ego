@@ -11,6 +11,7 @@ import '../../../orders/data/models/order_model.dart';
 import '../../../orders/data/repositories/order_repository.dart';
 import '../../utils/pos_receipt_printer.dart';
 import '../cubit/pos_cubit.dart';
+import '../cubit/shift_cubit.dart';
 
 class PosReturnDialog extends StatefulWidget {
   const PosReturnDialog({super.key});
@@ -19,8 +20,11 @@ class PosReturnDialog extends StatefulWidget {
     return showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => BlocProvider.value(
-        value: context.read<PosCubit>(),
+      builder: (ctx) => MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: context.read<PosCubit>()),
+          BlocProvider.value(value: context.read<ShiftCubit>()),
+        ],
         child: const PosReturnDialog(),
       ),
     );
@@ -231,6 +235,14 @@ class _PosReturnDialogState extends State<PosReturnDialog> {
         performedBy: 'Cashier POS',
       );
 
+      // Deduct refund from active shift drawer if a shift is running
+      if (mounted) {
+        context.read<ShiftCubit>().recordShiftReturn(
+              amount: refundAmount,
+              paymentMethod: _refundPaymentMethod,
+            );
+      }
+
       // Print thermal return receipt if requested
       if (_autoPrintReceipt) {
         PosReceiptPrinter.printThermalReturnReceipt(
@@ -251,7 +263,9 @@ class _PosReturnDialogState extends State<PosReturnDialog> {
             'amount': AppFormatters.formatEGP(refundAmount),
           }),
         );
-        Navigator.of(context).pop();
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -311,7 +325,13 @@ class _PosReturnDialogState extends State<PosReturnDialog> {
                     ),
                   ),
                   IconButton(
-                    onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                    onPressed: _isSubmitting
+                        ? null
+                        : () {
+                            if (context.mounted && Navigator.of(context).canPop()) {
+                              Navigator.of(context).pop();
+                            }
+                          },
                     icon: const Icon(Icons.close_rounded, size: 20),
                   ),
                 ],
@@ -713,7 +733,13 @@ class _PosReturnDialogState extends State<PosReturnDialog> {
                     Row(
                       children: [
                         OutlinedButton(
-                          onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(),
+                          onPressed: _isSubmitting
+                              ? null
+                              : () {
+                                  if (context.mounted && Navigator.of(context).canPop()) {
+                                    Navigator.of(context).pop();
+                                  }
+                                },
                           child: Text('cancel'.tr),
                         ),
                         const SizedBox(width: 8),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../../../common/widgets/dialogs/unified_modal_sheet.dart';
+import '../../../../common/widgets/image_picker/dual_image_picker_field.dart';
 import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/localization/app_localizations.dart';
@@ -181,12 +182,16 @@ class _BrandFormDialogState extends State<BrandFormDialog> {
                 validator: (v) => (v == null || v.isEmpty) ? 'required'.tr : null,
               ),
               const SizedBox(height: AppSizes.md),
-              TextFormField(
-                controller: _imageController,
-                decoration: InputDecoration(
-                  labelText: 'brand_logo_url'.tr,
-                  hintText: 'brand_logo_url_hint'.tr,
-                ),
+              DualImagePickerField(
+                initialUrl: _imageController.text,
+                label: 'brand_logo_url',
+                storageFolder: 'brands',
+                customFileName: _nameController.text.trim().isNotEmpty
+                    ? 'brand_${_nameController.text.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9_]'), '_')}'
+                    : null,
+                onImageChanged: (url) {
+                  _imageController.text = url;
+                },
               ),
               const SizedBox(height: AppSizes.md),
               Row(

@@ -7,6 +7,7 @@ import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../cubit/pos_cubit.dart';
 import '../cubit/pos_state.dart';
+import '../cubit/shift_cubit.dart';
 
 /// Interactive checkout dialog with cash change calculator, card/instapay selection, and instant thermal printing
 class PosCheckoutDialog extends StatefulWidget {
@@ -16,8 +17,11 @@ class PosCheckoutDialog extends StatefulWidget {
     return showDialog<bool>(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => BlocProvider.value(
-        value: context.read<PosCubit>(),
+      builder: (ctx) => MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: context.read<PosCubit>()),
+          BlocProvider.value(value: context.read<ShiftCubit>()),
+        ],
         child: const PosCheckoutDialog(),
       ),
     );
@@ -64,7 +68,9 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
     return BlocConsumer<PosCubit, PosState>(
       listener: (context, state) {
         if (state.saleStatus == PosSaleStatus.success) {
-          Navigator.of(context).pop(true);
+          if (context.mounted && Navigator.of(context).canPop()) {
+            Navigator.of(context).pop(true);
+          }
         } else if (state.saleStatus == PosSaleStatus.failure && state.errorMessage != null) {
           HelperFun.showNotificationAlert(
             title: 'pos_sale_error'.tr,
@@ -125,7 +131,13 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
                         ),
                       ),
                       IconButton(
-                        onPressed: isSubmitting ? null : () => Navigator.of(context).pop(),
+                        onPressed: isSubmitting
+                            ? null
+                            : () {
+                                if (context.mounted && Navigator.of(context).canPop()) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
                         icon: const Icon(Icons.close_rounded, size: 20),
                       ),
                     ],
@@ -340,7 +352,13 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
                   Row(
                     children: [
                       OutlinedButton(
-                        onPressed: isSubmitting ? null : () => Navigator.of(context).pop(),
+                        onPressed: isSubmitting
+                            ? null
+                            : () {
+                                if (context.mounted && Navigator.of(context).canPop()) {
+                                  Navigator.of(context).pop();
+                                }
+                              },
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd)),
@@ -352,8 +370,22 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
                         child: ElevatedButton.icon(
                           onPressed: isSubmitting
                               ? null
-                              : () {
-                                  context.read<PosCubit>().completeSale(autoPrint: _autoPrint);
+                              : () async {
+                                  final activeShift = context.read<ShiftCubit>().state.activeShift;
+                                  final success = await context.read<PosCubit>().completeSale(
+                                        cashierName: activeShift?.cashierName ?? 'Store Cashier',
+                                        cashierId: activeShift?.cashierId ?? '',
+                                        branchId: activeShift?.branchId ?? 'main_branch',
+                                        branchName: activeShift?.branchName ?? 'Main Branch',
+                                        shiftId: activeShift?.id ?? '',
+                                        autoPrint: _autoPrint,
+                                      );
+                                  if (success && activeShift != null && context.mounted) {
+                                    context.read<ShiftCubit>().recordShiftSale(
+                                          amount: grandTotal,
+                                          paymentMethod: state.paymentMethod,
+                                        );
+                                  }
                                 },
                           icon: isSubmitting
                               ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))

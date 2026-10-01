@@ -22,12 +22,83 @@ enum ExpenseCategory {
   const ExpenseCategory(this.id, this.labelKey, this.icon, this.color);
 
   static ExpenseCategory fromString(String? val) {
-    if (val == null) return ExpenseCategory.other;
+    if (val == null || val.trim().isEmpty) return ExpenseCategory.other;
     final clean = val.trim().toLowerCase();
     for (final cat in ExpenseCategory.values) {
       if (cat.id == clean || cat.name.toLowerCase() == clean) {
         return cat;
       }
+    }
+    // Intelligent keyword matching (AR & EN)
+    if (clean.contains('util') ||
+        clean.contains('مرافق') ||
+        clean.contains('مياه') ||
+        clean.contains('ماء') ||
+        clean.contains('كهرب') ||
+        clean.contains('غاز') ||
+        clean.contains('انترنت') ||
+        clean.contains('إنترنت') ||
+        clean.contains('فاتور') ||
+        clean.contains('bill')) {
+      return ExpenseCategory.utilities;
+    }
+    if (clean.contains('rent') || clean.contains('إيجار') || clean.contains('ايجار')) {
+      return ExpenseCategory.rent;
+    }
+    if (clean.contains('salar') ||
+        clean.contains('payroll') ||
+        clean.contains('راتب') ||
+        clean.contains('مرتب') ||
+        clean.contains('رواتب') ||
+        clean.contains('أجور') ||
+        clean.contains('اجور') ||
+        clean.contains('سلف')) {
+      return ExpenseCategory.salaries;
+    }
+    if (clean.contains('suppl') ||
+        clean.contains('مستلزم') ||
+        clean.contains('تغليف') ||
+        clean.contains('اكياس') ||
+        clean.contains('أكياس') ||
+        clean.contains('مطبوعات') ||
+        clean.contains('كرتون')) {
+      return ExpenseCategory.supplies;
+    }
+    if (clean.contains('maint') ||
+        clean.contains('صيان') ||
+        clean.contains('تصليح') ||
+        clean.contains('ترميم') ||
+        clean.contains('نظاف')) {
+      return ExpenseCategory.maintenance;
+    }
+    if (clean.contains('trans') ||
+        clean.contains('نقل') ||
+        clean.contains('شحن') ||
+        clean.contains('توصيل') ||
+        clean.contains('بنزين') ||
+        clean.contains('سولار') ||
+        clean.contains('مشوار')) {
+      return ExpenseCategory.transportation;
+    }
+    if (clean.contains('market') ||
+        clean.contains('تسويق') ||
+        clean.contains('اعلان') ||
+        clean.contains('إعلان') ||
+        clean.contains('دعاية') ||
+        clean.contains('سوشيال') ||
+        clean.contains('ads')) {
+      return ExpenseCategory.marketing;
+    }
+    if (clean.contains('gov') ||
+        clean.contains('tax') ||
+        clean.contains('حكوم') ||
+        clean.contains('ضريب') ||
+        clean.contains('ضرائب') ||
+        clean.contains('رسوم') ||
+        clean.contains('تأمين') ||
+        clean.contains('رخصة') ||
+        clean.contains('ترخيص')) {
+      return ExpenseCategory.government;
     }
     return ExpenseCategory.other;
   }
@@ -52,6 +123,9 @@ class ExpenseModel extends Equatable {
   final String recordedBy;
   final String notes;
   final String? invoiceReceiptUrl;
+  final String? treasuryTransactionId;
+  final String? shiftId;
+  final String? branchId;
   final DateTime createdAt;
 
   const ExpenseModel({
@@ -64,6 +138,9 @@ class ExpenseModel extends Equatable {
     this.recordedBy = 'Admin',
     this.notes = '',
     this.invoiceReceiptUrl,
+    this.treasuryTransactionId,
+    this.shiftId,
+    this.branchId,
     required this.createdAt,
   });
 
@@ -73,17 +150,22 @@ class ExpenseModel extends Equatable {
   }
 
   factory ExpenseModel.fromMap(Map<String, dynamic> map, [String? docId]) {
+    final titleVal = map['title']?.toString() ?? map['reason']?.toString() ?? '';
+    final categoryVal = map['category']?.toString() ?? titleVal;
     return ExpenseModel(
       id: docId ?? map['id']?.toString() ?? '',
-      title: map['title']?.toString() ?? '',
+      title: titleVal,
       amount: (map['amount'] as num?)?.toDouble() ?? 0.0,
-      category: ExpenseCategory.fromString(map['category']?.toString()),
-      date: _parseExpenseDate(map['date']),
-      paymentMethod: map['paymentMethod']?.toString() ?? 'cash',
-      recordedBy: map['recordedBy']?.toString() ?? 'Admin',
+      category: ExpenseCategory.fromString(categoryVal),
+      date: _parseExpenseDate(map['date'] ?? map['createdAt']),
+      paymentMethod: map['paymentMethod']?.toString() ?? map['channel']?.toString() ?? 'cash',
+      recordedBy: map['recordedBy']?.toString() ?? map['performedBy']?.toString() ?? 'Admin',
       notes: map['notes']?.toString() ?? '',
       invoiceReceiptUrl: map['invoiceReceiptUrl']?.toString(),
-      createdAt: _parseExpenseDate(map['createdAt']),
+      treasuryTransactionId: map['treasuryTransactionId']?.toString() ?? map['treasuryTxId']?.toString(),
+      shiftId: map['shiftId']?.toString(),
+      branchId: map['branchId']?.toString(),
+      createdAt: _parseExpenseDate(map['createdAt'] ?? map['date']),
     );
   }
 
@@ -96,7 +178,10 @@ class ExpenseModel extends Equatable {
       'paymentMethod': paymentMethod,
       'recordedBy': recordedBy,
       'notes': notes,
-      'invoiceReceiptUrl': invoiceReceiptUrl,
+      if (invoiceReceiptUrl != null) 'invoiceReceiptUrl': invoiceReceiptUrl,
+      if (treasuryTransactionId != null) 'treasuryTransactionId': treasuryTransactionId,
+      if (shiftId != null) 'shiftId': shiftId,
+      if (branchId != null) 'branchId': branchId,
       'createdAt': Timestamp.fromDate(createdAt),
     };
   }
@@ -111,6 +196,9 @@ class ExpenseModel extends Equatable {
     String? recordedBy,
     String? notes,
     String? invoiceReceiptUrl,
+    String? treasuryTransactionId,
+    String? shiftId,
+    String? branchId,
     DateTime? createdAt,
   }) {
     return ExpenseModel(
@@ -123,6 +211,9 @@ class ExpenseModel extends Equatable {
       recordedBy: recordedBy ?? this.recordedBy,
       notes: notes ?? this.notes,
       invoiceReceiptUrl: invoiceReceiptUrl ?? this.invoiceReceiptUrl,
+      treasuryTransactionId: treasuryTransactionId ?? this.treasuryTransactionId,
+      shiftId: shiftId ?? this.shiftId,
+      branchId: branchId ?? this.branchId,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -138,6 +229,9 @@ class ExpenseModel extends Equatable {
         recordedBy,
         notes,
         invoiceReceiptUrl,
+        treasuryTransactionId,
+        shiftId,
+        branchId,
         createdAt,
       ];
 }

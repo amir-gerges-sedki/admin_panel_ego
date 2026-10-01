@@ -461,11 +461,16 @@ class PosCartPanel extends StatelessWidget {
         title: Text('confirm_clear_cart_title'.tr, style: const TextStyle(fontWeight: FontWeight.w800)),
         content: Text('confirm_clear_cart_msg'.tr),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text('cancel'.tr)),
+          TextButton(
+            onPressed: () {
+              if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
+            },
+            child: Text('cancel'.tr),
+          ),
           ElevatedButton(
             onPressed: () {
               context.read<PosCubit>().clearCart();
-              Navigator.of(ctx).pop();
+              if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColor.error, foregroundColor: Colors.white),
             child: Text('clear'.tr),
@@ -499,12 +504,17 @@ class PosCartPanel extends StatelessWidget {
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(), child: Text('cancel'.tr)),
+          TextButton(
+            onPressed: () {
+              if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
+            },
+            child: Text('cancel'.tr),
+          ),
           ElevatedButton(
             onPressed: () {
               final val = double.tryParse(controller.text.trim()) ?? 0.0;
               context.read<PosCubit>().updateItemDiscount(index, val);
-              Navigator.of(ctx).pop();
+              if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
             },
             child: Text('apply_discount'.tr),
           ),

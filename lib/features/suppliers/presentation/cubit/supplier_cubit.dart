@@ -3,20 +3,28 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/models/purchase_invoice_model.dart';
 import '../../data/models/supplier_model.dart';
 import '../../data/models/supplier_payment_model.dart';
+import '../../data/repositories/purchase_invoice_repository.dart';
+import '../../data/repositories/supplier_payment_repository.dart';
 import '../../data/repositories/supplier_repository.dart';
 import 'supplier_state.dart';
 
 class SupplierCubit extends Cubit<SupplierState> {
-  final SupplierRepository repository;
+  final SupplierRepository supplierRepository;
+  final PurchaseInvoiceRepository invoiceRepository;
+  final SupplierPaymentRepository paymentRepository;
 
-  SupplierCubit(this.repository) : super(SupplierInitial());
+  SupplierCubit({
+    required this.supplierRepository,
+    required this.invoiceRepository,
+    required this.paymentRepository,
+  }) : super(SupplierInitial());
 
   Future<void> loadSuppliersData() async {
     try {
       emit(SupplierLoading());
-      final suppliers = await repository.getSuppliers();
-      final invoices = await repository.getPurchaseInvoices(limit: 200);
-      final payments = await repository.getSupplierPayments(limit: 200);
+      final suppliers = await supplierRepository.getSuppliers();
+      final invoices = await invoiceRepository.getPurchaseInvoices(limit: 200);
+      final payments = await paymentRepository.getSupplierPayments(limit: 200);
 
       emit(SupplierLoaded(
         suppliers: suppliers,
@@ -89,7 +97,8 @@ class SupplierCubit extends Cubit<SupplierState> {
               item.productTitle.toLowerCase().contains(q) ||
               (item.variationSku?.toLowerCase().contains(q) ?? false));
 
-      final matchesStatus = targetStatus == null || inv.paymentStatus == targetStatus;
+      final matchesStatus =
+          targetStatus == null || inv.paymentStatus == targetStatus;
       final matchesSupplier =
           targetSupplierId == null || inv.supplierId == targetSupplierId;
 
@@ -106,7 +115,8 @@ class SupplierCubit extends Cubit<SupplierState> {
     ));
   }
 
-  List<SupplierModel> _applySupplierFilter(List<SupplierModel> list, String query) {
+  List<SupplierModel> _applySupplierFilter(
+      List<SupplierModel> list, String query) {
     final q = query.trim().toLowerCase();
     if (q.isEmpty) return list;
     return list.where((s) {
@@ -121,18 +131,21 @@ class SupplierCubit extends Cubit<SupplierState> {
 
   Future<void> addSupplier(SupplierModel supplier) async {
     if (state is! SupplierLoaded) {
-      await repository.addSupplier(supplier);
+      await supplierRepository.addSupplier(supplier);
       await loadSuppliersData();
       return;
     }
     final currentState = state as SupplierLoaded;
     try {
       emit(currentState.copyWith(isSubmitting: true));
-      final added = await repository.addSupplier(supplier);
-      final updatedList = List<SupplierModel>.from(currentState.suppliers)..add(added);
-      updatedList.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      final added = await supplierRepository.addSupplier(supplier);
+      final updatedList = List<SupplierModel>.from(currentState.suppliers)
+        ..add(added);
+      updatedList
+          .sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
-      final filtered = _applySupplierFilter(updatedList, currentState.supplierSearchQuery);
+      final filtered = _applySupplierFilter(
+          updatedList, currentState.supplierSearchQuery);
 
       emit(currentState.copyWith(
         suppliers: updatedList,
@@ -148,20 +161,22 @@ class SupplierCubit extends Cubit<SupplierState> {
 
   Future<void> updateSupplier(SupplierModel supplier) async {
     if (state is! SupplierLoaded) {
-      await repository.updateSupplier(supplier);
+      await supplierRepository.updateSupplier(supplier);
       await loadSuppliersData();
       return;
     }
     final currentState = state as SupplierLoaded;
     try {
       emit(currentState.copyWith(isSubmitting: true));
-      await repository.updateSupplier(supplier);
+      await supplierRepository.updateSupplier(supplier);
       final updatedList = currentState.suppliers.map((s) {
         return s.id == supplier.id ? supplier : s;
       }).toList();
-      updatedList.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+      updatedList
+          .sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
 
-      final filtered = _applySupplierFilter(updatedList, currentState.supplierSearchQuery);
+      final filtered = _applySupplierFilter(
+          updatedList, currentState.supplierSearchQuery);
 
       emit(currentState.copyWith(
         suppliers: updatedList,
@@ -177,17 +192,19 @@ class SupplierCubit extends Cubit<SupplierState> {
 
   Future<void> deleteSupplier(String id) async {
     if (state is! SupplierLoaded) {
-      await repository.deleteSupplier(id);
+      await supplierRepository.deleteSupplier(id);
       await loadSuppliersData();
       return;
     }
     final currentState = state as SupplierLoaded;
     try {
       emit(currentState.copyWith(isSubmitting: true));
-      await repository.deleteSupplier(id);
-      final updatedList = currentState.suppliers.where((s) => s.id != id).toList();
+      await supplierRepository.deleteSupplier(id);
+      final updatedList =
+          currentState.suppliers.where((s) => s.id != id).toList();
 
-      final filtered = _applySupplierFilter(updatedList, currentState.supplierSearchQuery);
+      final filtered = _applySupplierFilter(
+          updatedList, currentState.supplierSearchQuery);
 
       emit(currentState.copyWith(
         suppliers: updatedList,
@@ -206,12 +223,15 @@ class SupplierCubit extends Cubit<SupplierState> {
     bool autoUpdateStock = true,
   }) async {
     if (state is! SupplierLoaded) {
-      return await repository.createPurchaseInvoice(invoice, autoUpdateStock: autoUpdateStock);
+      return await invoiceRepository.createPurchaseInvoice(
+        invoice,
+        autoUpdateStock: autoUpdateStock,
+      );
     }
     final currentState = state as SupplierLoaded;
     try {
       emit(currentState.copyWith(isSubmitting: true));
-      final created = await repository.createPurchaseInvoice(
+      final created = await invoiceRepository.createPurchaseInvoice(
         invoice,
         autoUpdateStock: autoUpdateStock,
       );
@@ -231,7 +251,7 @@ class SupplierCubit extends Cubit<SupplierState> {
     final currentState = state as SupplierLoaded;
     try {
       emit(currentState.copyWith(isSubmitting: true));
-      await repository.recordSupplierPayment(payment);
+      await paymentRepository.recordSupplierPayment(payment);
       await loadSuppliersData();
     } catch (e) {
       debugPrint('SupplierCubit recordPayment error: $e');
@@ -245,8 +265,9 @@ class SupplierCubit extends Cubit<SupplierState> {
     final currentState = state as SupplierLoaded;
     try {
       emit(currentState.copyWith(isSubmitting: true));
-      await repository.deletePurchaseInvoice(invoiceId);
-      final updated = currentState.invoices.where((i) => i.id != invoiceId).toList();
+      await invoiceRepository.deletePurchaseInvoice(invoiceId);
+      final updated =
+          currentState.invoices.where((i) => i.id != invoiceId).toList();
       emit(currentState.copyWith(
         invoices: updated,
         filteredInvoices: updated,

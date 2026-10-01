@@ -46,6 +46,7 @@ class AdminSidebar extends StatelessWidget {
   final bool isCollapsed;
   final VoidCallback onToggleCollapse;
   final int pendingOrdersCount;
+  final int pendingTransfersCount;
   final AdminWorkspaceMode workspaceMode;
 
   const AdminSidebar({
@@ -55,6 +56,7 @@ class AdminSidebar extends StatelessWidget {
     this.isCollapsed = false,
     required this.onToggleCollapse,
     this.pendingOrdersCount = 0,
+    this.pendingTransfersCount = 0,
     this.workspaceMode = AdminWorkspaceMode.all,
   });
 
@@ -118,6 +120,39 @@ class AdminSidebar extends StatelessWidget {
         ),
         const SidebarItem(
           index: 7,
+          titleKey: 'accounting',
+          permission: AdminPermission.accounting,
+          icon: Icons.account_balance_wallet_outlined,
+          selectedIcon: Icons.account_balance_wallet_rounded,
+          domain: AdminItemDomain.erp,
+        ),
+        const SidebarItem(
+          index: 8,
+          titleKey: 'reports',
+          permission: AdminPermission.reports,
+          icon: Icons.bar_chart_outlined,
+          selectedIcon: Icons.bar_chart_rounded,
+          domain: AdminItemDomain.erp,
+        ),
+        const SidebarItem(
+          index: 9,
+          titleKey: 'cashier_shifts',
+          permission: AdminPermission.shifts,
+          icon: Icons.access_time_outlined,
+          selectedIcon: Icons.access_time_filled_rounded,
+          domain: AdminItemDomain.erp,
+        ),
+        SidebarItem(
+          index: 10,
+          titleKey: 'inventory_transfers',
+          permission: AdminPermission.transfers,
+          icon: Icons.swap_horiz_outlined,
+          selectedIcon: Icons.swap_horiz_rounded,
+          badgeCount: pendingTransfersCount > 0 ? pendingTransfersCount : null,
+          domain: AdminItemDomain.erp,
+        ),
+        const SidebarItem(
+          index: 11,
           titleKey: 'damaged_stock',
           permission: AdminPermission.damagedStock,
           icon: Icons.delete_sweep_outlined,
@@ -125,7 +160,7 @@ class AdminSidebar extends StatelessWidget {
           domain: AdminItemDomain.erp,
         ),
         const SidebarItem(
-          index: 8,
+          index: 12,
           titleKey: 'employees',
           permission: AdminPermission.employees,
           icon: Icons.badge_outlined,
@@ -133,7 +168,7 @@ class AdminSidebar extends StatelessWidget {
           domain: AdminItemDomain.erp,
         ),
         const SidebarItem(
-          index: 9,
+          index: 13,
           titleKey: 'banners',
           permission: AdminPermission.banners,
           icon: Icons.view_carousel_outlined,
@@ -141,7 +176,7 @@ class AdminSidebar extends StatelessWidget {
           domain: AdminItemDomain.ecommerce,
         ),
         const SidebarItem(
-          index: 10,
+          index: 14,
           titleKey: 'coupons',
           permission: AdminPermission.coupons,
           icon: Icons.local_offer_outlined,
@@ -149,7 +184,7 @@ class AdminSidebar extends StatelessWidget {
           domain: AdminItemDomain.ecommerce,
         ),
         const SidebarItem(
-          index: 11,
+          index: 15,
           titleKey: 'customers',
           permission: AdminPermission.customers,
           icon: Icons.people_outline_rounded,
@@ -157,7 +192,7 @@ class AdminSidebar extends StatelessWidget {
           domain: AdminItemDomain.ecommerce,
         ),
         const SidebarItem(
-          index: 12,
+          index: 16,
           titleKey: 'notifications',
           permission: AdminPermission.notifications,
           icon: Icons.campaign_outlined,
@@ -165,7 +200,7 @@ class AdminSidebar extends StatelessWidget {
           domain: AdminItemDomain.ecommerce,
         ),
         const SidebarItem(
-          index: 13,
+          index: 17,
           titleKey: 'settings',
           permission: AdminPermission.settings,
           icon: Icons.settings_outlined,
@@ -173,7 +208,7 @@ class AdminSidebar extends StatelessWidget {
           domain: AdminItemDomain.common,
         ),
         const SidebarItem(
-          index: 14,
+          index: 18,
           titleKey: 'roles_permissions',
           permission: AdminPermission.roles,
           icon: Icons.shield_outlined,

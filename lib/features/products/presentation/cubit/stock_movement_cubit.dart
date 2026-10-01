@@ -29,6 +29,17 @@ class StockMovementCubit extends Cubit<StockMovementState> {
     }
   }
 
+  Future<void> recordMovement(StockMovementModel movement) async {
+    try {
+      await repository.recordStockMovement(movement);
+      loadStockMovements();
+    } catch (_) {}
+  }
+
+  Future<void> recordStockMovement(StockMovementModel movement) async {
+    return recordMovement(movement);
+  }
+
   void filterMovements({String? query, StockMovementType? type, bool clearType = false, String? productId, bool clearProduct = false}) {
     if (state is! StockMovementLoaded) return;
     final current = state as StockMovementLoaded;
