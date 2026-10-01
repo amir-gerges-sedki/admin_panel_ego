@@ -6,7 +6,7 @@ import '../../../../core/localization/app_localizations.dart';
 import '../cubit/pos_cubit.dart';
 import '../cubit/pos_state.dart';
 
-/// Top Barcode & Search Bar with hardware barcode scanner integration
+/// Top Barcode & Search Bar with hardware barcode scanner integration and manual typing support
 class PosBarcodeSearchBar extends StatefulWidget {
   final FocusNode focusNode;
   final bool autofocus;
@@ -23,9 +23,25 @@ class PosBarcodeSearchBar extends StatefulWidget {
 
 class _PosBarcodeSearchBarState extends State<PosBarcodeSearchBar> {
   final TextEditingController _searchController = TextEditingController();
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.focusNode.addListener(_onFocusChange);
+  }
+
+  void _onFocusChange() {
+    if (mounted) {
+      setState(() {
+        _isFocused = widget.focusNode.hasFocus;
+      });
+    }
+  }
 
   @override
   void dispose() {
+    widget.focusNode.removeListener(_onFocusChange);
     _searchController.dispose();
     super.dispose();
   }
@@ -65,6 +81,7 @@ class _PosBarcodeSearchBarState extends State<PosBarcodeSearchBar> {
   @override
   Widget build(BuildContext context) {
     final isDark = HelperFun.isDarkMode(context);
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
 
     return BlocConsumer<PosCubit, PosState>(
       listener: (context, state) {
@@ -78,34 +95,70 @@ class _PosBarcodeSearchBarState extends State<PosBarcodeSearchBar> {
         }
       },
       builder: (context, state) {
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
           decoration: BoxDecoration(
             color: isDark ? AppColor.darkCard : Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: _isFocused
+                  ? AppColor.primary
+                  : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+              width: _isFocused ? 1.8 : 1.2,
+            ),
             boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
+              if (_isFocused)
+                BoxShadow(
+                  color: AppColor.primary.withValues(alpha: 0.16),
+                  blurRadius: 10,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 2),
+                )
+              else
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.04),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
             ],
           ),
           child: Row(
             children: [
-              // Scanner Status Indicator Icon
-              Container(
-                padding: const EdgeInsets.all(9),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(8),
+              // Scanner & Search Status Badge (Clickable to focus)
+              InkWell(
+                onTap: () => widget.focusNode.requestFocus(),
+                borderRadius: BorderRadius.circular(9),
+                child: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: _isFocused
+                        ? AppColor.primary.withValues(alpha: 0.12)
+                        : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                    borderRadius: BorderRadius.circular(9),
+                    border: Border.all(
+                      color: _isFocused
+                          ? AppColor.primary.withValues(alpha: 0.4)
+                          : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+                    ),
+                  ),
+                  child: Center(
+                    child: Icon(
+                      _searchController.text.isNotEmpty
+                          ? Icons.search_rounded
+                          : Icons.qr_code_scanner_rounded,
+                      size: 23,
+                      color: _isFocused
+                          ? AppColor.primary
+                          : (isDark ? Colors.white70 : Colors.black87),
+                    ),
+                  ),
                 ),
-                child: const Icon(Icons.qr_code_scanner_rounded, size: 22, color: Color(0xFF10B981)),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
 
-              // Search & Barcode TextField
+              // Large Search & Barcode TextField
               Expanded(
                 child: TextField(
                   controller: _searchController,
@@ -113,55 +166,68 @@ class _PosBarcodeSearchBarState extends State<PosBarcodeSearchBar> {
                   autofocus: widget.autofocus,
                   textInputAction: TextInputAction.search,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 15.5,
                     fontWeight: FontWeight.w700,
+                    letterSpacing: 0.2,
                   ),
                   decoration: InputDecoration(
-                    hintText: 'pos_barcode_search_bar_hint'.tr,
+                    hintText: isArabic
+                        ? 'امسح الباركود، أو اكتب للبحث بالاسم / النكهة / الـ SKU...'
+                        : 'Scan barcode, or search by item / flavor / SKU...',
                     hintStyle: TextStyle(
-                      fontSize: 13,
+                      fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
                     ),
                     border: InputBorder.none,
                     isDense: true,
-                    contentPadding: EdgeInsets.zero,
+                    contentPadding: const EdgeInsets.symmetric(vertical: 8),
                   ),
                   onChanged: (val) {
+                    setState(() {});
                     context.read<PosCubit>().filterProducts(query: val);
                   },
                   onSubmitted: _onSubmitted,
                 ),
               ),
 
-              if (_searchController.text.isNotEmpty)
+              // Clear Button
+              if (_searchController.text.isNotEmpty) ...[
                 IconButton(
                   onPressed: () {
                     _searchController.clear();
+                    setState(() {});
                     context.read<PosCubit>().filterProducts(query: '');
                     widget.focusNode.requestFocus();
                   },
-                  icon: const Icon(Icons.clear_rounded, size: 20),
-                  padding: EdgeInsets.zero,
+                  icon: const Icon(Icons.cancel_rounded, size: 21),
+                  color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
+                  padding: const EdgeInsets.all(4),
                   constraints: const BoxConstraints(),
                   tooltip: 'clear_search'.tr,
                 ),
-              const SizedBox(width: 10),
+                const SizedBox(width: 4),
+              ],
 
-              // Enter submit button
-              ElevatedButton.icon(
-                onPressed: () => _onSubmitted(_searchController.text),
-                icon: const Icon(Icons.add_shopping_cart_rounded, size: 17),
-                label: Text(
-                  'enter_key_submit'.tr,
-                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColor.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              const SizedBox(width: 14),
+
+              // Action Submit Button
+              SizedBox(
+                height: 42,
+                child: ElevatedButton.icon(
+                  onPressed: () => _onSubmitted(_searchController.text),
+                  icon: const Icon(Icons.add_shopping_cart_rounded, size: 18),
+                  label: Text(
+                    isArabic ? 'إدخال (Enter)' : 'Enter',
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColor.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 0),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                  ),
                 ),
               ),
             ],

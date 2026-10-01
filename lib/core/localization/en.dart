@@ -711,7 +711,7 @@ const Map<String, String> en = {
   'no_staff_found': 'No team members matching your search',
   'permission_dashboard': 'Financial Analytics Dashboard',
   'pos_cashier': 'Cashier',
-  'permission_pos': 'Point of Sale & In-Store Cashier',
+  'permission_pos': 'Cashier & In-Store Sales',
   'permission_products': 'Products & Inventory Catalog',
   'permission_brands': 'Brands & Categories',
   'permission_orders': 'Orders & Fulfillment',

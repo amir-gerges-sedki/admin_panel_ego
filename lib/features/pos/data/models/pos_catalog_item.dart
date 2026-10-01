@@ -143,10 +143,17 @@ class PosCatalogItem extends Equatable {
         return entry.value.trim();
       }
     }
-    final specStyle = product.specifications['vapeStyle']?.toString();
-    if (specStyle != null && specStyle.trim().isNotEmpty) {
+    final specStyle = product.specifications['vapeStyle']?.toString() ??
+        product.specifications['style']?.toString() ??
+        product.specifications['vape_style']?.toString();
+    if (specStyle != null && specStyle.trim().isNotEmpty && specStyle != 'BOTH') {
       return specStyle.trim();
     }
+    final titleLower = product.title.toLowerCase();
+    if (titleLower.contains('mtl')) return 'MTL';
+    if (titleLower.contains('dl') && !titleLower.contains('idle')) return 'DL';
+    if (titleLower.contains('salt') || titleLower.contains('سولت')) return 'Salt Nic';
+
     return null;
   }
 

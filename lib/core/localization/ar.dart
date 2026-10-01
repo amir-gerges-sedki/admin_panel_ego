@@ -699,7 +699,7 @@ const Map<String, String> ar = {
   'no_staff_found': 'لا يوجد مشرفون أو أعضاء يطابقون البحث',
   'permission_dashboard': 'لوحة الإحصائيات والأرباح المالية',
   'pos_cashier': 'الكاشير',
-  'permission_pos': 'نقطة البيع ومبيعات المتجر (POS)',
+  'permission_pos': 'الكاشير ومبيعات المتجر',
   'permission_products': 'كتالوج المنتجات والمخزون',
   'permission_brands': 'العلامات التجارية والأقسام',
   'permission_orders': 'الطلبات والشحن والتوصيل',

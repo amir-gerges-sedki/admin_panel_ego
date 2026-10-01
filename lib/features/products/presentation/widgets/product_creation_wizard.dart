@@ -1481,11 +1481,11 @@ class ProductCreationWizard extends StatelessWidget {
                       Text(
                         state.isOnline
                             ? (isArabic
-                                ? 'المنتج متاح للشراء في تطبيق الموبايل ونقاط البيع (الكاشير).'
-                                : 'Product will appear in mobile app store and POS cashier.')
+                                ? 'المنتج متاح للشراء في تطبيق الموبايل والكاشير.'
+                                : 'Product will appear in mobile app store and cashier.')
                             : (isArabic
                                 ? 'المنتج مخفي تماماً عن تطبيق الموبايل، ومتاح للكاشير والفرع الداخلي فقط.'
-                                : 'Product is hidden from mobile app and only accessible in POS/ERP.'),
+                                : 'Product is hidden from mobile app and only accessible in Cashier/ERP.'),
                         style: TextStyle(
                           fontSize: 11,
                           color: isDark

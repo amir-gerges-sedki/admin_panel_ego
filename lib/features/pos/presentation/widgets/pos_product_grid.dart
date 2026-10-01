@@ -43,7 +43,9 @@ class _PosProductGridState extends State<PosProductGrid> {
 
     return BlocBuilder<AuthRoleCubit, AuthRoleState>(
       builder: (context, authState) {
-        final bool showCostPrice = authState.hasPermission(AdminPermission.viewCostPrice);
+        final showCostPrice = authState.hasPermission(
+          AdminPermission.viewCostPrice,
+        );
 
         return BlocBuilder<PosCubit, PosState>(
           builder: (context, state) {
@@ -51,7 +53,9 @@ class _PosProductGridState extends State<PosProductGrid> {
             var catalogItems = state.filteredCatalogItems;
 
             if (_inStockOnly) {
-              catalogItems = catalogItems.where((item) => item.stock > 0).toList();
+              catalogItems = catalogItems
+                  .where((item) => item.stock > 0)
+                  .toList();
             }
 
             final allItems = state.allCatalogItems;
@@ -72,7 +76,12 @@ class _PosProductGridState extends State<PosProductGrid> {
                 // 2. Direct Variation Structured Table View
                 Expanded(
                   child: catalogItems.isEmpty
-                      ? _buildEmptyState(context, isDark, state.searchQuery.isNotEmpty || state.selectedCategory != null)
+                      ? _buildEmptyState(
+                          context,
+                          isDark,
+                          state.searchQuery.isNotEmpty ||
+                              state.selectedCategory != null,
+                        )
                       : _buildTableView(
                           context,
                           catalogItems,
@@ -107,22 +116,29 @@ class _PosProductGridState extends State<PosProductGrid> {
             children: [
               _buildCategoryChip(
                 context: context,
-                label: 'all_categories_filter'.trParams({'count': '${allItems.length}'}),
+                label: 'all_categories_filter'.trParams({
+                  'count': '${allItems.length}',
+                }),
                 isSelected: state.selectedCategory == null,
-                onTap: () => context.read<PosCubit>().filterProducts(clearCategory: true),
+                onTap: () => context.read<PosCubit>().filterProducts(
+                  clearCategory: true,
+                ),
                 isDark: isDark,
               ),
               const SizedBox(width: 6),
               ...PosProductGrid.posCategories.map((cat) {
                 final isSelected = state.selectedCategory == cat;
-                final count = allItems.where((i) => i.categoryType == cat).length;
+                final count = allItems
+                    .where((i) => i.categoryType == cat)
+                    .length;
                 return Padding(
                   padding: const EdgeInsets.only(left: 6),
                   child: _buildCategoryChip(
                     context: context,
                     label: '${_getCategoryLabel(cat)} ($count)',
                     isSelected: isSelected,
-                    onTap: () => context.read<PosCubit>().filterProducts(category: cat),
+                    onTap: () =>
+                        context.read<PosCubit>().filterProducts(category: cat),
                     isDark: isDark,
                   ),
                 );
@@ -140,18 +156,31 @@ class _PosProductGridState extends State<PosProductGrid> {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3.5,
+                  ),
                   decoration: BoxDecoration(
-                    color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
+                    color: isDark
+                        ? AppColor.darkSubCard
+                        : AppColor.lightSubCard,
                     borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+                    border: Border.all(
+                      color: isDark
+                          ? AppColor.darkBorder
+                          : AppColor.lightBorder,
+                    ),
                   ),
                   child: Text(
-                    'items_available_count'.trParams({'count': '$filteredCount'}),
+                    'items_available_count'.trParams({
+                      'count': '$filteredCount',
+                    }),
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w700,
-                      color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+                      color: isDark
+                          ? AppColor.textSecondaryDark
+                          : AppColor.textSecondaryLight,
                     ),
                   ),
                 ),
@@ -163,35 +192,50 @@ class _PosProductGridState extends State<PosProductGrid> {
                   borderRadius: BorderRadius.circular(6),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 140),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 3.5,
+                    ),
                     decoration: BoxDecoration(
                       color: _inStockOnly
                           ? const Color(0xFF10B981).withValues(alpha: 0.15)
-                          : (isDark ? AppColor.darkSubCard : AppColor.lightSubCard),
+                          : (isDark
+                                ? AppColor.darkSubCard
+                                : AppColor.lightSubCard),
                       borderRadius: BorderRadius.circular(6),
                       border: Border.all(
                         color: _inStockOnly
                             ? const Color(0xFF10B981)
-                            : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+                            : (isDark
+                                  ? AppColor.darkBorder
+                                  : AppColor.lightBorder),
                       ),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          _inStockOnly ? Icons.check_circle_rounded : Icons.circle_outlined,
+                          _inStockOnly
+                              ? Icons.check_circle_rounded
+                              : Icons.circle_outlined,
                           size: 13,
-                          color: _inStockOnly ? const Color(0xFF10B981) : Colors.grey,
+                          color: _inStockOnly
+                              ? const Color(0xFF10B981)
+                              : Colors.grey,
                         ),
                         const SizedBox(width: 4),
                         Text(
                           'in_stock_only'.tr,
                           style: TextStyle(
                             fontSize: 11,
-                            fontWeight: _inStockOnly ? FontWeight.w800 : FontWeight.w600,
+                            fontWeight: _inStockOnly
+                                ? FontWeight.w800
+                                : FontWeight.w600,
                             color: _inStockOnly
                                 ? const Color(0xFF10B981)
-                                : (isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
+                                : (isDark
+                                      ? AppColor.textSecondaryDark
+                                      : AppColor.textSecondaryLight),
                           ),
                         ),
                       ],
@@ -202,18 +246,30 @@ class _PosProductGridState extends State<PosProductGrid> {
             ),
 
             // Quick reset indicator if filtered
-            if (state.searchQuery.isNotEmpty || state.selectedCategory != null || _inStockOnly)
+            if (state.searchQuery.isNotEmpty ||
+                state.selectedCategory != null ||
+                _inStockOnly)
               InkWell(
                 onTap: () {
-                  context.read<PosCubit>().filterProducts(query: '', clearCategory: true);
+                  context.read<PosCubit>().filterProducts(
+                    query: '',
+                    clearCategory: true,
+                  );
                   setState(() => _inStockOnly = false);
                 },
                 borderRadius: BorderRadius.circular(6),
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 2,
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.refresh_rounded, size: 13, color: AppColor.primary),
+                      const Icon(
+                        Icons.refresh_rounded,
+                        size: 13,
+                        color: AppColor.primary,
+                      ),
                       const SizedBox(width: 3),
                       Text(
                         'reset_filters'.tr,
@@ -249,12 +305,18 @@ class _PosProductGridState extends State<PosProductGrid> {
       labelStyle: TextStyle(
         fontSize: 11,
         fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-        color: isSelected ? Colors.white : (isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
+        color: isSelected
+            ? Colors.white
+            : (isDark
+                  ? AppColor.textSecondaryDark
+                  : AppColor.textSecondaryLight),
       ),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(999),
         side: BorderSide(
-          color: isSelected ? AppColor.primary : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+          color: isSelected
+              ? AppColor.primary
+              : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
         ),
       ),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 0),
@@ -308,7 +370,11 @@ class _PosProductGridState extends State<PosProductGrid> {
                       separatorBuilder: (_, _) => Divider(
                         height: 1,
                         thickness: 1,
-                        color: (isDark ? AppColor.darkBorder : AppColor.lightBorder).withValues(alpha: 0.5),
+                        color:
+                            (isDark
+                                    ? AppColor.darkBorder
+                                    : AppColor.lightBorder)
+                                .withValues(alpha: 0.5),
                       ),
                       itemBuilder: (context, index) {
                         final item = items[index];
@@ -341,6 +407,90 @@ class _PosProductGridState extends State<PosProductGrid> {
 
   /// Sticky table header bar with clear distinct column names distributed proportionally
   Widget _buildTableHeader(bool isDark, bool showCostPrice, {required bool isArabic}) {
+    final headerChildren = <Widget>[
+      // 1. Product & Specs Column
+      Expanded(
+        flex: showCostPrice ? 4 : 5,
+        child: Text(
+          isArabic ? 'الصنف والمواصفات' : 'Item & Specs',
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w800,
+            color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+          ),
+        ),
+      ),
+      const SizedBox(width: 8),
+
+      // 2. Stock Column
+      Expanded(
+        flex: 2,
+        child: Center(
+          child: Text(
+            isArabic ? 'المخزون' : 'Stock',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: 8),
+    ];
+
+    if (showCostPrice) {
+      headerChildren.add(
+        Expanded(
+          flex: 2,
+          child: Center(
+            child: Text(
+              isArabic ? 'سعر التكلفة' : 'Cost',
+              style: const TextStyle(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF8B5CF6),
+              ),
+            ),
+          ),
+        ),
+      );
+      headerChildren.add(const SizedBox(width: 8));
+    }
+
+    headerChildren.addAll([
+      // 4. Selling Price Column
+      Expanded(
+        flex: 2,
+        child: Center(
+          child: Text(
+            isArabic ? 'سعر البيع' : 'Price',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(width: 8),
+
+      // 5. Action Column
+      Expanded(
+        flex: 2,
+        child: Center(
+          child: Text(
+            isArabic ? 'إضافة' : 'Action',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w800,
+              color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+            ),
+          ),
+        ),
+      ),
+    ]);
+
     return Container(
       height: 38,
       padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -353,88 +503,7 @@ class _PosProductGridState extends State<PosProductGrid> {
           ),
         ),
       ),
-      child: Row(
-        children: [
-          // 1. Product & Specs Column
-          Expanded(
-            flex: showCostPrice ? 4 : 5,
-            child: Text(
-              isArabic ? 'الصنف والمواصفات' : 'Item & Specs',
-              style: TextStyle(
-                fontSize: 11.5,
-                fontWeight: FontWeight.w800,
-                color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // 2. Stock Column
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Text(
-                isArabic ? 'المخزون' : 'Stock',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // 3. Cost Price Column (if permitted)
-          if (showCostPrice) ...[
-            Expanded(
-              flex: 2,
-              child: Center(
-                child: Text(
-                  isArabic ? 'سعر التكلفة' : 'Cost',
-                  style: const TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w800,
-                    color: Color(0xFF8B5CF6),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-
-          // 4. Selling Price Column
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Text(
-                isArabic ? 'سعر البيع' : 'Price',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 8),
-
-          // 5. Action Column
-          Expanded(
-            flex: 2,
-            child: Center(
-              child: Text(
-                isArabic ? 'إضافة' : 'Action',
-                style: TextStyle(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+      child: Row(children: headerChildren),
     );
   }
 
@@ -463,7 +532,10 @@ class _PosProductGridState extends State<PosProductGrid> {
                   );
                 }
               : () {
-                  context.read<PosCubit>().addToCart(item.product, variation: item.variation);
+                  context.read<PosCubit>().addToCart(
+                    item.product,
+                    variation: item.variation,
+                  );
                   try {
                     HapticFeedback.lightImpact();
                   } catch (_) {}
@@ -485,10 +557,14 @@ class _PosProductGridState extends State<PosProductGrid> {
                         width: 36,
                         height: 36,
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                          color: isDark
+                              ? const Color(0xFF1E293B)
+                              : const Color(0xFFF8FAFC),
                           borderRadius: BorderRadius.circular(6),
                           border: Border.all(
-                            color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
+                            color: isDark
+                                ? AppColor.darkBorder
+                                : AppColor.lightBorder,
                           ),
                         ),
                         child: item.thumbnail.isNotEmpty
@@ -497,7 +573,10 @@ class _PosProductGridState extends State<PosProductGrid> {
                                 child: Image.network(
                                   item.thumbnail,
                                   fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) => _buildFallbackIcon(item.categoryType, size: 16),
+                                  errorBuilder: (_, _, _) => _buildFallbackIcon(
+                                    item.categoryType,
+                                    size: 16,
+                                  ),
                                 ),
                               )
                             : _buildFallbackIcon(item.categoryType, size: 16),
@@ -514,9 +593,14 @@ class _PosProductGridState extends State<PosProductGrid> {
                               children: [
                                 if (item.brandName.isNotEmpty) ...[
                                   Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 5,
+                                      vertical: 1,
+                                    ),
                                     decoration: BoxDecoration(
-                                      color: AppColor.primary.withValues(alpha: 0.12),
+                                      color: AppColor.primary.withValues(
+                                        alpha: 0.12,
+                                      ),
                                       borderRadius: BorderRadius.circular(3),
                                     ),
                                     child: Text(
@@ -530,7 +614,7 @@ class _PosProductGridState extends State<PosProductGrid> {
                                   ),
                                   const SizedBox(width: 5),
                                 ],
-                                Expanded(
+                                Flexible(
                                   child: Text(
                                     item.displayHeadline,
                                     style: const TextStyle(
@@ -544,90 +628,143 @@ class _PosProductGridState extends State<PosProductGrid> {
                               ],
                             ),
                             const SizedBox(height: 2.5),
-                            // Spec badges (Nicotine, Size, Style, Resistance, Color) - Standard Vape Specs
+                            // Spec badges (Nicotine, Size, Style/MTL/DL, Resistance, Color) - Standard Vape Specs
                             SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   // Nicotine (e.g. 30mg, 50mg, 3mg)
-                                  if (item.nicotine != null && item.nicotine!.isNotEmpty) ...[
+                                  if (item.nicotine != null &&
+                                      item.nicotine!.isNotEmpty) ...[
                                     _buildSpecPill(
                                       label: item.nicotine!,
-                                      bgColor: isDark ? const Color(0xFF312E81).withValues(alpha: 0.6) : const Color(0xFFEEF2FF),
-                                      borderColor: isDark ? const Color(0xFF4F46E5).withValues(alpha: 0.5) : const Color(0xFFC7D2FE),
-                                      textColor: isDark ? const Color(0xFFA5B4FC) : const Color(0xFF4338CA),
+                                      bgColor: isDark
+                                          ? const Color(
+                                              0xFF312E81,
+                                            ).withValues(alpha: 0.6)
+                                          : const Color(0xFFEEF2FF),
+                                      borderColor: isDark
+                                          ? const Color(
+                                              0xFF4F46E5,
+                                            ).withValues(alpha: 0.5)
+                                          : const Color(0xFFC7D2FE),
+                                      textColor: isDark
+                                          ? const Color(0xFFA5B4FC)
+                                          : const Color(0xFF4338CA),
                                       fontWeight: FontWeight.w800,
                                     ),
                                     const SizedBox(width: 3.5),
                                   ],
 
                                   // Size / Volume (e.g. 30ml, 60ml)
-                                  if (item.size != null && item.size!.isNotEmpty) ...[
+                                  if (item.size != null &&
+                                      item.size!.isNotEmpty) ...[
                                     _buildSpecPill(
                                       label: item.size!,
-                                      bgColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                                      borderColor: isDark ? const Color(0xFF334155) : const Color(0xFFCBD5E1),
-                                      textColor: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+                                      bgColor: isDark
+                                          ? const Color(0xFF1E293B)
+                                          : const Color(0xFFF1F5F9),
+                                      borderColor: isDark
+                                          ? const Color(0xFF334155)
+                                          : const Color(0xFFCBD5E1),
+                                      textColor: isDark
+                                          ? AppColor.textSecondaryDark
+                                          : AppColor.textSecondaryLight,
                                       fontWeight: FontWeight.w700,
                                     ),
                                     const SizedBox(width: 3.5),
                                   ],
 
-                                  // Style (e.g. Salt Nic, Freebase, MTL, DL)
-                                  if (item.style != null && item.style!.isNotEmpty) ...[
+                                  // Style (e.g. MTL, DL, Salt Nic, Freebase)
+                                  if (item.style != null &&
+                                      item.style!.isNotEmpty) ...[
                                     _buildSpecPill(
                                       label: item.style!,
-                                      bgColor: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.6) : const Color(0xFFECFDF5),
-                                      borderColor: isDark ? const Color(0xFF059669).withValues(alpha: 0.5) : const Color(0xFFA7F3D0),
-                                      textColor: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857),
+                                      bgColor: isDark
+                                          ? const Color(
+                                              0xFF064E3B,
+                                            ).withValues(alpha: 0.6)
+                                          : const Color(0xFFECFDF5),
+                                      borderColor: isDark
+                                          ? const Color(
+                                              0xFF059669,
+                                            ).withValues(alpha: 0.5)
+                                          : const Color(0xFFA7F3D0),
+                                      textColor: isDark
+                                          ? const Color(0xFF6EE7B7)
+                                          : const Color(0xFF047857),
                                       fontWeight: FontWeight.w800,
                                     ),
                                     const SizedBox(width: 3.5),
                                   ],
 
                                   // Resistance (e.g. 0.8Ω, 1.2Ω)
-                                  if (item.resistance != null && item.resistance!.isNotEmpty) ...[
+                                  if (item.resistance != null &&
+                                      item.resistance!.isNotEmpty) ...[
                                     _buildSpecPill(
                                       label: item.resistance!,
-                                      bgColor: isDark ? const Color(0xFF78350F).withValues(alpha: 0.5) : const Color(0xFFFEF3C7),
-                                      borderColor: isDark ? const Color(0xFFD97706).withValues(alpha: 0.4) : const Color(0xFFFDE68A),
-                                      textColor: isDark ? const Color(0xFFFDE047) : const Color(0xFFB45309),
+                                      bgColor: isDark
+                                          ? const Color(
+                                              0xFF78350F,
+                                            ).withValues(alpha: 0.5)
+                                          : const Color(0xFFFEF3C7),
+                                      borderColor: isDark
+                                          ? const Color(
+                                              0xFFD97706,
+                                            ).withValues(alpha: 0.4)
+                                          : const Color(0xFFFDE68A),
+                                      textColor: isDark
+                                          ? const Color(0xFFFDE047)
+                                          : const Color(0xFFB45309),
                                       fontWeight: FontWeight.w800,
                                     ),
                                     const SizedBox(width: 3.5),
                                   ],
 
                                   // Color
-                                  if (item.color != null && item.color!.isNotEmpty) ...[
+                                  if (item.color != null &&
+                                      item.color!.isNotEmpty) ...[
                                     _buildColorBadge(item.color!, isDark),
                                     const SizedBox(width: 3.5),
                                   ],
 
                                   // Other attributes
-                                  ...item.attributeValues.entries.where((e) {
-                                    final k = e.key.toLowerCase();
-                                    return !k.contains('flav') &&
-                                        !k.contains('nic') &&
-                                        !k.contains('size') &&
-                                        !k.contains('res') &&
-                                        !k.contains('color') &&
-                                        !k.contains('style') &&
-                                        !k.contains('نكهة') &&
-                                        !k.contains('نيكوتين') &&
-                                        !k.contains('حجم') &&
-                                        !k.contains('لون') &&
-                                        !k.contains('مقاومة');
-                                  }).map((e) => Padding(
-                                    padding: const EdgeInsets.only(left: 3.5),
-                                    child: _buildSpecPill(
-                                      label: '${e.key}: ${e.value}',
-                                      bgColor: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                                      borderColor: isDark ? AppColor.darkBorder : AppColor.lightBorder,
-                                      textColor: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
-                                      fontWeight: FontWeight.w600,
-                                    ),
-                                  )),
+                                  ...item.attributeValues.entries
+                                      .where((e) {
+                                        final k = e.key.toLowerCase();
+                                        return !k.contains('flav') &&
+                                            !k.contains('nic') &&
+                                            !k.contains('size') &&
+                                            !k.contains('res') &&
+                                            !k.contains('color') &&
+                                            !k.contains('style') &&
+                                            !k.contains('نكهة') &&
+                                            !k.contains('نيكوتين') &&
+                                            !k.contains('حجم') &&
+                                            !k.contains('لون') &&
+                                            !k.contains('مقاومة');
+                                      })
+                                      .map(
+                                        (e) => Padding(
+                                          padding: const EdgeInsets.only(
+                                            left: 3.5,
+                                          ),
+                                          child: _buildSpecPill(
+                                            label: '${e.key}: ${e.value}',
+                                            bgColor: isDark
+                                                ? const Color(0xFF1E293B)
+                                                : const Color(0xFFF1F5F9),
+                                            borderColor: isDark
+                                                ? AppColor.darkBorder
+                                                : AppColor.lightBorder,
+                                            textColor: isDark
+                                                ? AppColor.textSecondaryDark
+                                                : AppColor.textSecondaryLight,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
                                 ],
                               ),
                             ),
@@ -649,22 +786,19 @@ class _PosProductGridState extends State<PosProductGrid> {
                 const SizedBox(width: 8),
 
                 // 3. Cost Price Column (if permitted)
-                if (showCostPrice) ...[
+                if (showCostPrice)
                   Expanded(
                     flex: 2,
                     child: Center(
                       child: _buildCostPriceCell(item, isDark),
                     ),
                   ),
-                  const SizedBox(width: 8),
-                ],
+                if (showCostPrice) const SizedBox(width: 8),
 
                 // 4. Selling Price Column (Without "Sale" tag as requested)
                 Expanded(
                   flex: 2,
-                  child: Center(
-                    child: _buildPriceCell(item, isDark),
-                  ),
+                  child: Center(child: _buildPriceCell(item, isDark)),
                 ),
                 const SizedBox(width: 8),
 
@@ -672,7 +806,12 @@ class _PosProductGridState extends State<PosProductGrid> {
                 Expanded(
                   flex: 2,
                   child: Center(
-                    child: _buildAddButton(context, item, isOutOfStock, isArabic),
+                    child: _buildAddButton(
+                      context,
+                      item,
+                      isOutOfStock,
+                      isArabic,
+                    ),
                   ),
                 ),
               ],
@@ -758,7 +897,12 @@ class _PosProductGridState extends State<PosProductGrid> {
   }
 
   /// Compact Add Button for table cell
-  Widget _buildAddButton(BuildContext context, PosCatalogItem item, bool isOutOfStock, bool isArabic) {
+  Widget _buildAddButton(
+    BuildContext context,
+    PosCatalogItem item,
+    bool isOutOfStock,
+    bool isArabic,
+  ) {
     final label = isOutOfStock
         ? (isArabic ? 'نفذ' : 'Out')
         : (isArabic ? 'إضافة' : 'Add');
@@ -767,7 +911,9 @@ class _PosProductGridState extends State<PosProductGrid> {
       height: 28,
       constraints: const BoxConstraints(maxWidth: 84),
       decoration: BoxDecoration(
-        color: isOutOfStock ? Colors.grey.withValues(alpha: 0.2) : AppColor.primary,
+        color: isOutOfStock
+            ? Colors.grey.withValues(alpha: 0.2)
+            : AppColor.primary,
         borderRadius: BorderRadius.circular(6),
         boxShadow: isOutOfStock
             ? null
@@ -790,7 +936,10 @@ class _PosProductGridState extends State<PosProductGrid> {
                 );
               }
             : () {
-                context.read<PosCubit>().addToCart(item.product, variation: item.variation);
+                context.read<PosCubit>().addToCart(
+                  item.product,
+                  variation: item.variation,
+                );
                 try {
                   HapticFeedback.lightImpact();
                 } catch (_) {}
@@ -829,7 +978,11 @@ class _PosProductGridState extends State<PosProductGrid> {
   }
 
   /// Minimalist stock indicator with clear icon and count
-  Widget _buildMinimalStockIndicator(PosCatalogItem item, bool isDark, bool isArabic) {
+  Widget _buildMinimalStockIndicator(
+    PosCatalogItem item,
+    bool isDark,
+    bool isArabic,
+  ) {
     final isOutOfStock = item.isOutOfStock;
     final isLow = item.isLowStock;
 
@@ -844,8 +997,12 @@ class _PosProductGridState extends State<PosProductGrid> {
     final tooltip = isOutOfStock
         ? (isArabic ? 'نفذ من المخزون (0)' : 'Out of stock (0)')
         : (isLow
-            ? (isArabic ? 'مخزون منخفض: ${item.stock}' : 'Low stock: ${item.stock}')
-            : (isArabic ? 'المتاح في المخزون: ${item.stock}' : 'In stock: ${item.stock}'));
+              ? (isArabic
+                    ? 'مخزون منخفض: ${item.stock}'
+                    : 'Low stock: ${item.stock}')
+              : (isArabic
+                    ? 'المتاح في المخزون: ${item.stock}'
+                    : 'In stock: ${item.stock}'));
 
     return Tooltip(
       message: tooltip,
@@ -889,7 +1046,9 @@ class _PosProductGridState extends State<PosProductGrid> {
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(3.5),
-        border: Border.all(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+        border: Border.all(
+          color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
+        ),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -911,7 +1070,9 @@ class _PosProductGridState extends State<PosProductGrid> {
             style: TextStyle(
               fontSize: 9.5,
               fontWeight: FontWeight.w700,
-              color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+              color: isDark
+                  ? AppColor.textSecondaryDark
+                  : AppColor.textSecondaryLight,
             ),
           ),
         ],
@@ -953,7 +1114,9 @@ class _PosProductGridState extends State<PosProductGrid> {
       ProductCategoryType.coil => Icons.flash_on_outlined,
       ProductCategoryType.accessory => Icons.cable_outlined,
     };
-    return Center(child: Icon(icon, size: size, color: Colors.grey.withValues(alpha: 0.45)));
+    return Center(
+      child: Icon(icon, size: size, color: Colors.grey.withValues(alpha: 0.45)),
+    );
   }
 
   Widget _buildEmptyState(BuildContext context, bool isDark, bool hasFilters) {
@@ -963,7 +1126,11 @@ class _PosProductGridState extends State<PosProductGrid> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.search_off_rounded, size: 44, color: isDark ? Colors.white38 : Colors.black26),
+            Icon(
+              Icons.search_off_rounded,
+              size: 44,
+              color: isDark ? Colors.white38 : Colors.black26,
+            ),
             const SizedBox(height: AppSizes.md),
             Text(
               'no_matching_products'.tr,
@@ -972,21 +1139,34 @@ class _PosProductGridState extends State<PosProductGrid> {
             const SizedBox(height: 4),
             Text(
               'no_matching_products_desc'.tr,
-              style: TextStyle(fontSize: 12, color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+              style: TextStyle(
+                fontSize: 12,
+                color: isDark
+                    ? AppColor.textMutedDark
+                    : AppColor.textMutedLight,
+              ),
               textAlign: TextAlign.center,
             ),
             if (hasFilters) ...[
               const SizedBox(height: 12),
               OutlinedButton.icon(
                 onPressed: () {
-                  context.read<PosCubit>().filterProducts(query: '', clearCategory: true);
+                  context.read<PosCubit>().filterProducts(
+                    query: '',
+                    clearCategory: true,
+                  );
                   setState(() => _inStockOnly = false);
                 },
                 icon: const Icon(Icons.refresh_rounded, size: 16),
                 label: Text('reset_filters'.tr),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],
