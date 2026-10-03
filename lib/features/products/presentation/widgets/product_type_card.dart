@@ -91,16 +91,16 @@ class _ProductTypeCardState extends State<ProductTypeCard> {
                 color: isSel
                     ? color
                     : (_isHovered
-                          ? color.withValues(alpha: 0.45)
+                          ? color.withValues(alpha: 0.35)
                           : (isDark ? AppColor.darkBorder : AppColor.lightBorder)),
-                width: isSel ? 1.8 : 1.0,
+                width: isSel ? 1.4 : 1.0,
               ),
-              boxShadow: isSel || _isHovered
+              boxShadow: (isSel || _isHovered) && !isDark
                   ? [
                       BoxShadow(
-                        color: color.withValues(alpha: isSel ? 0.20 : 0.08),
-                        blurRadius: isSel ? 12 : 8,
-                        offset: const Offset(0, 3),
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
                       ),
                     ]
                   : [],

@@ -42,6 +42,37 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
     }
   }
 
+  List<String> _buildPhoneVariants(String rawPhone) {
+    final clean = rawPhone.trim().replaceAll(RegExp(r'\s+|-'), '');
+    if (clean.isEmpty) return [];
+
+    final set = <String>{clean};
+
+    String base = clean;
+    if (base.startsWith('+20')) {
+      base = base.substring(3);
+    } else if (base.startsWith('+2')) {
+      base = base.substring(2);
+    } else if (base.startsWith('0020')) {
+      base = base.substring(4);
+    } else if (base.startsWith('20') && base.length >= 12) {
+      base = base.substring(2);
+    }
+
+    if (base.startsWith('0')) {
+      base = base.substring(1);
+    }
+
+    if (base.isNotEmpty) {
+      set.add(base);
+      set.add('0$base');
+      set.add('20$base');
+      set.add('+20$base');
+    }
+
+    return set.toList();
+  }
+
   @override
   Future<PosSaleModel> submitPosSale(PosSaleModel sale) async {
     try {
@@ -71,6 +102,9 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
         paymentMethod: sale.paymentMethod,
         notes: sale.notes,
         status: 'completed',
+        pointsEarned: sale.pointsEarned,
+        pointsRedeemed: sale.pointsRedeemed,
+        pointsDiscount: sale.pointsDiscount,
       );
 
       // 1. Prepare Order Document
@@ -92,6 +126,9 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
         'orderNotes': enrichedSale.notes,
         'source': 'pos',
         'orderType': 'in_store',
+        'pointsEarned': enrichedSale.pointsEarned,
+        'pointsRedeemed': enrichedSale.pointsRedeemed,
+        'pointsDiscount': enrichedSale.pointsDiscount,
         'cashierName': enrichedSale.cashierName,
         'cashierId': enrichedSale.cashierId,
         'branchId': enrichedSale.branchId,
@@ -121,12 +158,88 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
       // 2. Save Order & Stock Deduction in Batch / Transaction
       await docRef.set(orderData);
 
+      // 2b. Customer Loyalty Points update / creation
+      final cleanPhone = enrichedSale.customerPhone.trim().replaceAll(RegExp(r'\s+|-'), '');
+      if (cleanPhone.isNotEmpty) {
+        try {
+          final pointsDelta = enrichedSale.pointsEarned - enrichedSale.pointsRedeemed;
+          final variants = _buildPhoneVariants(enrichedSale.customerPhone);
+
+          QuerySnapshot<Map<String, dynamic>>? userSnap;
+          final queryList = variants.take(10).toList();
+
+          if (queryList.isNotEmpty) {
+            userSnap = await _firestore.collection('Users').where('phoneNumber', whereIn: queryList).limit(1).get();
+            if (userSnap.docs.isEmpty) {
+              userSnap = await _firestore.collection('Users').where('phone', whereIn: queryList).limit(1).get();
+            }
+            if (userSnap.docs.isEmpty) {
+              userSnap = await _firestore.collection('Users').where('PhoneNumber', whereIn: queryList).limit(1).get();
+            }
+          }
+
+          String customerDocId = '';
+
+          if (userSnap != null && userSnap.docs.isNotEmpty) {
+            final userDoc = userSnap.docs.first;
+            customerDocId = userDoc.id;
+
+            await _firestore.collection('Users').doc(userDoc.id).set({
+              'loyaltyPoints': FieldValue.increment(pointsDelta),
+              'totalOrders': FieldValue.increment(1),
+              'totalSpent': FieldValue.increment(enrichedSale.totalAmount),
+            }, SetOptions(merge: true));
+
+            await _firestore.collection('Users').doc(userDoc.id).collection('loyalty_history').add({
+              'orderId': saleId,
+              'orderNumber': enrichedSale.orderNumber,
+              'pointsEarned': enrichedSale.pointsEarned,
+              'pointsRedeemed': enrichedSale.pointsRedeemed,
+              'pointsDelta': pointsDelta,
+              'orderTotal': enrichedSale.totalAmount,
+              'createdAt': Timestamp.now(),
+            });
+          } else {
+            final newCustRef = _firestore.collection('Users').doc();
+            customerDocId = newCustRef.id;
+
+            await newCustRef.set({
+              'id': newCustRef.id,
+              'name': enrichedSale.customerName.trim().isNotEmpty &&
+                      enrichedSale.customerName != 'Walk-in Customer (عميل مباشر)'
+                  ? enrichedSale.customerName.trim()
+                  : 'Customer ${cleanPhone.length >= 4 ? cleanPhone.substring(cleanPhone.length - 4) : cleanPhone}',
+              'userName': enrichedSale.customerName,
+              'phoneNumber': cleanPhone,
+              'phone': cleanPhone,
+              'email': '$cleanPhone@walkin.customer',
+              'role': 'user',
+              'city': enrichedSale.branchName,
+              'loyaltyPoints': enrichedSale.pointsEarned,
+              'totalOrders': 1,
+              'totalSpent': enrichedSale.totalAmount,
+              'createdAt': Timestamp.now(),
+            });
+          }
+
+          if (customerDocId.isNotEmpty) {
+            await docRef.set({
+              'userId': customerDocId,
+              'customerId': customerDocId,
+              'customerPhone': cleanPhone,
+            }, SetOptions(merge: true));
+          }
+        } catch (loyaltyError) {
+          debugPrint('Error updating customer loyalty points: $loyaltyError');
+        }
+      }
+
       // Save a mirror in pos_sales for reporting
       try {
         await _firestore.collection('pos_sales').doc(saleId).set(enrichedSale.toJson());
       } catch (_) {}
 
-      // 3. Deduct stock for all purchased items
+      // 3. Deduct stock for all purchased items (including branchStock)
       for (final itm in enrichedSale.items) {
         if (itm.productId.isNotEmpty) {
           await _deductStock(
@@ -134,6 +247,7 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
             quantity: itm.quantity,
             selectedVariation: itm.selectedVariation,
             variationId: itm.variationId,
+            branchId: enrichedSale.branchId,
           );
         }
       }
@@ -150,6 +264,7 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
     required int quantity,
     required Map<String, String> selectedVariation,
     String? variationId,
+    String branchId = 'main_branch',
   }) async {
     try {
       final prodRef = _firestore.collection('Products').doc(productId);
@@ -161,8 +276,19 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
         if (data == null) return;
 
         final currentStock = (data['stock'] as num?)?.toInt() ?? 0;
-        final rawVars = data['productVariations'] ?? data['variations'];
+        final rawBranchStock = data['branchStock'] ?? data['BranchStock'] ?? {};
+        final Map<String, int> updatedBranchStock = {};
+        if (rawBranchStock is Map) {
+          rawBranchStock.forEach((k, v) {
+            if (v is num) updatedBranchStock[k.toString()] = v.toInt();
+          });
+        }
 
+        final effectiveBranchId = branchId.isNotEmpty ? branchId : 'main_branch';
+        final currentBranchQty = updatedBranchStock[effectiveBranchId] ?? currentStock;
+        updatedBranchStock[effectiveBranchId] = (currentBranchQty - quantity).clamp(0, 999999).toInt();
+
+        final rawVars = data['productVariations'] ?? data['variations'];
         final List<Map<String, dynamic>> updatedVars = [];
         bool variationUpdated = false;
 
@@ -190,6 +316,18 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
               if (isMatch && !variationUpdated) {
                 final vStock = (vMap['stock'] as num?)?.toInt() ?? 0;
                 vMap['stock'] = (vStock - quantity).clamp(0, 999999).toInt();
+
+                final vBranchRaw = vMap['branchStock'] ?? vMap['BranchStock'] ?? {};
+                final Map<String, int> vBranchStock = {};
+                if (vBranchRaw is Map) {
+                  vBranchRaw.forEach((k, val) {
+                    if (val is num) vBranchStock[k.toString()] = val.toInt();
+                  });
+                }
+                final currVBranchQty = vBranchStock[effectiveBranchId] ?? vStock;
+                vBranchStock[effectiveBranchId] = (currVBranchQty - quantity).clamp(0, 999999).toInt();
+                vMap['branchStock'] = vBranchStock;
+
                 variationUpdated = true;
               }
               updatedVars.add(vMap);
@@ -209,6 +347,7 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
 
         final updateData = <String, dynamic>{
           'stock': newTotalStock,
+          'branchStock': updatedBranchStock,
         };
         if (updatedVars.isNotEmpty && variationUpdated) {
           updateData['productVariations'] = updatedVars;
@@ -216,7 +355,7 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
 
         transaction.update(prodRef, updateData);
       });
-      debugPrint('📦 [POS Stock] Successfully deducted $quantity units for product $productId');
+      debugPrint('📦 [POS Stock] Successfully deducted $quantity units for product $productId at branch $branchId');
     } catch (e) {
       debugPrint('⚠️ [POS Stock Error] $e');
     }

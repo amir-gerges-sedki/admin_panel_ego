@@ -138,9 +138,12 @@ class _DualImagePickerFieldState extends State<DualImagePickerField> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Label & Mode Switcher Row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        // Label & Mode Switcher Row (Responsive Wrap)
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 6,
           children: [
             Text(
               '${widget.label.tr}${widget.isRequired ? ' *' : ''}',

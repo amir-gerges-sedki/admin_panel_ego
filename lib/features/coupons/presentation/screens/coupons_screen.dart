@@ -63,7 +63,9 @@ class CouponsScreen extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColor.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: AppSizes.sm),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                      minimumSize: const Size(0, 36),
+                      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                     ),
                   ),
                   columns: [
@@ -81,15 +83,29 @@ class CouponsScreen extends StatelessWidget {
                       cells: [
                         DataCell(
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                             decoration: BoxDecoration(
-                              color: AppColor.primary.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(4),
-                              border: Border.all(color: AppColor.primary.withValues(alpha: 0.3)),
+                              color: AppColor.primary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: AppColor.primary.withValues(alpha: 0.25),
+                              ),
                             ),
-                            child: Text(
-                              c.code,
-                              style: const TextStyle(fontWeight: FontWeight.w800, color: AppColor.primary),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.confirmation_number_outlined, size: 12, color: AppColor.primary),
+                                const SizedBox(width: 5),
+                                Text(
+                                  c.code,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w700,
+                                    fontSize: 12,
+                                    letterSpacing: 0.5,
+                                    color: AppColor.primary,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

@@ -284,11 +284,11 @@ class InvoiceBatchVariationMatrix extends StatelessWidget {
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 250),
             child: filtered.isEmpty
-                ? const Padding(
-                    padding: EdgeInsets.all(16),
+                ? Padding(
+                    padding: const EdgeInsets.all(16),
                     child: Center(
-                      child: Text('لا توجد متغيرات مطابقة للبحث',
-                          style: TextStyle(fontSize: 12, color: Colors.grey)),
+                      child: Text('no_matching_variations'.tr,
+                          style: const TextStyle(fontSize: 12, color: Colors.grey)),
                     ),
                   )
                 : ListView.separated(

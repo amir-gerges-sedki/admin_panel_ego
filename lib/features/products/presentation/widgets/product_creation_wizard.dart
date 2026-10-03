@@ -294,14 +294,12 @@ class ProductCreationWizard extends StatelessWidget {
                                       : (isDark
                                             ? Colors.white.withValues(alpha: 0.08)
                                             : Colors.black.withValues(alpha: 0.05))),
-                            boxShadow: isCurrent
+                            boxShadow: isCurrent && !isDark
                                 ? [
                                     BoxShadow(
-                                      color: AppColor.primary.withValues(
-                                        alpha: 0.35,
-                                      ),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 2),
+                                      color: Colors.black.withValues(alpha: 0.04),
+                                      blurRadius: 4,
+                                      offset: const Offset(0, 1),
                                     ),
                                   ]
                                 : [],
@@ -781,12 +779,12 @@ class ProductCreationWizard extends StatelessWidget {
                 : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
             width: isSelected ? 1.6 : 1.0,
           ),
-          boxShadow: isSelected
+          boxShadow: isSelected && !isDark
               ? [
                   BoxShadow(
-                    color: activeColor.withValues(alpha: 0.35),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
                   ),
                 ]
               : [],
@@ -1566,13 +1564,6 @@ class ProductCreationWizard extends StatelessWidget {
                     colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
                   ),
                   borderRadius: BorderRadius.circular(6),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1867,13 +1858,15 @@ class ProductCreationWizard extends StatelessWidget {
               color: color.withValues(alpha: 0.35),
               width: 1.2,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: color.withValues(alpha: 0.1),
-                blurRadius: 16,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.025),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -2005,12 +1998,6 @@ class ProductCreationWizard extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: badgeColor,
                                   borderRadius: BorderRadius.circular(4),
-                                  boxShadow: const [
-                                    BoxShadow(
-                                      color: Colors.black26,
-                                      blurRadius: 4,
-                                    ),
-                                  ],
                                 ),
                                 child: Text(
                                   state.badgeId,

@@ -1,16 +1,11 @@
 import 'dart:async';
-import 'dart:js_interop';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:web/web.dart' as web;
-
-class PickedFilePayload {
-  final Uint8List bytes;
-  final String name;
-
-  PickedFilePayload({required this.bytes, required this.name});
-}
+import 'web_file_picker_stub.dart';
+import 'web_file_picker_stub.dart'
+    if (dart.library.js_interop) 'web_file_picker_helper.dart' as web_picker;
+export 'web_file_picker_stub.dart' show PickedFilePayload;
 
 /// Centralized service for image picking and Firebase Storage upload across the EGO ecosystem
 class FirebaseStorageService {
@@ -43,7 +38,7 @@ class FirebaseStorageService {
       } catch (e) {
         debugPrint('⚠️ [FirebaseStorage] ImagePicker failed or uninitialized, attempting Web fallback: $e');
         if (kIsWeb) {
-          final webFile = await _pickFileFromWeb();
+          final webFile = await web_picker.pickFileFromWeb();
           if (webFile != null) {
             bytes = webFile.bytes;
             originalFileName = webFile.name;
@@ -90,54 +85,6 @@ class FirebaseStorageService {
     }
   }
 
-  /// Web File Input fallback using standard HTML input element
-  static Future<PickedFilePayload?> _pickFileFromWeb() {
-    final completer = Completer<PickedFilePayload?>();
-    final input = web.document.createElement('input') as web.HTMLInputElement;
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.style.display = 'none';
-    web.document.body?.appendChild(input);
-
-    input.onchange = (web.Event e) {
-      final files = input.files;
-      if (files == null || files.length == 0) {
-        input.remove();
-        if (!completer.isCompleted) completer.complete(null);
-        return;
-      }
-      final file = files.item(0)!;
-      final reader = web.FileReader();
-      reader.onload = (web.Event _) {
-        final result = reader.result;
-        if (result != null) {
-          final jsBuf = result as JSArrayBuffer;
-          final bytes = jsBuf.toDart.asUint8List();
-          input.remove();
-          if (!completer.isCompleted) {
-            completer.complete(PickedFilePayload(bytes: bytes, name: file.name));
-          }
-        } else {
-          input.remove();
-          if (!completer.isCompleted) completer.complete(null);
-        }
-      }.toJS;
-      reader.onerror = (web.Event _) {
-        input.remove();
-        if (!completer.isCompleted) completer.complete(null);
-      }.toJS;
-      reader.readAsArrayBuffer(file);
-    }.toJS;
-
-    input.oncancel = (web.Event _) {
-      input.remove();
-      if (!completer.isCompleted) completer.complete(null);
-    }.toJS;
-
-    input.click();
-    return completer.future;
-  }
-
   /// Uploads raw image bytes directly to Firebase Storage.
   static Future<String> uploadBytes({
     required Uint8List bytes,
@@ -181,7 +128,7 @@ class FirebaseStorageService {
       } catch (e) {
         debugPrint('⚠️ [FirebaseStorage] pickMultiImage failed, attempting Web fallback: $e');
         if (kIsWeb) {
-          final webFiles = await _pickMultipleFilesFromWeb();
+          final webFiles = await web_picker.pickMultipleFilesFromWeb();
           payloads.addAll(webFiles);
         } else {
           rethrow;
@@ -217,62 +164,6 @@ class FirebaseStorageService {
       debugPrint('⚠️ [FirebaseStorage Error] pickAndUploadMultipleImages failed: $e');
       rethrow;
     }
-  }
-
-  static Future<List<PickedFilePayload>> _pickMultipleFilesFromWeb() {
-    final completer = Completer<List<PickedFilePayload>>();
-    final input = web.document.createElement('input') as web.HTMLInputElement;
-    input.type = 'file';
-    input.accept = 'image/*';
-    input.multiple = true;
-    input.style.display = 'none';
-    web.document.body?.appendChild(input);
-
-    input.onchange = (web.Event e) {
-      final files = input.files;
-      if (files == null || files.length == 0) {
-        input.remove();
-        if (!completer.isCompleted) completer.complete([]);
-        return;
-      }
-
-      final List<PickedFilePayload> results = [];
-      int readCount = 0;
-      final total = files.length;
-
-      for (int i = 0; i < total; i++) {
-        final file = files.item(i)!;
-        final reader = web.FileReader();
-        reader.onload = (web.Event _) {
-          final result = reader.result;
-          if (result != null) {
-            final jsBuf = result as JSArrayBuffer;
-            results.add(PickedFilePayload(bytes: jsBuf.toDart.asUint8List(), name: file.name));
-          }
-          readCount++;
-          if (readCount == total) {
-            input.remove();
-            if (!completer.isCompleted) completer.complete(results);
-          }
-        }.toJS;
-        reader.onerror = (web.Event _) {
-          readCount++;
-          if (readCount == total) {
-            input.remove();
-            if (!completer.isCompleted) completer.complete(results);
-          }
-        }.toJS;
-        reader.readAsArrayBuffer(file);
-      }
-    }.toJS;
-
-    input.oncancel = (web.Event _) {
-      input.remove();
-      if (!completer.isCompleted) completer.complete([]);
-    }.toJS;
-
-    input.click();
-    return completer.future;
   }
 
   /// Deletes an image from storage if it's hosted on Firebase Storage

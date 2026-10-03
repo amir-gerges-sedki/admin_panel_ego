@@ -125,13 +125,22 @@ class _CustomDataTableState extends State<CustomDataTable> {
         border: Border.all(
           color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
         ),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.025),
+                  blurRadius: 10,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Header Bar
           Padding(
-            padding: const EdgeInsets.all(AppSizes.md),
+            padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: 12),
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final isCompact = constraints.maxWidth < 680;
@@ -139,22 +148,30 @@ class _CustomDataTableState extends State<CustomDataTable> {
                 final searchWidget = widget.onSearchChanged != null
                     ? SizedBox(
                         width: isCompact ? null : (constraints.maxWidth > 950 ? 220 : 170),
-                        height: 38,
+                        height: 36,
                         child: TextField(
                           controller: _searchController,
                           onChanged: (val) {
                             setState(() => _currentPage = 0);
                             widget.onSearchChanged?.call(val);
                           },
-                          style: const TextStyle(fontSize: 13),
+                          style: const TextStyle(fontSize: 12.5),
                           decoration: InputDecoration(
                             hintText: resolvedSearchHint,
-                            prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                            hintStyle: TextStyle(
+                              fontSize: 12,
+                              color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search_rounded,
+                              size: 17,
+                              color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
+                            ),
                             suffixIcon: _searchController.text.isNotEmpty
                                 ? IconButton(
-                                    icon: const Icon(Icons.close_rounded, size: 16),
+                                    icon: const Icon(Icons.close_rounded, size: 15),
                                     tooltip: 'clear_search'.tr,
-                                    splashRadius: 16,
+                                    splashRadius: 14,
                                     onPressed: () {
                                       _searchController.clear();
                                       setState(() => _currentPage = 0);
@@ -162,6 +179,26 @@ class _CustomDataTableState extends State<CustomDataTable> {
                                     },
                                   )
                                 : null,
+                            filled: true,
+                            fillColor: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: BorderSide(
+                                color: isDark ? AppColor.darkBorder : AppColor.lightBorder.withValues(alpha: 0.6),
+                                width: 1,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(8),
+                              borderSide: const BorderSide(
+                                color: AppColor.primary,
+                                width: 1.2,
+                              ),
+                            ),
                             contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
                             isDense: true,
                           ),
@@ -195,7 +232,7 @@ class _CustomDataTableState extends State<CustomDataTable> {
                           Text(
                             widget.title,
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
                             ),
@@ -229,7 +266,7 @@ class _CustomDataTableState extends State<CustomDataTable> {
                           Text(
                             widget.title,
                             style: TextStyle(
-                              fontSize: 18,
+                              fontSize: 16,
                               fontWeight: FontWeight.w700,
                               color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
                             ),
@@ -269,19 +306,15 @@ class _CustomDataTableState extends State<CustomDataTable> {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
-                      width: 72,
-                      height: 72,
+                      width: 60,
+                      height: 60,
                       decoration: BoxDecoration(
-                        color: AppColor.primary.withValues(alpha: isDark ? 0.12 : 0.08),
+                        color: AppColor.primary.withValues(alpha: isDark ? 0.10 : 0.07),
                         shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AppColor.primary.withValues(alpha: 0.2),
-                          width: 1.5,
-                        ),
                       ),
                       child: Icon(
                         widget.emptyIcon ?? Icons.inbox_outlined,
-                        size: 34,
+                        size: 28,
                         color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
                       ),
                     ),
@@ -324,29 +357,28 @@ class _CustomDataTableState extends State<CustomDataTable> {
                     child: DataTable(
                       showCheckboxColumn: widget.showCheckboxColumn ?? (widget.onSelectAll != null),
                       onSelectAll: widget.onSelectAll,
-                      headingRowHeight: 48,
-                      dataRowMinHeight: 52,
-                      dataRowMaxHeight: 56,
+                      headingRowHeight: 44,
+                      dataRowMinHeight: 48,
+                      dataRowMaxHeight: 52,
                       horizontalMargin: AppSizes.md,
                       columnSpacing: dynamicSpacing,
                       sortColumnIndex: widget.sortColumnIndex,
                       sortAscending: widget.sortAscending,
                       headingTextStyle: TextStyle(
                         fontWeight: FontWeight.w700,
-                        fontSize: 13,
+                        fontSize: 12,
+                        letterSpacing: 0.2,
                         color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
                       ),
                       headingRowColor: WidgetStateProperty.all(
-                        isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
+                        isDark ? AppColor.darkSubCard : AppColor.lightSubCard.withValues(alpha: 0.6),
                       ),
                       columns: widget.columns.map((c) {
                         return DataColumn(
-                          label: Flexible(
-                            child: Text(
-                              c.label,
-                              overflow: TextOverflow.ellipsis,
-                              maxLines: 1,
-                            ),
+                          label: Text(
+                            c.label,
+                            overflow: TextOverflow.ellipsis,
+                            maxLines: 1,
                           ),
                           numeric: c.isNumeric,
                           onSort: c.onSort,
@@ -364,7 +396,7 @@ class _CustomDataTableState extends State<CustomDataTable> {
 
           // Pagination Footer
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: AppSizes.sm),
+            padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -376,46 +408,69 @@ class _CustomDataTableState extends State<CustomDataTable> {
                   }),
                   style: TextStyle(
                     fontSize: 12,
+                    fontWeight: FontWeight.w500,
                     color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
                   ),
                 ),
                 Builder(
                   builder: (context) {
                     final isRtl = Directionality.of(context) == TextDirection.rtl;
-                    return Row(
-                      children: [
-                        IconButton(
-                          icon: Icon(
-                            isRtl ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
-                            size: 20,
-                          ),
-                          tooltip: 'previous_page'.tr,
-                          onPressed: _currentPage > 0
-                              ? () => setState(() => _currentPage--)
-                              : null,
+                    return Container(
+                      decoration: BoxDecoration(
+                        color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
+                          width: 0.8,
                         ),
-                        Text(
-                          'page_x_of_y'.trParams({
-                            'page': '${_currentPage + 1}',
-                            'total': '$totalPages',
-                          }),
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: Icon(
+                              isRtl ? Icons.chevron_right_rounded : Icons.chevron_left_rounded,
+                              size: 18,
+                            ),
+                            tooltip: 'previous_page'.tr,
+                            visualDensity: VisualDensity.compact,
+                            splashRadius: 16,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            onPressed: _currentPage > 0
+                                ? () => setState(() => _currentPage--)
+                                : null,
                           ),
-                        ),
-                        IconButton(
-                          icon: Icon(
-                            isRtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
-                            size: 20,
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 8),
+                            child: Text(
+                              'page_x_of_y'.trParams({
+                                'page': '${_currentPage + 1}',
+                                'total': '$totalPages',
+                              }),
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                                color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+                              ),
+                            ),
                           ),
-                          tooltip: 'next_page'.tr,
-                          onPressed: _currentPage < totalPages - 1
-                              ? () => setState(() => _currentPage++)
-                              : null,
-                        ),
-                      ],
+                          IconButton(
+                            icon: Icon(
+                              isRtl ? Icons.chevron_left_rounded : Icons.chevron_right_rounded,
+                              size: 18,
+                            ),
+                            tooltip: 'next_page'.tr,
+                            visualDensity: VisualDensity.compact,
+                            splashRadius: 16,
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
+                            constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                            onPressed: _currentPage < totalPages - 1
+                                ? () => setState(() => _currentPage++)
+                                : null,
+                          ),
+                        ],
+                      ),
                     );
                   },
                 ),

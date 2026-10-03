@@ -1,4 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../customers/domain/services/loyalty_service.dart';
 import '../../data/models/store_settings_model.dart';
 import '../../data/repositories/settings_repository.dart';
 import 'settings_state.dart';
@@ -14,6 +15,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     emit(const SettingsLoading());
     try {
       final settings = await settingsRepository.getSettings();
+      _syncLoyalty(settings);
       emit(SettingsLoaded(settings));
     } catch (e) {
       emit(SettingsError(e.toString()));
@@ -23,9 +25,19 @@ class SettingsCubit extends Cubit<SettingsState> {
   Future<void> saveSettings(StoreSettingsModel settings) async {
     try {
       await settingsRepository.updateSettings(settings);
+      _syncLoyalty(settings);
       emit(SettingsLoaded(settings));
     } catch (e) {
       emit(SettingsError(e.toString()));
     }
+  }
+
+  void _syncLoyalty(StoreSettingsModel settings) {
+    LoyaltyService.syncFromSettings(
+      isLoyaltyEnabled: settings.isLoyaltyEnabled,
+      egpPerEarnedPoint: settings.egpPerEarnedPoint,
+      egpValuePerRedeemedPoint: settings.egpValuePerRedeemedPoint,
+      minPointsToRedeem: settings.minPointsToRedeem,
+    );
   }
 }

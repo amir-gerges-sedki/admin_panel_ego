@@ -1,6 +1,9 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../customers/data/models/customer_model.dart';
+import '../../../customers/data/repositories/customer_repository.dart';
+import 'package:admin_panel_ego/features/customers/domain/services/loyalty_service.dart';
 import '../../../products/data/models/product_model.dart';
 import '../../data/models/pos_cart_item_model.dart';
 import '../../data/models/pos_sale_model.dart';
@@ -10,10 +13,13 @@ import 'pos_state.dart';
 
 class PosCubit extends Cubit<PosState> {
   final PosRepository _repository;
+  final CustomerRepository _customerRepository;
   StreamSubscription<List<ProductModel>>? _productsSubscription;
+  Timer? _customerSearchDebounce;
 
-  PosCubit({PosRepository? repository})
+  PosCubit({PosRepository? repository, CustomerRepository? customerRepository})
       : _repository = repository ?? PosRepositoryImpl(),
+        _customerRepository = customerRepository ?? CustomerRepositoryImpl(),
         super(const PosState()) {
     init();
   }
@@ -236,6 +242,7 @@ class PosCubit extends Cubit<PosState> {
       items[existingIndex] = existing.copyWith(quantity: newQty);
       emit(state.copyWith(
         cartItems: items,
+        saleStatus: PosSaleStatus.initial,
         barcodeFeedbackMessage: 'تمت إضافة: $itemDisplayName',
       ));
     } else {
@@ -243,6 +250,7 @@ class PosCubit extends Cubit<PosState> {
         items.add(newItem.copyWith(quantity: maxStock));
         emit(state.copyWith(
           cartItems: items,
+          saleStatus: PosSaleStatus.initial,
           barcodeFeedbackMessage: '⚠️ تم إضافة أقصى كمية متاحة ($maxStock) للصنف "$itemDisplayName".',
         ));
         return;
@@ -251,6 +259,7 @@ class PosCubit extends Cubit<PosState> {
       items.add(newItem);
       emit(state.copyWith(
         cartItems: items,
+        saleStatus: PosSaleStatus.initial,
         barcodeFeedbackMessage: 'تمت إضافة: $itemDisplayName',
       ));
     }
@@ -304,6 +313,9 @@ class PosCubit extends Cubit<PosState> {
       cartDiscount: 0.0,
       customerName: '',
       customerPhone: '',
+      clearMatchedCustomer: true,
+      pointsRedeemed: 0,
+      pointsDiscount: 0.0,
       orderNotes: '',
       paidAmount: 0.0,
       saleStatus: PosSaleStatus.initial,
@@ -325,9 +337,110 @@ class PosCubit extends Cubit<PosState> {
     ));
   }
 
+  /// Automatically searches customer by phone with debounce and manages points
+  void onCustomerPhoneChanged(String phone) {
+    emit(state.copyWith(customerPhone: phone));
+    _customerSearchDebounce?.cancel();
+
+    final cleanPhone = phone.trim();
+    if (cleanPhone.length < 8) {
+      if (state.matchedCustomer != null) {
+        emit(state.copyWith(
+          clearMatchedCustomer: true,
+          pointsRedeemed: 0,
+          pointsDiscount: 0.0,
+        ));
+      }
+      return;
+    }
+
+    _customerSearchDebounce = Timer(const Duration(milliseconds: 350), () async {
+      emit(state.copyWith(isSearchingCustomer: true));
+      try {
+        final customer = await _customerRepository.findCustomerByPhone(cleanPhone);
+        if (customer != null) {
+          emit(state.copyWith(
+            isSearchingCustomer: false,
+            matchedCustomer: customer,
+            customerName: (state.customerName.isEmpty ||
+                    state.customerName == 'Walk-in Customer' ||
+                    state.customerName == 'عميل مباشر')
+                ? customer.name
+                : state.customerName,
+          ));
+        } else {
+          emit(state.copyWith(
+            isSearchingCustomer: false,
+            clearMatchedCustomer: true,
+            pointsRedeemed: 0,
+            pointsDiscount: 0.0,
+          ));
+        }
+      } catch (_) {
+        emit(state.copyWith(isSearchingCustomer: false));
+      }
+    });
+  }
+
+  /// Attaches or clears the matched customer profile for loyalty
+  void setMatchedCustomer(CustomerModel? customer) {
+    if (customer == null) {
+      emit(state.copyWith(
+        clearMatchedCustomer: true,
+        pointsRedeemed: 0,
+        pointsDiscount: 0.0,
+      ));
+      return;
+    }
+
+    emit(state.copyWith(
+      matchedCustomer: customer,
+      customerName: customer.name.isNotEmpty && state.customerName.isEmpty
+          ? customer.name
+          : state.customerName,
+      customerPhone: customer.phone.isNotEmpty && state.customerPhone.isEmpty
+          ? customer.phone
+          : state.customerPhone,
+    ));
+  }
+
+  /// Toggles or applies loyalty points redemption on the active bill
+  void togglePointsRedemption(bool apply) {
+    if (!apply || state.matchedCustomer == null) {
+      emit(state.copyWith(
+        pointsRedeemed: 0,
+        pointsDiscount: 0.0,
+      ));
+      return;
+    }
+
+    final custPoints = state.matchedCustomer!.loyaltyPoints;
+    final billBalance = (state.subTotal - (state.itemDiscounts + state.cartDiscount)).clamp(0.0, double.infinity);
+    final maxRedeem = LoyaltyService.calculateMaxRedeemablePoints(
+      customerPoints: custPoints,
+      billTotal: billBalance,
+    );
+
+    final discount = LoyaltyService.calculateDiscount(maxRedeem);
+
+    emit(state.copyWith(
+      pointsRedeemed: maxRedeem,
+      pointsDiscount: discount,
+    ));
+  }
+
   /// Updates selected payment method
   void setPaymentMethod(String method) {
-    emit(state.copyWith(paymentMethod: method));
+    emit(state.copyWith(
+      paymentMethod: method,
+      saleStatus: PosSaleStatus.initial,
+      paidAmount: method != 'cash' ? state.grandTotal : (state.paidAmount > 0 ? state.paidAmount : state.grandTotal),
+    ));
+  }
+
+  /// Resets sale status back to initial state
+  void resetSaleStatus() {
+    emit(state.copyWith(saleStatus: PosSaleStatus.initial, errorMessage: null));
   }
 
   /// Updates paid cash amount
@@ -384,6 +497,9 @@ class PosCubit extends Cubit<PosState> {
         paymentMethod: state.paymentMethod,
         notes: state.orderNotes,
         status: 'completed',
+        pointsEarned: state.pointsEarned,
+        pointsRedeemed: state.pointsRedeemed,
+        pointsDiscount: state.pointsDiscount,
       );
 
       final completed = await _repository.submitPosSale(sale);
@@ -399,6 +515,9 @@ class PosCubit extends Cubit<PosState> {
         cartDiscount: 0.0,
         customerName: '',
         customerPhone: '',
+        clearMatchedCustomer: true,
+        pointsRedeemed: 0,
+        pointsDiscount: 0.0,
         orderNotes: '',
         paidAmount: 0.0,
         barcodeFeedbackMessage: '✅ تم إتمام الفاتورة #${completed.orderNumber} بنجاح!',
@@ -425,6 +544,7 @@ class PosCubit extends Cubit<PosState> {
   @override
   Future<void> close() {
     _productsSubscription?.cancel();
+    _customerSearchDebounce?.cancel();
     return super.close();
   }
 }

@@ -160,9 +160,142 @@ class StockTransferRemoteDataSourceImpl implements StockTransferRemoteDataSource
       }
 
       await docRef.update(updateData);
+
+      // Apply Inter-Branch Stock Adjustments when transfer is marked as Received
+      if (status == StockTransferStatus.received && existing.status != StockTransferStatus.received) {
+        final fromBranch = existing.fromBranchId.isNotEmpty ? existing.fromBranchId : 'main_branch';
+        final toBranch = existing.toBranchId.isNotEmpty ? existing.toBranchId : 'main_branch';
+
+        if (fromBranch != toBranch) {
+          for (final item in updatedItems) {
+            final qty = item.receivedQuantity > 0 ? item.receivedQuantity : item.requestedQuantity;
+            if (item.productId.isEmpty || qty <= 0) continue;
+
+            await _transferItemStock(
+              productId: item.productId,
+              variationSku: item.variationSku,
+              quantity: qty,
+              fromBranchId: fromBranch,
+              fromBranchName: existing.fromBranchName,
+              toBranchId: toBranch,
+              toBranchName: existing.toBranchName,
+              transferId: transferId,
+              performedBy: performedBy ?? 'Store Staff',
+            );
+          }
+        }
+      }
     } catch (e) {
       debugPrint('! [StockTransfer] Error updating status: $e');
       rethrow;
+    }
+  }
+
+  Future<void> _transferItemStock({
+    required String productId,
+    required String variationSku,
+    required int quantity,
+    required String fromBranchId,
+    required String fromBranchName,
+    required String toBranchId,
+    required String toBranchName,
+    required String transferId,
+    required String performedBy,
+  }) async {
+    try {
+      final prodRef = _firestore.collection('Products').doc(productId);
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(prodRef);
+        if (!snapshot.exists) return;
+
+        final data = snapshot.data();
+        if (data == null) return;
+
+        final productTitle = data['title']?.toString() ?? 'Product';
+        final currentStock = (data['stock'] as num?)?.toInt() ?? 0;
+
+        // 1. Update product branchStock
+        final rawBranchStock = data['branchStock'] ?? data['BranchStock'] ?? {};
+        final Map<String, int> updatedBranchStock = {};
+        if (rawBranchStock is Map) {
+          rawBranchStock.forEach((k, v) {
+            if (v is num) updatedBranchStock[k.toString()] = v.toInt();
+          });
+        }
+
+        final fromQty = updatedBranchStock[fromBranchId] ?? currentStock;
+        final toQty = updatedBranchStock[toBranchId] ?? 0;
+
+        updatedBranchStock[fromBranchId] = (fromQty - quantity).clamp(0, 999999).toInt();
+        updatedBranchStock[toBranchId] = (toQty + quantity).clamp(0, 999999).toInt();
+
+        // 2. Update variations branchStock if variationSku provided
+        final rawVars = data['productVariations'] ?? data['variations'];
+        final List<Map<String, dynamic>> updatedVars = [];
+        bool variationUpdated = false;
+
+        if (rawVars is List && rawVars.isNotEmpty) {
+          for (final v in rawVars) {
+            if (v is Map) {
+              final vMap = Map<String, dynamic>.from(v);
+              final sku = vMap['sku']?.toString().trim().toLowerCase() ?? '';
+
+              if (variationSku.isNotEmpty && sku == variationSku.trim().toLowerCase()) {
+                final vStock = (vMap['stock'] as num?)?.toInt() ?? 0;
+                final vBranchRaw = vMap['branchStock'] ?? vMap['BranchStock'] ?? {};
+                final Map<String, int> vBranchStock = {};
+                if (vBranchRaw is Map) {
+                  vBranchRaw.forEach((k, val) {
+                    if (val is num) vBranchStock[k.toString()] = val.toInt();
+                  });
+                }
+
+                final vFromQty = vBranchStock[fromBranchId] ?? vStock;
+                final vToQty = vBranchStock[toBranchId] ?? 0;
+
+                vBranchStock[fromBranchId] = (vFromQty - quantity).clamp(0, 999999).toInt();
+                vBranchStock[toBranchId] = (vToQty + quantity).clamp(0, 999999).toInt();
+                vMap['branchStock'] = vBranchStock;
+                variationUpdated = true;
+              }
+              updatedVars.add(vMap);
+            }
+          }
+        }
+
+        final updateData = <String, dynamic>{
+          'branchStock': updatedBranchStock,
+          'updatedAt': FieldValue.serverTimestamp(),
+        };
+        if (updatedVars.isNotEmpty && variationUpdated) {
+          updateData['productVariations'] = updatedVars;
+        }
+
+        transaction.update(prodRef, updateData);
+
+        // 3. Log Stock Movement audit for the transfer
+        final movRef = _firestore.collection('stock_movements').doc();
+        transaction.set(movRef, {
+          'id': movRef.id,
+          'productId': productId,
+          'productTitle': productTitle,
+          'variationSku': variationSku,
+          'type': 'transfer',
+          'quantity': quantity,
+          'fromBranchId': fromBranchId,
+          'fromBranchName': fromBranchName,
+          'toBranchId': toBranchId,
+          'toBranchName': toBranchName,
+          'transferId': transferId,
+          'notes': 'تحويل بضاعة من $fromBranchName إلى $toBranchName (طلب #$transferId)',
+          'performedBy': performedBy,
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      });
+
+      debugPrint('📦 [Transfer Stock] Transferred $quantity units of $productId from $fromBranchName to $toBranchName');
+    } catch (e) {
+      debugPrint('⚠️ [Transfer Stock Error] $e');
     }
   }
 

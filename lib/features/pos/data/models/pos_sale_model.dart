@@ -23,6 +23,9 @@ class PosSaleModel extends Equatable {
   final String paymentMethod; // 'cash', 'card', 'instapay', 'split'
   final String notes;
   final String status; // 'completed', 'refunded'
+  final int pointsEarned;
+  final int pointsRedeemed;
+  final double pointsDiscount;
 
   const PosSaleModel({
     required this.id,
@@ -45,6 +48,9 @@ class PosSaleModel extends Equatable {
     this.paymentMethod = 'cash',
     this.notes = '',
     this.status = 'completed',
+    this.pointsEarned = 0,
+    this.pointsRedeemed = 0,
+    this.pointsDiscount = 0.0,
   });
 
   int get totalItemsCount => items.fold(0, (acc, itm) => acc + itm.quantity);
@@ -70,6 +76,9 @@ class PosSaleModel extends Equatable {
     String? paymentMethod,
     String? notes,
     String? status,
+    int? pointsEarned,
+    int? pointsRedeemed,
+    double? pointsDiscount,
   }) {
     return PosSaleModel(
       id: id ?? this.id,
@@ -92,6 +101,9 @@ class PosSaleModel extends Equatable {
       paymentMethod: paymentMethod ?? this.paymentMethod,
       notes: notes ?? this.notes,
       status: status ?? this.status,
+      pointsEarned: pointsEarned ?? this.pointsEarned,
+      pointsRedeemed: pointsRedeemed ?? this.pointsRedeemed,
+      pointsDiscount: pointsDiscount ?? this.pointsDiscount,
     );
   }
 
@@ -116,6 +128,9 @@ class PosSaleModel extends Equatable {
         'paymentMethod': paymentMethod,
         'notes': notes,
         'status': status,
+        'pointsEarned': pointsEarned,
+        'pointsRedeemed': pointsRedeemed,
+        'pointsDiscount': pointsDiscount,
         'source': 'pos',
         'orderType': 'in_store',
       };
@@ -147,6 +162,9 @@ class PosSaleModel extends Equatable {
       paymentMethod: json['paymentMethod']?.toString() ?? 'cash',
       notes: json['notes']?.toString() ?? '',
       status: json['status']?.toString() ?? 'completed',
+      pointsEarned: (json['pointsEarned'] as num?)?.toInt() ?? 0,
+      pointsRedeemed: (json['pointsRedeemed'] as num?)?.toInt() ?? 0,
+      pointsDiscount: (json['pointsDiscount'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -206,6 +224,9 @@ class PosSaleModel extends Equatable {
       paymentMethod: order.paymentMethod ?? 'cash',
       notes: order.orderNotes ?? '',
       status: order.status ?? 'completed',
+      pointsEarned: (order.rawDocData?['pointsEarned'] as num?)?.toInt() ?? 0,
+      pointsRedeemed: (order.rawDocData?['pointsRedeemed'] as num?)?.toInt() ?? 0,
+      pointsDiscount: (order.rawDocData?['pointsDiscount'] as num?)?.toDouble() ?? 0.0,
     );
   }
 
@@ -231,5 +252,8 @@ class PosSaleModel extends Equatable {
         paymentMethod,
         notes,
         status,
+        pointsEarned,
+        pointsRedeemed,
+        pointsDiscount,
       ];
 }

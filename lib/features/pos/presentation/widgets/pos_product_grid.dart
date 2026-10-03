@@ -340,13 +340,15 @@ class _PosProductGridState extends State<PosProductGrid> {
           color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
           width: 1,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 4,
+                  offset: const Offset(0, 1),
+                ),
+              ],
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
@@ -915,15 +917,7 @@ class _PosProductGridState extends State<PosProductGrid> {
             ? Colors.grey.withValues(alpha: 0.2)
             : AppColor.primary,
         borderRadius: BorderRadius.circular(6),
-        boxShadow: isOutOfStock
-            ? null
-            : [
-                BoxShadow(
-                  color: AppColor.primary.withValues(alpha: 0.25),
-                  blurRadius: 3,
-                  offset: const Offset(0, 1),
-                ),
-              ],
+        boxShadow: null,
       ),
       child: InkWell(
         onTap: isOutOfStock

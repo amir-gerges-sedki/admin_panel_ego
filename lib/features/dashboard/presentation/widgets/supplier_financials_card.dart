@@ -43,19 +43,19 @@ class SupplierFinancialsCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSizes.cardRadiusLg),
         border: Border.all(
           color: hasDue
-              ? const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.35 : 0.25)
+              ? const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.3 : 0.2)
               : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
-          width: 1.2,
+          width: 1.0,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: hasDue
-                ? const Color(0xFFF59E0B).withValues(alpha: 0.08)
-                : Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.025),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -47,7 +47,9 @@ class GovernorateDeliveryModel extends Equatable {
       nameAr: json['nameAr']?.toString() ?? '',
       nameEn: json['nameEn']?.toString() ?? '',
       deliveryFee: (json['deliveryFee'] as num?)?.toDouble() ?? 0.0,
-      isAvailable: json['isAvailable'] as bool? ?? true,
+      isAvailable: json['isAvailable'] is bool
+          ? json['isAvailable'] as bool
+          : (json['isAvailable']?.toString().toLowerCase() != 'false'),
     );
   }
 

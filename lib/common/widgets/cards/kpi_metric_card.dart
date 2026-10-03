@@ -4,7 +4,7 @@ import '../../../core/constant/app_colors.dart';
 import '../../../core/constant/app_sizes.dart';
 import '../../../core/helper/helper_fun.dart';
 
-/// Luxury Glassmorphic KPI Metric Card
+/// Compact KPI Metric Card with cleaner layout
 class KpiMetricCard extends StatefulWidget {
   final String title;
   final String value;
@@ -57,100 +57,92 @@ class _KpiMetricCardState extends State<KpiMetricCard> {
       onExit: (_) => setState(() => _isHovered = false),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        transform: Matrix4.translationValues(0, _isHovered ? -3 : 0, 0),
-        padding: const EdgeInsets.all(AppSizes.md + 2),
+        transform: Matrix4.translationValues(0, _isHovered ? -2 : 0, 0),
+        padding: const EdgeInsets.all(AppSizes.md),
         decoration: BoxDecoration(
           color: isDark ? AppColor.darkCard : AppColor.lightCard,
-          borderRadius: BorderRadius.circular(AppSizes.cardRadiusLg),
+          borderRadius: BorderRadius.circular(AppSizes.cardRadiusMd),
           border: Border.all(
             color: _isHovered
-                ? widget.accentColor.withValues(alpha: 0.5)
+                ? widget.accentColor.withValues(alpha: 0.3)
                 : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
-            width: 1.2,
           ),
-          boxShadow: [
-            BoxShadow(
-              color: _isHovered
-                  ? widget.accentColor.withValues(alpha: 0.15)
-                  : Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-              blurRadius: _isHovered ? 20 : 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
+          boxShadow: isDark
+              ? null
+              : [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: _isHovered ? 0.04 : 0.015),
+                    blurRadius: _isHovered ? 8 : 3,
+                    offset: const Offset(0, 1),
+                  ),
+                ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Header Row: Icon + Delta Pill
+            // Header Row: Icon + Delta
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Container(
-                  padding: const EdgeInsets.all(AppSizes.sm + 2),
+                  padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: widget.accentColor.withValues(alpha: 0.12),
+                    color: widget.accentColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-                    border: Border.all(
-                      color: widget.accentColor.withValues(alpha: 0.25),
-                    ),
                   ),
-                  child: Icon(widget.icon, color: widget.accentColor, size: 22),
+                  child: Icon(widget.icon, color: widget.accentColor, size: 20),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm, vertical: AppSizes.xs),
-                  decoration: BoxDecoration(
-                    color: (widget.isPositive ? AppColor.success : AppColor.error).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm + 2),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        widget.isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                // Compact delta indicator
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      widget.isPositive ? Icons.trending_up_rounded : Icons.trending_down_rounded,
+                      color: widget.isPositive ? AppColor.success : AppColor.error,
+                      size: 14,
+                    ),
+                    const SizedBox(width: 3),
+                    Text(
+                      widget.delta,
+                      style: TextStyle(
                         color: widget.isPositive ? AppColor.success : AppColor.error,
-                        size: 14,
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
                       ),
-                      const SizedBox(width: 4),
-                      Text(
-                        widget.delta,
-                        style: TextStyle(
-                          color: widget.isPositive ? AppColor.success : AppColor.error,
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: AppSizes.md),
+            const SizedBox(height: AppSizes.sm + 2),
 
-            // Value & Title
+            // Value
             Text(
               widget.value,
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 22,
                 fontWeight: FontWeight.w800,
                 color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
                 letterSpacing: -0.5,
               ),
             ),
-            const SizedBox(height: AppSizes.xs),
+            const SizedBox(height: 2),
+
+            // Title
             Text(
               widget.title,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 fontWeight: FontWeight.w500,
                 color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
               ),
             ),
             const SizedBox(height: AppSizes.sm),
 
-            // Mini Sparkline (rendered only if data exists)
+            // Mini Sparkline — compact (only on hover or always visible if data exists)
             SizedBox(
-              height: 36,
+              height: 30,
               child: hasSparkline
                   ? LineChart(
                       LineChartData(
@@ -172,12 +164,12 @@ class _KpiMetricCardState extends State<KpiMetricCard> {
                             isCurved: true,
                             curveSmoothness: 0.35,
                             color: widget.accentColor,
-                            barWidth: 2,
+                            barWidth: 1.5,
                             isStrokeCapRound: true,
                             dotData: const FlDotData(show: false),
                             belowBarData: BarAreaData(
                               show: true,
-                              color: widget.accentColor.withValues(alpha: 0.1),
+                              color: widget.accentColor.withValues(alpha: 0.08),
                             ),
                           ),
                         ],

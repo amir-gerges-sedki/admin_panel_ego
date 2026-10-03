@@ -60,7 +60,12 @@ class UnifiedModalSheet {
                   padding: const EdgeInsets.all(AppSizes.md),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
-                    children: actions,
+                    children: [
+                      for (int i = 0; i < actions.length; i++) ...[
+                        if (i > 0) const SizedBox(width: AppSizes.sm),
+                        actions[i],
+                      ],
+                    ],
                   ),
                 ),
               ],
@@ -75,6 +80,7 @@ class UnifiedModalSheet {
       context: context,
       builder: (context) => Dialog(
         backgroundColor: isDark ? AppColor.darkDialog : AppColor.lightDialog,
+        elevation: isDark ? 0 : 8,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizes.cardRadiusLg),
           side: BorderSide(
@@ -103,11 +109,16 @@ class UnifiedModalSheet {
                 Padding(
                   padding: const EdgeInsets.symmetric(
                     horizontal: AppSizes.md,
-                    vertical: AppSizes.sm + 4,
+                    vertical: 12,
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.end,
-                    children: actions,
+                    children: [
+                      for (int i = 0; i < actions.length; i++) ...[
+                        if (i > 0) const SizedBox(width: AppSizes.sm),
+                        actions[i],
+                      ],
+                    ],
                   ),
                 ),
               ],
@@ -128,20 +139,20 @@ class UnifiedModalSheet {
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: AppSizes.md,
-        vertical: AppSizes.sm + 4,
+        vertical: 12,
       ),
       child: Row(
         children: [
           if (icon != null) ...[
             Container(
-              padding: const EdgeInsets.all(AppSizes.sm),
+              padding: const EdgeInsets.all(7),
               decoration: BoxDecoration(
-                color: AppColor.primary.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+                color: AppColor.primary.withValues(alpha: isDark ? 0.15 : 0.08),
+                borderRadius: BorderRadius.circular(8),
               ),
-              child: Icon(icon, color: AppColor.primary, size: 20),
+              child: Icon(icon, color: AppColor.primary, size: 18),
             ),
-            const SizedBox(width: AppSizes.sm + 4),
+            const SizedBox(width: AppSizes.sm + 2),
           ],
           Expanded(
             child: Column(
@@ -155,7 +166,7 @@ class UnifiedModalSheet {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                     color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
                   ),
                 ),
@@ -176,8 +187,10 @@ class UnifiedModalSheet {
             ),
           ),
           IconButton(
-            icon: const Icon(Icons.close_rounded, size: 20),
+            icon: const Icon(Icons.close_rounded, size: 18),
             tooltip: 'close'.tr,
+            splashRadius: 16,
+            visualDensity: VisualDensity.compact,
             onPressed: () {
               if (Navigator.of(context).canPop()) {
                 Navigator.of(context).pop();

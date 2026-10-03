@@ -66,6 +66,9 @@ import '../../features/suppliers/data/repositories/purchase_invoice_repository.d
 import '../../features/suppliers/data/repositories/supplier_payment_repository.dart';
 import '../../features/suppliers/data/repositories/supplier_repository.dart';
 import '../../features/suppliers/presentation/cubit/supplier_cubit.dart';
+import '../../features/inventory_audit/data/datasources/inventory_audit_remote_data_source.dart';
+import '../../features/inventory_audit/data/repositories/inventory_audit_repository.dart';
+import '../../features/inventory_audit/presentation/cubit/inventory_audit_cubit.dart';
 import '../localization/locale_bloc.dart';
 import '../theme/theme_cubit.dart';
 
@@ -97,6 +100,8 @@ Future<void> initDependencies() async {
       ShiftRemoteDataSourceImpl.new);
   sl.registerLazySingleton<StockTransferRemoteDataSource>(
       StockTransferRemoteDataSourceImpl.new);
+  sl.registerLazySingleton<InventoryAuditRemoteDataSource>(
+      InventoryAuditRemoteDataSourceImpl.new);
   sl.registerLazySingleton<ProductRemoteDataSource>(
       ProductRemoteDataSourceImpl.new);
   sl.registerLazySingleton<StockMovementRemoteDataSource>(
@@ -131,6 +136,8 @@ Future<void> initDependencies() async {
       () => ShiftRepositoryImpl(remoteDataSource: sl<ShiftRemoteDataSource>()));
   sl.registerLazySingleton<StockTransferRepository>(
       () => StockTransferRepositoryImpl(remoteDataSource: sl<StockTransferRemoteDataSource>()));
+  sl.registerLazySingleton<InventoryAuditRepository>(
+      () => InventoryAuditRepositoryImpl(dataSource: sl<InventoryAuditRemoteDataSource>()));
   sl.registerLazySingleton<ProductRepository>(
       () => ProductRepositoryImpl(
             remoteDataSource: sl<ProductRemoteDataSource>(),
@@ -200,6 +207,7 @@ Future<void> initDependencies() async {
   sl.registerFactory<PosCubit>(() => PosCubit(repository: sl<PosRepository>()));
   sl.registerFactory<ShiftCubit>(() => ShiftCubit(repository: sl<ShiftRepository>()));
   sl.registerFactory<StockTransferCubit>(() => StockTransferCubit(repository: sl<StockTransferRepository>()));
+  sl.registerFactory<InventoryAuditCubit>(() => InventoryAuditCubit(repository: sl<InventoryAuditRepository>()));
   sl.registerFactory<ProductCubit>(() => ProductCubit(sl<ProductRepository>()));
   sl.registerFactory<ProductFormCubit>(() => ProductFormCubit(sl<ProductRepository>()));
   sl.registerFactory<StockMovementCubit>(() => StockMovementCubit(sl<StockMovementRepository>()));

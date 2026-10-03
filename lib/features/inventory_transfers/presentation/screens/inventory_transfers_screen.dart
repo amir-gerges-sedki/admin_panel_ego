@@ -8,6 +8,7 @@ import '../../../../core/helper/responsive_helper.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../../settings/data/models/store_branch_model.dart';
 import '../../../settings/presentation/cubit/settings_cubit.dart';
+import '../../../inventory_audit/presentation/widgets/physical_stock_audit_dialog.dart';
 import '../../data/models/stock_transfer_model.dart';
 import '../cubit/stock_transfer_cubit.dart';
 import '../cubit/stock_transfer_state.dart';
@@ -179,6 +180,25 @@ class _InventoryTransfersScreenState extends State<InventoryTransfersScreen> {
               borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
               side: BorderSide(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
             ),
+          ),
+        ),
+        const SizedBox(width: 10),
+
+        // Physical Stock Audit Button
+        OutlinedButton.icon(
+          onPressed: () {
+            final branchId = state.selectedBranchId != 'all' ? state.selectedBranchId : 'main_branch';
+            PhysicalStockAuditDialog.show(
+              context,
+              initialBranchId: branchId,
+            );
+          },
+          icon: const Icon(Icons.fact_check_rounded, size: 18, color: Color(0xFF6366F1)),
+          label: Text('btn_inventory_audit'.tr, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w800, color: Color(0xFF6366F1))),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            side: const BorderSide(color: Color(0xFF6366F1), width: 1.2),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm)),
           ),
         ),
         const SizedBox(width: 10),
@@ -658,11 +678,43 @@ class _InventoryTransfersScreenState extends State<InventoryTransfersScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.inventory_2_outlined, size: 56, color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+          Icon(Icons.swap_horiz_rounded, size: 56, color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
           const SizedBox(height: 12),
           Text(
             'transfer_no_records'.tr,
             style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+          ),
+          const SizedBox(height: AppSizes.md),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ElevatedButton.icon(
+                onPressed: () => StockTransferHubDialog.show(context),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text('transfer_create_new_btn'.tr),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF06B6D4),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton.icon(
+                onPressed: () => PhysicalStockAuditDialog.show(context),
+                icon: const Icon(Icons.fact_check_rounded, size: 18, color: Color(0xFF6366F1)),
+                label: Text('btn_inventory_audit'.tr, style: const TextStyle(color: Color(0xFF6366F1))),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  side: const BorderSide(color: Color(0xFF6366F1)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),

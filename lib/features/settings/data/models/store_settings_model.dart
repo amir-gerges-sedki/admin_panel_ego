@@ -13,6 +13,10 @@ class StoreSettingsModel extends Equatable {
   final double freeShippingThreshold;
   final String estimatedDeliveryTime;
   final int lowStockThreshold;
+  final bool isLoyaltyEnabled;
+  final double egpPerEarnedPoint;
+  final double egpValuePerRedeemedPoint;
+  final int minPointsToRedeem;
   final List<StoreBranchModel> branches;
   final List<GovernorateDeliveryModel> governorates;
 
@@ -27,6 +31,10 @@ class StoreSettingsModel extends Equatable {
     this.freeShippingThreshold = 0.0,
     this.estimatedDeliveryTime = '24-48 Hours',
     this.lowStockThreshold = 10,
+    this.isLoyaltyEnabled = true,
+    this.egpPerEarnedPoint = 10.0,
+    this.egpValuePerRedeemedPoint = 0.5,
+    this.minPointsToRedeem = 10,
     List<StoreBranchModel>? branches,
     List<GovernorateDeliveryModel>? governorates,
   })  : branches = branches ?? const [],
@@ -43,6 +51,10 @@ class StoreSettingsModel extends Equatable {
     double? freeShippingThreshold,
     String? estimatedDeliveryTime,
     int? lowStockThreshold,
+    bool? isLoyaltyEnabled,
+    double? egpPerEarnedPoint,
+    double? egpValuePerRedeemedPoint,
+    int? minPointsToRedeem,
     List<StoreBranchModel>? branches,
     List<GovernorateDeliveryModel>? governorates,
   }) {
@@ -61,6 +73,11 @@ class StoreSettingsModel extends Equatable {
       estimatedDeliveryTime:
           estimatedDeliveryTime ?? this.estimatedDeliveryTime,
       lowStockThreshold: lowStockThreshold ?? this.lowStockThreshold,
+      isLoyaltyEnabled: isLoyaltyEnabled ?? this.isLoyaltyEnabled,
+      egpPerEarnedPoint: egpPerEarnedPoint ?? this.egpPerEarnedPoint,
+      egpValuePerRedeemedPoint:
+          egpValuePerRedeemedPoint ?? this.egpValuePerRedeemedPoint,
+      minPointsToRedeem: minPointsToRedeem ?? this.minPointsToRedeem,
       branches: branches ?? this.branches,
       governorates: governorates ?? this.governorates,
     );
@@ -113,14 +130,26 @@ class StoreSettingsModel extends Equatable {
       whatsNumber: (json['whatsNumber'] ?? '01012345678').toString(),
       email: (json['email'] ?? 'support@egostore.com').toString(),
       address: (json['address'] ?? 'Cairo, Egypt').toString(),
-      enforceAgeVerification: json['enforceAgeVerification'] ?? true,
-      showNicotineWarningBanner: json['showNicotineWarningBanner'] ?? true,
+      enforceAgeVerification: json['enforceAgeVerification'] is bool
+          ? json['enforceAgeVerification'] as bool
+          : (json['enforceAgeVerification']?.toString().toLowerCase() != 'false'),
+      showNicotineWarningBanner: json['showNicotineWarningBanner'] is bool
+          ? json['showNicotineWarningBanner'] as bool
+          : (json['showNicotineWarningBanner']?.toString().toLowerCase() != 'false'),
       flatDeliveryFee: (json['flatDeliveryFee'] as num?)?.toDouble() ?? 0.0,
       freeShippingThreshold:
           (json['freeShippingThreshold'] as num?)?.toDouble() ?? 0.0,
       estimatedDeliveryTime:
           (json['estimatedDeliveryTime'] ?? '24-48 Hours').toString(),
       lowStockThreshold: (json['lowStockThreshold'] as num?)?.toInt() ?? 10,
+      isLoyaltyEnabled: json['isLoyaltyEnabled'] is bool
+          ? json['isLoyaltyEnabled'] as bool
+          : (json['isLoyaltyEnabled']?.toString().toLowerCase() != 'false'),
+      egpPerEarnedPoint:
+          (json['egpPerEarnedPoint'] as num?)?.toDouble() ?? 10.0,
+      egpValuePerRedeemedPoint:
+          (json['egpValuePerRedeemedPoint'] as num?)?.toDouble() ?? 0.5,
+      minPointsToRedeem: (json['minPointsToRedeem'] as num?)?.toInt() ?? 10,
       branches: parsedBranches,
       governorates: parsedGovs,
     );
@@ -137,6 +166,10 @@ class StoreSettingsModel extends Equatable {
         'freeShippingThreshold': freeShippingThreshold,
         'estimatedDeliveryTime': estimatedDeliveryTime,
         'lowStockThreshold': lowStockThreshold,
+        'isLoyaltyEnabled': isLoyaltyEnabled,
+        'egpPerEarnedPoint': egpPerEarnedPoint,
+        'egpValuePerRedeemedPoint': egpValuePerRedeemedPoint,
+        'minPointsToRedeem': minPointsToRedeem,
         'branches': branches.map((b) => b.toJson()).toList(),
         'governorates': governorates.map((g) => g.toJson()).toList(),
       };
@@ -153,6 +186,10 @@ class StoreSettingsModel extends Equatable {
         freeShippingThreshold,
         estimatedDeliveryTime,
         lowStockThreshold,
+        isLoyaltyEnabled,
+        egpPerEarnedPoint,
+        egpValuePerRedeemedPoint,
+        minPointsToRedeem,
         branches,
         governorates,
       ];

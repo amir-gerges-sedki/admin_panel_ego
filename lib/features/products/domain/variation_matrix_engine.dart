@@ -13,20 +13,16 @@ class VariationMatrixEngine {
     double inferredBasePrice = state.basePrice;
     double inferredSalePrice = state.salePrice;
     double inferredCostPrice = state.baseCostPrice;
-    int inferredStock = state.baseStock;
-
     for (final v in state.variations) {
       if (inferredBasePrice == 0 && v.price > 0) inferredBasePrice = v.price;
       if (inferredSalePrice == 0 && v.salePrice > 0) inferredSalePrice = v.salePrice;
       if (inferredCostPrice == 0 && v.costPrice > 0) inferredCostPrice = v.costPrice;
-      if (inferredStock == 0 && v.stock > 0) inferredStock = v.stock;
     }
 
     final enrichedState = state.copyWith(
       basePrice: inferredBasePrice > 0 ? inferredBasePrice : state.basePrice,
       salePrice: inferredSalePrice > 0 ? inferredSalePrice : state.salePrice,
       baseCostPrice: inferredCostPrice > 0 ? inferredCostPrice : state.baseCostPrice,
-      baseStock: inferredStock > 0 ? inferredStock : state.baseStock,
     );
 
     final strategy = ProductTypeStrategy.forType(enrichedState.categoryType);
@@ -68,7 +64,7 @@ class VariationMatrixEngine {
                   : (inferredCostPrice > 0 ? inferredCostPrice : state.baseCostPrice)),
           stock: existing.stock >= 0
               ? existing.stock
-              : (newVar.stock >= 0 ? newVar.stock : (inferredStock >= 0 ? inferredStock : 0)),
+              : (newVar.stock >= 0 ? newVar.stock : state.baseStock),
           image: existing.image.isNotEmpty ? existing.image : fallbackImage,
         );
       }

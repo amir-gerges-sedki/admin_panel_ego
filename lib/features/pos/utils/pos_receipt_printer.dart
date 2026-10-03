@@ -269,12 +269,32 @@ class PosReceiptPrinter {
       '''
         : '';
 
+    final pointsDiscountRow = sale.pointsDiscount > 0
+        ? '''
+        <tr>
+          <td colspan="3" style="text-align: right; padding: 2px 0; font-size: 11px; color: #b45309;">خصم نقاط الولاء (${sale.pointsRedeemed} نقطة):</td>
+          <td style="text-align: left; padding: 2px 0; font-weight: 700; font-size: 11px; color: #b45309;">-${AppFormatters.formatEGP(sale.pointsDiscount)}</td>
+        </tr>
+      '''
+        : '';
+
     final taxRow = sale.taxFee > 0
         ? '''
         <tr>
           <td colspan="3" style="text-align: right; padding: 2px 0; font-size: 11px;">الضريبة / الخدمة:</td>
           <td style="text-align: left; padding: 2px 0; font-weight: 700; font-size: 11px;">${AppFormatters.formatEGP(sale.taxFee)}</td>
         </tr>
+      '''
+        : '';
+
+    final loyaltyBox = (sale.pointsEarned > 0 || sale.pointsRedeemed > 0)
+        ? '''
+        <div style="border: 1px dashed #d97706; background-color: #fffbeb; border-radius: 4px; padding: 6px 8px; margin: 6px 0; text-align: center; font-size: 11px;">
+          <div style="font-weight: 800; color: #b45309; font-size: 11.5px; margin-bottom: 2px;">★ برنامج مكافآت ونقاط EGO ★</div>
+          ${sale.pointsEarned > 0 ? '<div style="color: #15803d; font-weight: 700;">النقاط المكتسبة من الفاتورة: +${sale.pointsEarned} نقطة</div>' : ''}
+          ${sale.pointsRedeemed > 0 ? '<div style="color: #b45309; font-weight: 700;">النقاط المستبدلة: -${sale.pointsRedeemed} نقطة (خصم ${AppFormatters.formatEGP(sale.pointsDiscount)})</div>' : ''}
+          <div style="font-size: 9px; color: #78350f; margin-top: 3px;">اجمع نقاطك مع كل شراء واستبدلها بخصومات فورية!</div>
+        </div>
       '''
         : '';
 
@@ -493,6 +513,7 @@ class PosReceiptPrinter {
         <td style="text-align: left; padding: 2px 0; font-weight: 700; font-size: 11px;">${AppFormatters.formatEGP(sale.subTotal)}</td>
       </tr>
       $discountRow
+      $pointsDiscountRow
       $taxRow
     </table>
     
@@ -508,6 +529,7 @@ class PosReceiptPrinter {
       <strong>$paymentMethodText</strong>
     </div>
     $cashDetails
+    $loyaltyBox
     
     <!-- Barcode Section -->
     <div class="barcode-box">

@@ -18,6 +18,7 @@ import '../widgets/pos_cart_panel.dart';
 import '../widgets/pos_checkout_dialog.dart';
 import '../widgets/pos_product_grid.dart';
 import '../widgets/pos_return_dialog.dart';
+import '../widgets/today_movement_dialog.dart';
 import '../../../inventory_transfers/presentation/cubit/stock_transfer_cubit.dart';
 import '../../../inventory_transfers/presentation/cubit/stock_transfer_state.dart';
 import '../../../inventory_transfers/presentation/widgets/stock_transfer_hub_dialog.dart';
@@ -65,6 +66,9 @@ class _PosScreenState extends State<PosScreen> {
       } else if (event.logicalKey == LogicalKeyboardKey.f4) {
         _onF4Pressed();
         return true;
+      } else if (event.logicalKey == LogicalKeyboardKey.f5) {
+        _onF5Pressed();
+        return true;
       } else if (event.logicalKey == LogicalKeyboardKey.f6) {
         _onF6Pressed();
         return true;
@@ -106,6 +110,20 @@ class _PosScreenState extends State<PosScreen> {
         title: 'pos_register_title'.tr,
         message: 'empty_cart_title'.tr,
       );
+    }
+  }
+
+  Future<void> _onF5Pressed() async {
+    if (_isDialogOpen) return;
+    final shiftState = context.read<ShiftCubit>().state;
+    _isDialogOpen = true;
+    try {
+      TodayMovementDialog.show(context, shift: shiftState.activeShift);
+    } finally {
+      if (mounted) {
+        _isDialogOpen = false;
+        _scannerFocusNode.requestFocus();
+      }
     }
   }
 
@@ -368,6 +386,14 @@ class _PosScreenState extends State<PosScreen> {
                               _buildShortcutBadge('F2', isVeryCompact ? null : 'shortcut_f2_scan'.tr, isDark, onTap: _onF2Pressed),
                               const SizedBox(width: 5),
                               _buildShortcutBadge('F4', isVeryCompact ? null : 'shortcut_f4_pay'.tr, isDark, onTap: _onF4Pressed),
+                              const SizedBox(width: 5),
+                              _buildShortcutBadge(
+                                'F5',
+                                isVeryCompact ? null : 'shortcut_today_movement'.tr,
+                                isDark,
+                                color: const Color(0xFF8B5CF6),
+                                onTap: _onF5Pressed,
+                              ),
                               const SizedBox(width: 5),
                               _buildShortcutBadge(
                                 'F6',

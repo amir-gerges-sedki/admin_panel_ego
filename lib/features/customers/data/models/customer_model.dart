@@ -19,6 +19,7 @@ class CustomerModel extends Equatable {
   final String city;
   final int totalOrders;
   final double totalSpent;
+  final int loyaltyPoints;
   final DateTime createdAt;
 
   const CustomerModel({
@@ -31,20 +32,42 @@ class CustomerModel extends Equatable {
     this.city = 'Cairo',
     this.totalOrders = 0,
     this.totalSpent = 0.0,
+    this.loyaltyPoints = 0,
     required this.createdAt,
   });
 
   factory CustomerModel.fromJson(Map<String, dynamic> json) {
+    String parsedName = (json['name'] ?? json['userName'])?.toString().trim() ?? '';
+    if (parsedName.isEmpty) {
+      final fName = (json['FirstName'] ?? json['firstName'])?.toString().trim() ?? '';
+      final lName = (json['LastName'] ?? json['lastName'])?.toString().trim() ?? '';
+      parsedName = '$fName $lName'.trim();
+    }
+    if (parsedName.isEmpty) {
+      parsedName = 'Customer';
+    }
+
+    final parsedPhone = (json['phone'] ??
+            json['phoneNumber'] ??
+            json['PhoneNumber'] ??
+            json['mobile'])
+        ?.toString()
+        .trim() ??
+        '';
+
     return CustomerModel(
       id: json['id']?.toString() ?? '',
-      name: json['name']?.toString() ?? json['userName']?.toString() ?? 'Customer',
+      name: parsedName,
       email: json['email']?.toString() ?? '',
-      phone: json['phone']?.toString() ?? '',
+      phone: parsedPhone,
       image: json['image']?.toString() ?? '',
       role: (json['role'] ?? 'user').toString().toLowerCase(),
       city: json['city']?.toString() ?? 'Cairo',
       totalOrders: (json['totalOrders'] as num?)?.toInt() ?? 0,
       totalSpent: (json['totalSpent'] as num?)?.toDouble() ?? 0.0,
+      loyaltyPoints: (json['loyaltyPoints'] as num?)?.toInt() ??
+          (json['points'] as num?)?.toInt() ??
+          0,
       createdAt: _parseCustomerDate(json['createdAt']),
     );
   }
@@ -59,6 +82,7 @@ class CustomerModel extends Equatable {
     String? city,
     int? totalOrders,
     double? totalSpent,
+    int? loyaltyPoints,
     DateTime? createdAt,
   }) {
     return CustomerModel(
@@ -71,6 +95,7 @@ class CustomerModel extends Equatable {
       city: city ?? this.city,
       totalOrders: totalOrders ?? this.totalOrders,
       totalSpent: totalSpent ?? this.totalSpent,
+      loyaltyPoints: loyaltyPoints ?? this.loyaltyPoints,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -85,6 +110,7 @@ class CustomerModel extends Equatable {
     'city': city,
     'totalOrders': totalOrders,
     'totalSpent': totalSpent,
+    'loyaltyPoints': loyaltyPoints,
     'createdAt': createdAt.toIso8601String(),
   };
 
@@ -99,6 +125,7 @@ class CustomerModel extends Equatable {
     city,
     totalOrders,
     totalSpent,
+    loyaltyPoints,
     createdAt,
   ];
 }

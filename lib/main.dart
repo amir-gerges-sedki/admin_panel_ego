@@ -24,6 +24,7 @@ import 'features/orders/presentation/cubit/order_cubit.dart';
 import 'features/pos/presentation/cubit/pos_cubit.dart';
 import 'features/pos/presentation/cubit/shift_cubit.dart';
 import 'features/inventory_transfers/presentation/cubit/stock_transfer_cubit.dart';
+import 'features/inventory_audit/presentation/cubit/inventory_audit_cubit.dart';
 import 'features/products/presentation/cubit/product_cubit.dart';
 import 'features/products/presentation/cubit/stock_movement_cubit.dart';
 import 'features/roles/presentation/cubit/auth_role_cubit.dart';
@@ -60,6 +61,9 @@ class EgoAdminApp extends StatelessWidget {
         BlocProvider<ShiftCubit>(create: (_) => sl<ShiftCubit>()),
         BlocProvider<StockTransferCubit>(
           create: (_) => sl<StockTransferCubit>()..loadTransfers(),
+        ),
+        BlocProvider<InventoryAuditCubit>(
+          create: (_) => sl<InventoryAuditCubit>()..loadAudits(),
         ),
         BlocProvider<ProductCubit>(
           create: (_) => sl<ProductCubit>()..loadProducts(),

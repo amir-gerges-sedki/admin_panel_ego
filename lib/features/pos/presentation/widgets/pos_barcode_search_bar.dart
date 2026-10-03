@@ -107,21 +107,15 @@ class _PosBarcodeSearchBarState extends State<PosBarcodeSearchBar> {
                   : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
               width: _isFocused ? 1.8 : 1.2,
             ),
-            boxShadow: [
-              if (_isFocused)
-                BoxShadow(
-                  color: AppColor.primary.withValues(alpha: 0.16),
-                  blurRadius: 10,
-                  spreadRadius: 1,
-                  offset: const Offset(0, 2),
-                )
-              else
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: isDark ? 0.22 : 0.04),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-            ],
+            boxShadow: isDark
+                ? null
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: _isFocused ? 0.04 : 0.02),
+                      blurRadius: _isFocused ? 6 : 3,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
           ),
           child: Row(
             children: [

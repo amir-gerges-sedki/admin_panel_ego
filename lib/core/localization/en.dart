@@ -39,7 +39,8 @@ const Map<String, String> en = {
   'active': 'Active',
   'inactive': 'Inactive',
   'is_online': 'Publish to Online App',
-  'is_online_desc': 'If disabled, the product will only be available in POS/Store and hidden from mobile app users',
+  'is_online_desc':
+      'If disabled, the product will only be available in POS/Store and hidden from mobile app users',
   'online_status': 'Online Status',
   'published_online': 'Published in Online App',
   'pos_only': 'POS / Store Only',
@@ -53,6 +54,43 @@ const Map<String, String> en = {
   'ecommerce_section': 'E-Commerce Management',
   'erp_section': 'ERP & Operations',
   'system_section': 'System & Settings',
+
+  // Apps Launcher Keys
+  'apps_launcher_title': 'Apps Launcher',
+  'apps_launcher_subtitle': 'Quick access to all ERP modules and tools',
+  'odoo_apps_title': 'Apps Launcher',
+  'odoo_apps_subtitle': 'Quick access to all ERP modules and tools',
+  'search_apps_hint': 'Search any app or module...',
+  'app_cat_all': 'All',
+  'app_cat_sales': 'Sales & POS',
+  'app_cat_inventory': 'Inventory & Stock',
+  'app_cat_finance': 'Finance & Accounts',
+  'app_cat_crm': 'CRM & Marketing',
+  'app_cat_system': 'System Admin',
+  'app_locked_tooltip': 'Requires higher role permission',
+  'app_unlock_elevate': 'Elevate role to unlock app',
+  'view_all_apps': 'View Apps',
+  'odoo_view_apps': 'View Apps',
+  'open_app_launcher': 'Open Apps Launcher',
+  'desc_dashboard': 'KPI metrics and executive overview',
+  'desc_pos': 'Fast checkout, barcode & receipt printing',
+  'desc_products': 'Products catalog, prices, and stock',
+  'desc_brands': 'Manufacturer brands and agencies',
+  'desc_orders': 'Online store orders and delivery',
+  'desc_suppliers': 'Purchase invoices and supplier balances',
+  'desc_expenses': 'Operational costs and daily expenses',
+  'desc_accounting': 'Financial ledgers, treasury & cash flow',
+  'desc_reports': 'Profit & loss and analytical reports',
+  'desc_shifts': 'Shift opening, closing & cash reconciliation',
+  'desc_transfers': 'Inter-branch stock transfers & logistics',
+  'desc_damaged': 'Defective stock, losses & write-offs',
+  'desc_employees': 'Staff roster, payroll & attendance',
+  'desc_banners': 'Storefront hero sliders and campaigns',
+  'desc_coupons': 'Discount codes, usage limits & offers',
+  'desc_customers': 'Customer accounts and purchase history',
+  'desc_notifications': 'Push alerts and mass announcements',
+  'desc_settings': 'Store branches, taxes & receipt printers',
+  'desc_roles': 'User roles, security PINs & permissions',
 
   // Search Hints
   'search_hint_general': 'Search...',
@@ -112,7 +150,8 @@ const Map<String, String> en = {
   'kpi_low_stock_healthy': 'Healthy',
   'kpi_items_count_badge': '{count} Items',
   'sales_channel_title': 'Sales & Net Profit by Channel',
-  'sales_channel_subtitle': 'Breakdown of Online App vs In-Store POS vs Total Performance',
+  'sales_channel_subtitle':
+      'Breakdown of Online App vs In-Store POS vs Total Performance',
   'channel_online_share': 'Online App: {percent}%',
   'channel_pos_share': 'Branch POS: {percent}%',
   'channel_online_title': 'Online App (App)',
@@ -129,9 +168,11 @@ const Map<String, String> en = {
   'metric_refunds_label': 'Refunds & Returns ({count}):',
   'btn_view_product_sales': 'View Itemized Product Sales Breakdown',
   'products_sold_count_badge': '{count} Products Sold',
-  'btn_view_product_sales_subtitle': 'View quantity sold, unit costs, and net profit per SKU',
+  'btn_view_product_sales_subtitle':
+      'View quantity sold, unit costs, and net profit per SKU',
   'revenue_chart_title': 'Revenue & Sales Trajectory',
-  'revenue_chart_subtitle': 'Weekly revenue performance in Egyptian Pounds (EGP)',
+  'revenue_chart_subtitle':
+      'Weekly revenue performance in Egyptian Pounds (EGP)',
   'last_7_days': 'Last 7 Days',
   'no_revenue_history_7_days': 'No revenue history for the last 7 days yet',
   'brand_share_title': 'Brand Market Distribution',
@@ -141,7 +182,8 @@ const Map<String, String> en = {
   'real_time_stream_badge': 'Real-Time Stream',
   'order_items_summary': '{count} item(s) • {method} • {city}',
   'product_sales_report_title': 'Itemized Product Sales Report',
-  'product_sales_report_subtitle': 'Sold units, cost prices, and net profit per product',
+  'product_sales_report_subtitle':
+      'Sold units, cost prices, and net profit per product',
   'total_units_sold_title': 'Total Units Sold',
   'units_count_label': '{count} units',
   'from_x_products': 'from {count} unique products',
@@ -162,7 +204,8 @@ const Map<String, String> en = {
   'col_sales_actions': 'Orders',
   'view_orders_btn': 'View Orders',
   'no_product_sales_found': 'No product sales found in selected range',
-  'try_changing_date_or_filters': 'Try changing the date filter or clearing search filters',
+  'try_changing_date_or_filters':
+      'Try changing the date filter or clearing search filters',
   'total_sold_label': 'Total Sold',
   'total_sales_label': 'Total Sales',
   'net_profit_label': 'Net Profit',
@@ -370,6 +413,7 @@ const Map<String, String> en = {
   'item_sku': 'SKU: {sku}',
   'item_brand': 'Brand: {brand}',
   'print_invoice': 'Print Invoice',
+  'printing_initialized': 'Printing command initialized successfully.',
   'invoice_title': 'Sales Order Invoice',
   'payment_status_label': 'Payment Status',
   'paid': 'Paid',
@@ -952,6 +996,7 @@ const Map<String, String> en = {
   'cash_received_from_customer': 'Cash Received from Customer (EGP)',
   'remaining_amount_to_pay': 'Remaining to Collect:',
   'change_to_customer': 'Change to Customer:',
+  'exact_amount_settled': 'Exact amount settled (Change: 0.00 EGP)',
   'auto_print_receipt_after_sale':
       'Automatically print cashier receipt upon completion',
   'processing_sale': 'Processing sale...',
@@ -1010,6 +1055,31 @@ const Map<String, String> en = {
       'Make sure the spelling is correct or try selecting a different category.',
   'matching_vars_count': 'Matches {count} of {total}',
   'options_count_badge': '{count} options',
+
+  // Customer Loyalty & Points
+  'loyalty_points': 'Loyalty Points',
+  'points_balance': 'Points Balance',
+  'points_count': '{count} pts',
+  'points_earned': 'Points Earned',
+  'points_redeemed': 'Points Redeemed',
+  'points_discount': 'Loyalty Points Discount',
+  'points_value_egp': 'Equal to {amount} discount',
+  'redeem_points_toggle': 'Redeem loyalty points for instant discount',
+  'redeem_points_applied': 'Applied {amount} discount ({points} pts)',
+  'min_points_to_redeem_notice': 'Minimum 10 points required to redeem',
+  'points_earned_from_bill_notice': '✨ Customer will earn +{points} pts upon completing this order',
+  'new_customer_auto_register_notice': 'New customer: Will be registered and awarded points automatically',
+  'customer_found_badge': 'Registered Loyalty Member',
+  'adjust_points_btn': 'Adjust / Gift Points',
+  'adjust_points_title': 'Manage Customer Loyalty Points',
+  'adjust_points_subtitle': 'Award bonus points or deduct points with audit reason',
+  'current_points_balance': 'Current Balance: {points} pts',
+  'points_adjustment_delta': 'Points Delta (positive to add, negative to deduct)',
+  'quick_bonus_gift': 'Quick Bonus Points:',
+  'adjustment_reason_hint': 'Reason note (e.g. Welcome bonus, VIP reward, Compensation)...',
+  'save_points_adjustment': 'Save Points Update',
+  'points_adjusted_success': 'Customer points balance updated successfully!',
+  'invalid_points_delta': 'Please enter a valid points number',
 
   // Barcode Printing & Order Share
   'total_requested_labels': 'Total Requested: {count} labels',
@@ -1205,15 +1275,18 @@ const Map<String, String> en = {
   // Stock Movements & Audit Log Dialog
   'stock_movements_btn': 'Stock Movements',
   'stock_movements_dialog_title': 'Stock Movements & Audit Log',
-  'stock_movements_dialog_subtitle': 'Complete audit trail of all restocks, sales, damages, and inventory adjustments',
+  'stock_movements_dialog_subtitle':
+      'Complete audit trail of all restocks, sales, damages, and inventory adjustments',
   'total_restock_capital': 'Total Restock Capital',
   'units_count': '{count} Units',
   'units_short': 'units',
-  'search_stock_movements_hint': 'Search by SKU, product name, supplier, or invoice #...',
+  'search_stock_movements_hint':
+      'Search by SKU, product name, supplier, or invoice #...',
   'refresh_log_tooltip': 'Refresh Log',
   'all_filter': 'All',
   'no_stock_movements_title': 'No stock movements recorded yet',
-  'no_stock_movements_desc': 'Any restock, sale, or adjustment will automatically appear in this audit log',
+  'no_stock_movements_desc':
+      'Any restock, sale, or adjustment will automatically appear in this audit log',
 
   // Quick Restock Dialog
   'smart_stock_replenishment': 'Smart Stock Replenishment',
@@ -1237,16 +1310,20 @@ const Map<String, String> en = {
   'cost_label': 'Cost',
   'qty_label': '+Qty',
   'warning_title': 'Warning',
-  'enter_valid_qty_msg': 'Please enter a valid restock quantity greater than zero.',
-  'enter_qty_for_at_least_one_msg': 'Please enter a quantity for at least one variation.',
+  'enter_valid_qty_msg':
+      'Please enter a valid restock quantity greater than zero.',
+  'enter_qty_for_at_least_one_msg':
+      'Please enter a quantity for at least one variation.',
   'restock_confirmed_title': 'Restock Confirmed',
   'restock_confirmed_msg': 'Stock replenished and audit movement logged.',
-  'restock_product_success_msg': 'Stock updated and restock movement logged for "{title}".',
+  'restock_product_success_msg':
+      'Stock updated and restock movement logged for "{title}".',
   'restock_failed_title': 'Restock Failed',
 
   // Variation Image Dialog
   'variation_image_title': 'Variation Image ({sku})',
-  'variation_image_subtitle': 'Add custom image URL for this variation or choose from product photos',
+  'variation_image_subtitle':
+      'Add custom image URL for this variation or choose from product photos',
   'image_updated_title': 'Image Updated',
   'image_updated_msg': 'Variation image for {sku} set successfully.',
   'bulk_applied_title': 'Bulk Applied',
@@ -1273,14 +1350,17 @@ const Map<String, String> en = {
   // General Expenses & OpEx
   'expenses': 'Expenses',
   'expenses_title': 'General Expenses',
-  'expenses_subtitle': 'Track & manage store operational costs, utilities, rent & maintenance',
+  'expenses_subtitle':
+      'Track & manage store operational costs, utilities, rent & maintenance',
   'permission_expenses': 'Manage Expenses',
   'add_expense_btn': 'Add Expense',
   'add_new_expense': 'Record New Expense',
   'edit_expense': 'Edit Expense Details',
-  'expense_form_desc': 'Enter expense details, amount, category and payment method',
+  'expense_form_desc':
+      'Enter expense details, amount, category and payment method',
   'expense_title': 'Expense Title / Description',
-  'expense_title_hint': 'e.g., September Electricity, Delivery Fuel, Office Tea...',
+  'expense_title_hint':
+      'e.g., September Electricity, Delivery Fuel, Office Tea...',
   'expense_amount_egp': 'Amount (EGP)',
   'expense_category': 'Expense Category',
   'expense_date': 'Expense Date',
@@ -1325,11 +1405,13 @@ const Map<String, String> en = {
   // Damaged Stock & Inventory Waste
   'damaged_stock': 'Damaged Goods',
   'damaged_stock_title': 'Damaged Goods & Waste',
-  'damaged_stock_subtitle': 'Log inventory damage with automatic stock write-off & financial loss tracking',
+  'damaged_stock_subtitle':
+      'Log inventory damage with automatic stock write-off & financial loss tracking',
   'permission_damaged_stock': 'Manage Damaged Stock',
   'log_damage_btn': 'Log Damaged Stock',
   'log_damage_title': 'Record Damaged / Waste Item',
-  'log_damage_subtitle': 'Deduct quantity from stock and compute cost financial loss',
+  'log_damage_subtitle':
+      'Deduct quantity from stock and compute cost financial loss',
   'select_product_to_damage': 'Select Product to Write Off *',
   'select_variation': 'Select Variation / Flavor / Size *',
   'damage_quantity': 'Damaged Quantity (Units)',
@@ -1349,19 +1431,24 @@ const Map<String, String> en = {
   'confirm_log_damage': 'Confirm & Write Off Stock',
   'damage_select_product_required': 'Please select a product first',
   'damage_qty_min_error': 'Quantity must be greater than 0',
-  'damage_qty_exceeds_stock': 'Damaged quantity exceeds available warehouse stock',
+  'damage_qty_exceeds_stock':
+      'Damaged quantity exceeds available warehouse stock',
   'available_stock_in_warehouse': 'Current Available Stock in Warehouse',
   'units': 'Units',
-  'damage_recorded_success': 'Damaged item recorded and stock deducted successfully',
+  'damage_recorded_success':
+      'Damaged item recorded and stock deducted successfully',
   'damage_record_deleted_success': 'Damaged item record deleted successfully',
   'delete_damage_record_title': 'Delete Damaged Record',
-  'delete_damage_record_confirm': 'Are you sure you want to delete damaged record for',
+  'delete_damage_record_confirm':
+      'Are you sure you want to delete damaged record for',
   'restore_stock_on_delete': 'Restore Stock on Delete',
-  'restore_stock_on_delete_subtitle': 'Checking this will add the quantity back to available selling stock',
+  'restore_stock_on_delete_subtitle':
+      'Checking this will add the quantity back to available selling stock',
   'damaged_item_details': 'Damaged Item Details',
   'search_damaged_stock_hint': 'Search by product name, SKU, notes, staff...',
   'no_damaged_stock_found': 'No damaged stock recorded yet',
-  'no_damaged_stock_subtitle': 'Click Log Damaged Stock to write off damaged items from inventory',
+  'no_damaged_stock_subtitle':
+      'Click Log Damaged Stock to write off damaged items from inventory',
   'kpi_total_damage_loss': 'Total Financial Loss',
   'kpi_total_damaged_units': 'Total Damaged Units',
   'kpi_this_month_damage_loss': 'This Month Loss',
@@ -1372,7 +1459,8 @@ const Map<String, String> en = {
   'employees': 'Employees & Payroll',
   'permission_employees': 'Manage Employees & Payroll',
   'employees_management_title': 'Employees & Payroll Management',
-  'employees_management_subtitle': 'Staff directory, salary advances ledger, and monthly payroll disbursement',
+  'employees_management_subtitle':
+      'Staff directory, salary advances ledger, and monthly payroll disbursement',
   'tab_employees': 'Staff Directory',
   'tab_salary_advances': 'Salary Advances',
   'tab_payroll_history': 'Payroll Slips',
@@ -1384,8 +1472,10 @@ const Map<String, String> en = {
   'kpi_disbursed_salaries_this_month': 'Paid Salaries This Month',
   'kpi_active_employees_count': 'Active Employees',
   'month_period_label': 'Payroll Month:',
-  'search_employees_hint': 'Search by name, job title, phone, or national ID...',
-  'search_advances_hint': 'Search advances by employee, notes, or payment method...',
+  'search_employees_hint':
+      'Search by name, job title, phone, or national ID...',
+  'search_advances_hint':
+      'Search advances by employee, notes, or payment method...',
   'search_payroll_hint': 'Search payroll by employee, month, or staff...',
   'no_employees_found': 'No employees registered yet',
   'no_advances_found': 'No salary advances for this month',
@@ -1427,7 +1517,8 @@ const Map<String, String> en = {
   'payroll_deleted_success': 'Payroll slip deleted successfully',
   'edit_employee_title': 'Edit Employee',
   'add_employee_title': 'Add New Employee',
-  'employee_form_subtitle': 'Enter employee details, job title, and base salary',
+  'employee_form_subtitle':
+      'Enter employee details, job title, and base salary',
   'employee_name': 'Full Employee Name *',
   'employee_name_hint': 'e.g. John Doe',
   'employee_phone': 'Phone / WhatsApp *',
@@ -1444,7 +1535,8 @@ const Map<String, String> en = {
   'employee_added_success': 'Employee added successfully',
   'employee_updated_success': 'Employee updated successfully',
   'disburse_advance_title': 'Disburse Salary Advance',
-  'disburse_advance_subtitle': 'Record cash advance to be deducted from monthly payroll',
+  'disburse_advance_subtitle':
+      'Record cash advance to be deducted from monthly payroll',
   'select_employee': 'Select Employee *',
   'select_employee_required': 'Please select an employee',
   'advance_amount_egp': 'Advance Amount (EGP) *',
@@ -1452,15 +1544,19 @@ const Map<String, String> en = {
   'confirm_disburse_advance': 'Confirm Advance Disbursement',
   'advance_recorded_success': 'Salary advance recorded successfully',
   'disburse_payroll_title': 'Disburse Monthly Payroll',
-  'disburse_payroll_subtitle': 'Compute net salary with bonuses, advance deductions, and record as expense',
+  'disburse_payroll_subtitle':
+      'Compute net salary with bonuses, advance deductions, and record as expense',
   'payroll_calculation_breakdown': 'Payroll Calculation Breakdown',
   'bonuses_and_incentives': 'Bonuses & Incentives (EGP)',
   'deductions_and_penalties': 'Penalties & Other Deductions (EGP)',
   'net_salary_to_pay': 'Net Salary to Disburse',
-  'record_to_expenses_checkbox': 'Auto-record to General Expenses (Salaries & Wages)',
-  'record_to_expenses_subtitle': 'Include directly in OpEx reports and P&L financial statements',
+  'record_to_expenses_checkbox':
+      'Auto-record to General Expenses (Salaries & Wages)',
+  'record_to_expenses_subtitle':
+      'Include directly in OpEx reports and P&L financial statements',
   'confirm_disburse_payroll': 'Confirm & Disburse Payroll',
-  'payroll_disbursed_success': 'Payroll disbursed and recorded to expenses successfully',
+  'payroll_disbursed_success':
+      'Payroll disbursed and recorded to expenses successfully',
   'thermal_receipt': 'Thermal Receipt',
   'send_push_to_all': 'Send Push to All Users',
   'confirm_and_select': 'Confirm & Select',
@@ -1474,7 +1570,8 @@ const Map<String, String> en = {
 
   // Dashboard HR & Payroll Card
   'payroll_hr_dashboard_title': 'Staff, Payroll & HR Overview',
-  'payroll_hr_dashboard_subtitle': 'Monitor total payroll commitments, advances disbursed, and paid wages',
+  'payroll_hr_dashboard_subtitle':
+      'Monitor total payroll commitments, advances disbursed, and paid wages',
   'kpi_active_staff_title': 'Active Staff',
   'kpi_base_salaries_pool_title': 'Monthly Salaries Pool',
   'kpi_advances_period_title': 'Period Salary Advances',
@@ -1488,9 +1585,11 @@ const Map<String, String> en = {
 
   // Dashboard Expenses & Damaged Goods Cards
   'expenses_dashboard_title': 'Operational Expenses (OpEx)',
-  'expenses_dashboard_subtitle': 'Track administrative costs, utilities & store operational expenses',
+  'expenses_dashboard_subtitle':
+      'Track administrative costs, utilities & store operational expenses',
   'damaged_goods_dashboard_title': 'Damaged Goods & Waste',
-  'damaged_goods_dashboard_subtitle': 'Monitor financial loss from write-offs & defective stock',
+  'damaged_goods_dashboard_subtitle':
+      'Monitor financial loss from write-offs & defective stock',
   'metric_total_expenses_title': 'Total OpEx',
   'metric_expenses_count_subtitle': '{count} recorded expenses',
   'metric_top_expense_cat': 'Top Expense Category',
@@ -1549,7 +1648,8 @@ const Map<String, String> en = {
   'advances_to_deduct': 'Advances to Deduct',
   'payment_method': 'Payment Method',
   'record_payroll_as_expense': 'Record Payroll as General Expense',
-  'record_payroll_as_expense_subtitle': 'Automatically include payroll slip in operational expense ledger',
+  'record_payroll_as_expense_subtitle':
+      'Automatically include payroll slip in operational expense ledger',
   'notes': 'Notes',
   'hire_date': 'Hire Date',
   'employee_active_status': 'Employee Status (Active / Inactive)',
@@ -1577,11 +1677,14 @@ const Map<String, String> en = {
   'immediate': 'Immediate',
   'print_export_btn': 'Print & Export',
   'record_payment_step_btn': 'Record Payment',
-  'enter_valid_amount_warning': 'Please enter a valid payment amount greater than zero.',
+  'enter_valid_amount_warning':
+      'Please enter a valid payment amount greater than zero.',
   'payment_recorded_title': 'Payment Recorded',
-  'payment_recorded_msg': 'Payment voucher logged and supplier payable balance updated successfully.',
+  'payment_recorded_msg':
+      'Payment voucher logged and supplier payable balance updated successfully.',
   'record_payment_voucher_title': 'Record Supplier Payment Voucher',
-  'record_payment_voucher_desc': 'Log disbursement to supplier account or settle a specific purchase invoice',
+  'record_payment_voucher_desc':
+      'Log disbursement to supplier account or settle a specific purchase invoice',
   'supplier_payee_req': 'Payee Supplier *',
   'balance_due_badge': 'Due: {amount}',
   'link_invoice_optional': 'Link to Specific Invoice (Optional)',
@@ -1826,13 +1929,16 @@ const Map<String, String> en = {
   'record_cash_out_btn': 'Record Cash Out',
   'shortcut_f6_shift': 'Shift',
   'delete_transaction': 'Delete Treasury Movement',
-  'confirm_delete_treasury_tx': 'Are you sure you want to delete this treasury entry? Its financial impact and linked expense will be reversed.',
+  'confirm_delete_treasury_tx':
+      'Are you sure you want to delete this treasury entry? Its financial impact and linked expense will be reversed.',
   'transaction_deleted_success': 'Treasury movement deleted successfully!',
   'transaction_updated_successfully': 'Treasury movement updated successfully!',
   'previous_shift_closing_cash': 'Previous Shift Closing Balance:',
-  'no_previous_shift_found': 'No previous closed shift found for this branch (First shift)',
+  'no_previous_shift_found':
+      'No previous closed shift found for this branch (First shift)',
   'previous_shift_closed_by': 'Closed by: {name}',
-  'previous_shift_auto_filled_hint': 'Opening float auto-filled from last shift closing balance. Please physically count the cash in drawer to verify.',
+  'previous_shift_auto_filled_hint':
+      'Opening float auto-filled from last shift closing balance. Please physically count the cash in drawer to verify.',
   'fetching_drawer_balance': 'Fetching previous shift closing balance...',
   'drawer_auto_reconciled': 'Auto-Reconciled Opening Float',
   'network_url_tab': 'Network URL',
@@ -1854,7 +1960,8 @@ const Map<String, String> en = {
   'transfer_priority_urgent': 'Urgent (Out of Stock)',
   'transfer_priority_next_shipment': 'Next Shipment',
   'transfer_add_products_title': 'Add Products & Flavors to Request',
-  'transfer_search_product_hint': 'Search by product name, brand, flavor, or SKU...',
+  'transfer_search_product_hint':
+      'Search by product name, brand, flavor, or SKU...',
   'transfer_no_items_selected': 'No items added to the transfer request yet',
   'transfer_requested_items': 'Requested Items',
   'transfer_total_qty': 'Total Requested Units',
@@ -1866,10 +1973,12 @@ const Map<String, String> en = {
   'transfer_to': 'To',
   'transfer_confirm_receipt_btn': 'Confirm Receipt',
   'transfer_confirm_receipt_title': 'Confirm Receipt of Goods at Branch',
-  'transfer_confirm_receipt_msg': 'Do you confirm receiving and verifying all items for shipment {num}?',
+  'transfer_confirm_receipt_msg':
+      'Do you confirm receiving and verifying all items for shipment {num}?',
   'transfer_confirm_btn': 'Yes, Confirm Receipt',
   'transfer_cancel_title': 'Cancel Transfer Request',
-  'transfer_cancel_msg': 'Are you sure you want to cancel this transfer request?',
+  'transfer_cancel_msg':
+      'Are you sure you want to cancel this transfer request?',
   'transfer_status_pending': 'Pending Approval',
   'transfer_status_approved': 'Approved',
   'transfer_status_in_transit': 'In Transit / Shipping',
@@ -1881,7 +1990,8 @@ const Map<String, String> en = {
   'inventory_transfers': 'Merchandise Transfers',
   'permission_transfers': 'Manage Inter-Branch Transfers',
   'transfer_screen_title': 'Inter-Branch Stock Transfers & Logistics',
-  'transfer_screen_subtitle': 'Track branch transfer requests, dispatch shipments, and reconcile inventory',
+  'transfer_screen_subtitle':
+      'Track branch transfer requests, dispatch shipments, and reconcile inventory',
   'all_branches_warehouses': 'All Branches & Warehouses',
   'transfer_create_new_btn': 'New Transfer Request',
   'transfer_kpi_total': 'Total Transfers',
@@ -1900,10 +2010,14 @@ const Map<String, String> en = {
   'transfer_action_approve': 'Approve Request',
   'transfer_action_dispatch': 'Dispatch Shipment',
   'transfer_action_reject': 'Reject Request',
-  'transfer_approve_confirm_msg': 'Do you approve preparing and dispatching transfer {num}?',
-  'transfer_dispatch_confirm_msg': 'Do you confirm shipment {num} has left the source warehouse and is in transit?',
-  'transfer_courier_notes_hint': 'Courier / driver name or waybill # (optional)...',
-  'transfer_reject_confirm_msg': 'Please provide a reason for rejecting this transfer:',
+  'transfer_approve_confirm_msg':
+      'Do you approve preparing and dispatching transfer {num}?',
+  'transfer_dispatch_confirm_msg':
+      'Do you confirm shipment {num} has left the source warehouse and is in transit?',
+  'transfer_courier_notes_hint':
+      'Courier / driver name or waybill # (optional)...',
+  'transfer_reject_confirm_msg':
+      'Please provide a reason for rejecting this transfer:',
   'transfer_reject_reason_hint': 'Rejection reason...',
   'requested_by': 'Requested By',
 
@@ -1937,24 +2051,141 @@ const Map<String, String> en = {
   'apply_btn': 'Apply',
   'apply_uniform_cost': 'Uniform Cost:',
   'add_selected_vars_btn': 'Add Selected Variations ({count} items)',
-  'no_vars_selected_warning': 'Please select at least one variation and enter a quantity > 0',
+  'no_vars_selected_warning':
+      'Please select at least one variation and enter a quantity > 0',
   'vars_added_success_msg': 'Added {count} variations to invoice successfully',
   'search_vars_hint': 'Search flavor, resistance, or SKU...',
   'current_warehouse_stock_badge': 'Stock: {count} pcs',
-  'batch_vars_summary': 'Selected {selected} of {total} variations • Total: {qty} pcs • {amount}',
+  'batch_vars_summary':
+      'Selected {selected} of {total} variations • Total: {qty} pcs • {amount}',
   'qty_short': 'Qty',
   'cost_short': 'Cost',
 
   // Invoice Payment Validation & Quick Pay
-  'paid_amount_exceeds_total_error': 'Paid amount ({paid}) cannot exceed invoice total ({total})',
+  'paid_amount_exceeds_total_error':
+      'Paid amount ({paid}) cannot exceed invoice total ({total})',
   'paid_exceeds_total_hint': 'Exceeds total (Max: {max})',
   'pay_full_total_tooltip': 'Pay full invoice amount',
   'pay_full_btn': 'Pay Full (100%)',
   'pay_half_btn': 'Pay 50%',
   'pay_zero_btn': 'Credit (0)',
-  'paid_exceeds_warning_banner': 'Warning: Paid amount ({paid}) exceeds invoice total ({total})!',
+  'paid_exceeds_warning_banner':
+      'Warning: Paid amount ({paid}) exceeds invoice total ({total})!',
+
+  // Today's Sales & Movement Summary Dialog
+  'today_movement_title': 'Today\'s Sales & Activity Summary',
+  'today_movement_subtitle':
+      'Real-time overview of branch sales, payment methods, and cash drawer',
+  'btn_today_movement': 'Today\'s Activity',
+  'active_shift_tab': 'Current Shift',
+  'today_total_tab': 'Today Branch Total',
+  'payment_methods_breakdown': 'Payment Methods Breakdown',
+  'drawer_cash_flow': 'Cash Drawer & Treasury Flow',
+  'recent_shift_txs': 'Drawer Cash Entries & Expenses Log',
+  'no_shift_txs_found': 'No cash in/out transactions recorded in this shift',
+  'average_order_value': 'Avg. Ticket',
+  'today_all_shifts_count': 'Today Shifts: {count}',
+  'opening_float': 'Opening Float',
+  'instapay_sales': 'Instapay Transfers',
+  'vodafone_cash_sales': 'Vodafone Cash / Wallets',
+  'drawer_total_inflow': 'Total Cash In (+)',
+  'drawer_total_outflow': 'Total Cash Out (-)',
+  'drawer_total_refunds': 'Cash Refunds (-)',
+  'shortcut_today_movement': 'Today\'s Activity',
+
+  // Physical Stock Count & Reconciliation Audit
+  'inventory_audit_title': 'Physical Stock Audit & Count',
+  'inventory_audit_subtitle':
+      'Reconcile actual physical inventory with system records using barcode scanner',
+  'btn_inventory_audit': 'Physical Stock Audit',
+  'scan_barcode_audit_hint':
+      'Scan product barcode to increment counted quantity...',
+  'show_variance_only': 'Variance Only',
+  'system_stock_label': 'System Stock',
+  'physical_stock_counted': 'Physical Count',
+  'variance_difference': 'Variance',
+  'variance_cost_impact': 'Financial Impact (EGP)',
+  'no_items_match_audit':
+      'No products match the search criteria in this branch',
+  'save_audit_draft_btn': 'Save Draft',
+  'reconcile_and_apply_btn': 'Reconcile & Apply Stock',
+  'confirm_audit_reconciliation_title': 'Confirm Audit Reconciliation',
+  'confirm_audit_reconciliation_msg':
+      'This will adjust stock levels for {count} items in {branch} and log stock movements. Do you want to proceed?',
+  'confirm_and_apply': 'Confirm & Apply',
+  'image_url_hint': 'https://example.com/photo.jpg',
+  'paste_direct_image_url_desc':
+      'Paste direct web image link with live instant preview.',
+  'pick_and_upload_device_btn': 'Select and upload image from device',
+
+  // Smart Reorder & Purchase Branch Target
+  'target_branch_label': 'Target Branch / Warehouse',
+  'smart_reorder_po_btn': 'Smart Reorder PO',
+  'smart_reorder_po_desc': 'Generate instant purchase order for low-stock items',
+  'smart_reorder_created_msg': 'Prepared purchase order draft for {count} depleted items',
+
+  // Business-Task Navigation Sections
+  'nav_section_overview': 'Overview',
+  'nav_section_sales': 'Sales & Customers',
+  'nav_section_inventory': 'Catalog & Stock',
+  'nav_section_purchasing': 'Purchasing',
+  'nav_section_finance': 'Finance & Treasury',
+  'nav_section_marketing': 'Marketing & App',
+  'nav_section_system': 'System & Team',
+
+  // Context-Aware Dashboard & Quick Actions
+  'dashboard_quick_actions_title': 'Quick Business Actions',
+  'quick_action_pos': 'POS Cashier',
+  'quick_action_add_product': 'Add Product',
+  'quick_action_new_po': 'Purchase Order',
+  'quick_action_add_expense': 'Record Expense',
+  'quick_action_stock_audit': 'Stock Audit',
+  'attention_required_title': 'Requires Attention',
+  'attention_low_stock_msg': '{count} products reached low stock threshold',
+  'attention_pending_orders_msg': '{count} online orders pending dispatch',
+  'attention_supplier_due_msg': 'Supplier balance due of {amount}',
+  'attention_view_orders_btn': 'View & Dispatch',
+  'attention_pay_suppliers_btn': 'Pay Supplier',
+  'attention_all_clear_msg': 'All store operations and inventory levels are optimal',
+
+  // Missing & UX Simplification Tokens
+  'upload_success_title': 'Upload Successful',
+  'upload_success_msg': 'Image uploaded and updated successfully',
+  'uploading_to_firebase': 'Uploading image to cloud storage...',
+  'barcode': 'Barcode',
+  'search_product_hint': 'Search product by name or SKU...',
+  'all': 'All',
+  'items': 'items',
+  'details': 'Details',
+  'no': 'No',
+  'yes': 'Yes',
+  'transfer_request_success_msg': 'Transfer request sent successfully',
+  'add': 'Add',
+  'active_branch_label': 'Active Branch',
+  'close_btn': 'Close',
+  'total_sales': 'Total Sales',
+  'stock_label': 'Stock',
+  'clear_all': 'Clear All',
+  'add_flavor_dialog_title': 'Add New Flavor',
+  'add_flavor_btn': 'Add Flavor',
+  'add_and_select_btn': 'Add & Select',
+  'add_resistance_btn': 'Add Resistance',
+  'select_wattage_hint': 'Select Wattage...',
+  'select_battery_hint': 'Select Battery Capacity...',
+  'select_charging_port_hint': 'Select Charging Port...',
+  'select_screen_type_hint': 'Select Screen Type...',
+  'select_airflow_hint': 'Select Airflow System...',
+  'add_image_label': 'Add Image',
+  'add_color_from_picker': 'Pick Color from Palette',
+  'choose_from_picker': 'Choose from Palette',
+  'general_image_no_color': 'General Image (All Colors)',
+  'save_image_btn': 'Save Image',
+  'delete_image_btn': 'Delete Image',
+  'add_custom_badge_firebase': 'Add Custom Badge',
+  'save_color_btn': 'Save & Choose Color',
+  'image_load_failed': 'Failed to load image. Please verify URL.',
+  'receipt_thermal_80mm': 'Thermal Receipt (80mm)',
+  'invoice_a4': 'A4 Invoice',
+  'print_pos_receipt': 'Print POS Receipt',
+  'more_filters': 'More Filters',
 };
-
-
-
-

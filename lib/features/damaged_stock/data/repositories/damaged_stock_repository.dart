@@ -101,9 +101,19 @@ class DamagedStockRepositoryImpl implements DamagedStockRepository {
       final previousStock = currentVar.stock;
       final newVarStock = (previousStock - quantity).clamp(0, 999999);
 
+      final Map<String, int> prodBranchStock = Map<String, int>.from(product.branchStock);
+      const branchId = 'main_branch';
+      prodBranchStock[branchId] = ((prodBranchStock[branchId] ?? product.stock) - quantity).clamp(0, 999999);
+
+      final Map<String, int> vBranchStock = Map<String, int>.from(currentVar.branchStock);
+      vBranchStock[branchId] = ((vBranchStock[branchId] ?? currentVar.stock) - quantity).clamp(0, 999999);
+
       final updatedVariations =
           List<ProductVariationModel>.from(product.productVariations);
-      updatedVariations[varIndex] = currentVar.copyWith(stock: newVarStock);
+      updatedVariations[varIndex] = currentVar.copyWith(
+        stock: newVarStock,
+        branchStock: vBranchStock,
+      );
 
       final newTotalStock =
           updatedVariations.fold<int>(0, (sum, v) => sum + v.stock);
@@ -111,6 +121,7 @@ class DamagedStockRepositoryImpl implements DamagedStockRepository {
       updatedProduct = product.copyWith(
         productVariations: updatedVariations,
         stock: newTotalStock,
+        branchStock: prodBranchStock,
       );
 
       movement = StockMovementModel(
@@ -143,7 +154,14 @@ class DamagedStockRepositoryImpl implements DamagedStockRepository {
       final previousStock = product.stock;
       final newStock = (previousStock - quantity).clamp(0, 999999);
 
-      updatedProduct = product.copyWith(stock: newStock);
+      final Map<String, int> prodBranchStock = Map<String, int>.from(product.branchStock);
+      const branchId = 'main_branch';
+      prodBranchStock[branchId] = ((prodBranchStock[branchId] ?? previousStock) - quantity).clamp(0, 999999);
+
+      updatedProduct = product.copyWith(
+        stock: newStock,
+        branchStock: prodBranchStock,
+      );
 
       movement = StockMovementModel(
         id: '',

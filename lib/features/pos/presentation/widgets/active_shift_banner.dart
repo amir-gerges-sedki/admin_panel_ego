@@ -9,6 +9,7 @@ import '../cubit/shift_state.dart';
 import 'close_shift_dialog.dart';
 import 'open_shift_dialog.dart';
 import 'shift_cash_entry_dialog.dart';
+import 'today_movement_dialog.dart';
 
 class ActiveShiftBanner extends StatelessWidget {
   const ActiveShiftBanner({super.key});
@@ -149,6 +150,21 @@ class ActiveShiftBanner extends StatelessWidget {
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Today's Movement Modal Trigger
+                  OutlinedButton.icon(
+                    onPressed: () => TodayMovementDialog.show(context, shift: shift),
+                    icon: const Icon(Icons.analytics_outlined, size: 14, color: AppColor.primary),
+                    label: Text(
+                      AppLocalizations.of(context).translate('btn_today_movement'),
+                      style: const TextStyle(color: AppColor.primary),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      textStyle: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                      side: BorderSide(color: AppColor.primary.withValues(alpha: 0.4)),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
                   OutlinedButton.icon(
                     onPressed: () => ShiftCashEntryDialog.show(context, shift: shift, isCashIn: true),
                     icon: const Icon(Icons.swap_vert_rounded, size: 14),

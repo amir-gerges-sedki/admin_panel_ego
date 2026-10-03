@@ -764,7 +764,7 @@ class OrderDetailsDrawer extends StatelessWidget {
                 child: ElevatedButton.icon(
                   onPressed: () => PosReceiptPrinter.printThermalReceipt(PosSaleModel.fromOrder(order)),
                   icon: const Icon(Icons.receipt_long_rounded, size: 16),
-                  label: const Text('طباعة إيصال حراري (POS)', style: TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
+                  label: Text('print_pos_receipt'.tr, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF8B5CF6),
                     foregroundColor: Colors.white,

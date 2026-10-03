@@ -12,10 +12,12 @@ import '../../../features/roles/domain/models/admin_role.dart';
 import '../../../features/roles/presentation/cubit/auth_role_cubit.dart';
 
 import '../sidebar/admin_sidebar.dart';
+import '../apps_launcher/apps_launcher_dialog.dart';
 
-/// Top Application Bar for EGO Admin Panel with PIN-Protected Role Elevation & Workspace Switcher
+/// Top Application Bar for EGO Admin Panel with PIN-Protected Role Elevation, Apps Launcher & Workspace Switcher
 class AdminTopBar extends StatefulWidget implements PreferredSizeWidget {
   final String title;
+  final int currentTabIndex;
   final VoidCallback? onMenuPressed;
   final ValueChanged<String>? onGlobalSearch;
   final VoidCallback? onNotificationPressed;
@@ -26,6 +28,7 @@ class AdminTopBar extends StatefulWidget implements PreferredSizeWidget {
   const AdminTopBar({
     super.key,
     required this.title,
+    this.currentTabIndex = 0,
     this.onMenuPressed,
     this.onGlobalSearch,
     this.onNotificationPressed,
@@ -35,7 +38,7 @@ class AdminTopBar extends StatefulWidget implements PreferredSizeWidget {
   });
 
   @override
-  Size get preferredSize => const Size.fromHeight(70);
+  Size get preferredSize => const Size.fromHeight(64);
 
   @override
   State<AdminTopBar> createState() => _AdminTopBarState();
@@ -450,15 +453,19 @@ class _AdminTopBarState extends State<AdminTopBar> {
     return BlocBuilder<AuthRoleCubit, AuthRoleState>(
       builder: (context, authState) {
         return Container(
-          height: 70,
+          height: 64,
           padding: const EdgeInsets.symmetric(horizontal: AppSizes.md),
           decoration: BoxDecoration(
             color: isDark ? AppColor.darkCard : AppColor.lightCard,
-            border: Border(
-              bottom: BorderSide(
-                color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
+            boxShadow: [
+              BoxShadow(
+                color: isDark
+                    ? Colors.black.withValues(alpha: 0.2)
+                    : Colors.black.withValues(alpha: 0.04),
+                blurRadius: 6,
+                offset: const Offset(0, 1),
               ),
-            ),
+            ],
           ),
           child: Row(
             children: [
@@ -470,8 +477,8 @@ class _AdminTopBarState extends State<AdminTopBar> {
                 ),
                 const SizedBox(width: AppSizes.xs),
                 Container(
-                  width: 34,
-                  height: 34,
+                  width: 32,
+                  height: 32,
                   decoration: const BoxDecoration(shape: BoxShape.circle),
                   child: ClipOval(
                     child: Image.asset(
@@ -482,29 +489,22 @@ class _AdminTopBarState extends State<AdminTopBar> {
                     ),
                   ),
                 ),
-                const SizedBox(width: AppSizes.sm),
+                const SizedBox(width: AppSizes.xs),
               ],
 
-              // Page Title
+              // 9-Dots Waffle App Launcher Button
+              _buildAppsLauncherButton(isDark),
+              const SizedBox(width: AppSizes.xs + 2),
+
+              // Module Breadcrumb Pill
               Flexible(
-                child: Text(
-                  widget.title.tr,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: isDark
-                        ? AppColor.textPrimaryDark
-                        : AppColor.textPrimaryLight,
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                  maxLines: 1,
-                ),
+                child: _buildAppsBreadcrumb(isDark),
               ),
 
               // Mode Switcher Container (All Modules | E-Commerce | ERP)
               if (widget.onWorkspaceModeChanged != null &&
-                  MediaQuery.sizeOf(context).width > 800) ...[
-                const SizedBox(width: AppSizes.md),
+                  MediaQuery.sizeOf(context).width > 860) ...[
+                const SizedBox(width: AppSizes.sm),
                 _buildTopBarModeSwitcher(isDark),
               ],
 
@@ -517,12 +517,12 @@ class _AdminTopBarState extends State<AdminTopBar> {
                 ConstrainedBox(
                   constraints: BoxConstraints(
                     maxWidth: MediaQuery.sizeOf(context).width > 1400
-                        ? 280
-                        : (MediaQuery.sizeOf(context).width > 1250 ? 220 : 170),
-                    minWidth: 140,
+                        ? 260
+                        : (MediaQuery.sizeOf(context).width > 1250 ? 210 : 160),
+                    minWidth: 130,
                   ),
                   child: SizedBox(
-                    height: 38,
+                    height: 36,
                     child: TextField(
                       controller: _searchController,
                       onChanged: widget.onGlobalSearch,
@@ -532,8 +532,8 @@ class _AdminTopBarState extends State<AdminTopBar> {
                         prefixIcon: const Icon(Icons.search_rounded, size: 18),
                         suffixIcon: _searchController.text.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.close_rounded, size: 15),
-                                splashRadius: 15,
+                                icon: const Icon(Icons.close_rounded, size: 14),
+                                splashRadius: 14,
                                 tooltip: 'clear_search'.tr,
                                 onPressed: () {
                                   _searchController.clear();
@@ -698,79 +698,47 @@ class _AdminTopBarState extends State<AdminTopBar> {
               ),
               const SizedBox(width: AppSizes.sm),
 
-              // Interactive Active Role / User Profile Pill
+              // Compact Active Role / User Profile Pill
               InkWell(
                 onTap: () =>
                     _showRoleSecurityDialog(context, authState, isDark),
-                borderRadius: BorderRadius.circular(24),
+                borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: AppSizes.sm,
-                    vertical: 5,
+                    horizontal: 10,
+                    vertical: 6,
                   ),
                   decoration: BoxDecoration(
                     color: authState.activeRole.color.withValues(
-                      alpha: isDark ? 0.15 : 0.1,
+                      alpha: isDark ? 0.1 : 0.07,
                     ),
-                    borderRadius: BorderRadius.circular(24),
-                    border: Border.all(
-                      color: authState.activeRole.color.withValues(alpha: 0.4),
-                    ),
+                    borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
                   ),
                   child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundColor: authState.activeRole.color,
-                        child: Icon(
-                          authState.activeRole.icon,
-                          size: 14,
-                          color: Colors.white,
-                        ),
+                      Icon(
+                        authState.activeRole.icon,
+                        size: 16,
+                        color: authState.activeRole.color,
                       ),
                       if (isDesktop) ...[
-                        const SizedBox(width: AppSizes.sm),
-                        Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  authState.activeRole.labelKey.tr,
-                                  style: TextStyle(
-                                    fontSize: 11.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: authState.activeRole.color,
-                                  ),
-                                ),
-                                const SizedBox(width: 4),
-                                Icon(
-                                  authState.isElevated
-                                      ? Icons.lock_open_rounded
-                                      : Icons.lock_rounded,
-                                  size: 11,
-                                  color: authState.activeRole.color,
-                                ),
-                              ],
-                            ),
-                            Text(
-                              authState.activeAdminEmail,
-                              style: TextStyle(
-                                fontSize: 9.5,
-                                color: isDark
-                                    ? AppColor.textMutedDark
-                                    : AppColor.textMutedLight,
-                              ),
-                            ),
-                          ],
+                        const SizedBox(width: 6),
+                        Text(
+                          authState.activeRole.labelKey.tr,
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w700,
+                            color: authState.activeRole.color,
+                          ),
                         ),
                         const SizedBox(width: 4),
                         Icon(
-                          Icons.arrow_drop_down_rounded,
-                          size: 18,
-                          color: authState.activeRole.color,
+                          authState.isElevated
+                              ? Icons.lock_open_rounded
+                              : Icons.lock_rounded,
+                          size: 11,
+                          color: authState.activeRole.color.withValues(alpha: 0.7),
                         ),
                       ],
                     ],
@@ -876,6 +844,94 @@ class _AdminTopBarState extends State<AdminTopBar> {
                           ? AppColor.textSecondaryDark
                           : AppColor.textSecondaryLight),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppsLauncherButton(bool isDark) {
+    return Tooltip(
+      message: 'apps_launcher_title'.tr,
+      child: InkWell(
+        onTap: () {
+          if (widget.onNavigateTab != null) {
+            AppsLauncherDialog.show(
+              context,
+              currentTabIndex: widget.currentTabIndex,
+              onSelectTab: widget.onNavigateTab!,
+            );
+          }
+        },
+        borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+        child: Container(
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
+            borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+            border: Border.all(
+              color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
+            ),
+          ),
+          child: const Icon(
+            Icons.apps_rounded,
+            size: 20,
+            color: AppColor.primary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppsBreadcrumb(bool isDark) {
+    final currentApp = AppsLauncherCatalog.getByIndex(widget.currentTabIndex);
+    final appColor = currentApp?.color ?? AppColor.primary;
+    final appIcon = currentApp?.icon ?? Icons.grid_view_rounded;
+
+    return InkWell(
+      onTap: () {
+        if (widget.onNavigateTab != null) {
+          AppsLauncherDialog.show(
+            context,
+            currentTabIndex: widget.currentTabIndex,
+            onSelectTab: widget.onNavigateTab!,
+          );
+        }
+      },
+      borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: appColor.withValues(alpha: isDark ? 0.12 : 0.08),
+          borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+          border: Border.all(
+            color: appColor.withValues(alpha: 0.28),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(appIcon, size: 16, color: appColor),
+            const SizedBox(width: 7),
+            Flexible(
+              child: Text(
+                widget.title.tr,
+                style: TextStyle(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 16,
+              color: appColor.withValues(alpha: 0.7),
             ),
           ],
         ),

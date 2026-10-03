@@ -221,19 +221,11 @@ class _StockTransferHistoryTabState extends State<StockTransferHistoryTab> {
         borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
         border: Border.all(
           color: isAwaitingReceipt
-              ? const Color(0xFF8B5CF6).withValues(alpha: 0.6)
+              ? const Color(0xFF8B5CF6).withValues(alpha: isDark ? 0.35 : 0.25)
               : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
-          width: isAwaitingReceipt ? 1.5 : 1.0,
+          width: 1.0,
         ),
-        boxShadow: isAwaitingReceipt
-            ? [
-                BoxShadow(
-                  color: const Color(0xFF8B5CF6).withValues(alpha: 0.1),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ]
-            : null,
+        boxShadow: null,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

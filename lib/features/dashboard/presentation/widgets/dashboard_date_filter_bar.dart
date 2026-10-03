@@ -108,13 +108,15 @@ class DashboardDateFilterBar extends StatelessWidget {
         color: isDark ? AppColor.darkCard : AppColor.lightCard,
         borderRadius: BorderRadius.circular(AppSizes.borderRadiusLg),
         border: Border.all(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.025),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Wrap(
         spacing: 12,

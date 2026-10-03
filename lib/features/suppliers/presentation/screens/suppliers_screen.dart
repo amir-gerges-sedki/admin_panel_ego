@@ -6,6 +6,9 @@ import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/formatters/formatters.dart';
 import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../products/data/models/product_model.dart';
+import '../../../products/presentation/cubit/product_cubit.dart';
+import '../../../settings/presentation/cubit/settings_cubit.dart';
 import '../cubit/supplier_cubit.dart';
 import '../cubit/supplier_state.dart';
 import '../../data/models/purchase_invoice_model.dart';
@@ -164,8 +167,22 @@ class _SuppliersScreenState extends State<SuppliersScreen>
             ),
           ],
         ),
-        Row(
+          Row(
           children: [
+            ElevatedButton.icon(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6366F1),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              ),
+              icon: const Icon(Icons.auto_awesome_rounded, size: 16),
+              label: Text(
+                'smart_reorder_po_btn'.tr,
+                style: const TextStyle(fontWeight: FontWeight.w700),
+              ),
+              onPressed: () => _triggerSmartReorderPO(context),
+            ),
+            const SizedBox(width: 8),
             ElevatedButton.icon(
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColor.primary,
@@ -210,6 +227,73 @@ class _SuppliersScreenState extends State<SuppliersScreen>
           ],
         ),
       ],
+    );
+  }
+
+  void _triggerSmartReorderPO(BuildContext context) {
+    final prodState = context.read<ProductCubit>().state;
+    final allProducts =
+        prodState is ProductLoaded ? prodState.products : <ProductModel>[];
+    final settingsState = context.read<SettingsCubit>().state;
+    final threshold = settingsState is SettingsLoaded
+        ? settingsState.settings.lowStockThreshold
+        : 10;
+
+    final List<PurchaseInvoiceItemModel> poItems = [];
+
+    for (final p in allProducts) {
+      if (p.productVariations.isNotEmpty) {
+        final lowVars = p.productVariations.where((v) {
+          final t = v.lowStockThreshold ?? p.lowStockThreshold ?? threshold;
+          return v.stock <= t;
+        }).toList();
+
+        for (final v in lowVars) {
+          final reorderQty = (threshold * 2 - v.stock).clamp(5, 50);
+          final unitCost = v.costPrice > 0 ? v.costPrice : p.costPrice;
+
+          poItems.add(
+            PurchaseInvoiceItemModel(
+              productId: p.id,
+              productTitle: p.displayTitle,
+              variationSku: v.sku,
+              variationAttributes: v.attributeValues,
+              quantity: reorderQty,
+              unitCost: unitCost,
+              subtotal: reorderQty * unitCost,
+            ),
+          );
+        }
+      } else {
+        final t = p.lowStockThreshold ?? threshold;
+        if (p.stock <= t) {
+          final reorderQty = (t * 2 - p.stock).clamp(5, 50);
+          poItems.add(
+            PurchaseInvoiceItemModel(
+              productId: p.id,
+              productTitle: p.displayTitle,
+              variationSku: '',
+              variationAttributes: const {},
+              quantity: reorderQty,
+              unitCost: p.costPrice,
+              subtotal: reorderQty * p.costPrice,
+            ),
+          );
+        }
+      }
+    }
+
+    if (poItems.isEmpty) {
+      HelperFun.showNotificationAlert(
+        title: 'smart_reorder_po_btn'.tr,
+        message: 'optimal_stock_badge'.tr,
+      );
+      return;
+    }
+
+    CreatePurchaseInvoiceDialog.show(
+      context,
+      initialItems: poItems,
     );
   }
 

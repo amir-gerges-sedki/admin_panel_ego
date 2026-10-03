@@ -25,7 +25,31 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final _formKey = GlobalKey<FormState>();
-  late TextEditingController _phoneController;
+  final _phoneController = TextEditingController();
+  final _whatsController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _addressController = TextEditingController();
+  final _deliveryFeeController = TextEditingController();
+  final _thresholdController = TextEditingController();
+  final _deliveryTimeController = TextEditingController();
+  final _lowStockThresholdController = TextEditingController();
+  final _govSearchController = TextEditingController();
+  final _egpPerEarnedPointController = TextEditingController();
+  final _egpValuePerRedeemedPointController = TextEditingController();
+  final _minPointsToRedeemController = TextEditingController();
+
+  bool _enforceAge = true;
+  bool _showWarning = true;
+  bool _isLoyaltyEnabled = true;
+  bool _isInitialized = false;
+  bool _isSaving = false;
+  List<StoreBranchModel> _branches = [];
+  List<GovernorateDeliveryModel> _governorates = [];
+  String _govSearchQuery = '';
+
+  bool get _enforceAgeSafe => _enforceAge == true;
+  bool get _showWarningSafe => _showWarning == true;
+  bool get _isLoyaltyEnabledSafe => _isLoyaltyEnabled == true;
 
   @override
   void initState() {
@@ -34,44 +58,32 @@ class _SettingsScreenState extends State<SettingsScreen> {
       context.read<BadgeCubit>().loadBadges();
     });
   }
-  late TextEditingController _whatsController;
-  late TextEditingController _emailController;
-  late TextEditingController _addressController;
-  late TextEditingController _deliveryFeeController;
-  late TextEditingController _thresholdController;
-  late TextEditingController _deliveryTimeController;
-  late TextEditingController _lowStockThresholdController;
-  late TextEditingController _govSearchController;
-
-  bool _enforceAge = true;
-  bool _showWarning = true;
-  bool _isInitialized = false;
-  bool _isSaving = false;
-  List<StoreBranchModel> _branches = [];
-  List<GovernorateDeliveryModel> _governorates = [];
-  String _govSearchQuery = '';
 
   void _initFields(StoreSettingsModel settings) {
+    _enforceAge = settings.enforceAgeVerification == true;
+    _showWarning = settings.showNicotineWarningBanner == true;
+    _isLoyaltyEnabled = settings.isLoyaltyEnabled == true;
+
     if (_isInitialized) return;
-    _phoneController = TextEditingController(text: settings.phoneNumber);
-    _whatsController = TextEditingController(text: settings.whatsNumber);
-    _emailController = TextEditingController(text: settings.email);
-    _addressController = TextEditingController(text: settings.address);
-    _deliveryFeeController = TextEditingController(
-      text: settings.flatDeliveryFee.toInt().toString(),
-    );
-    _thresholdController = TextEditingController(
-      text: settings.freeShippingThreshold.toInt().toString(),
-    );
-    _deliveryTimeController = TextEditingController(
-      text: settings.estimatedDeliveryTime,
-    );
-    _lowStockThresholdController = TextEditingController(
-      text: settings.lowStockThreshold.toString(),
-    );
-    _govSearchController = TextEditingController();
-    _enforceAge = settings.enforceAgeVerification;
-    _showWarning = settings.showNicotineWarningBanner;
+
+    _phoneController.text = settings.phoneNumber;
+    _whatsController.text = settings.whatsNumber;
+    _emailController.text = settings.email;
+    _addressController.text = settings.address;
+    _deliveryFeeController.text = settings.flatDeliveryFee.toInt().toString();
+    _thresholdController.text =
+        settings.freeShippingThreshold.toInt().toString();
+    _deliveryTimeController.text = settings.estimatedDeliveryTime;
+    _lowStockThresholdController.text = settings.lowStockThreshold.toString();
+    _egpPerEarnedPointController.text =
+        settings.egpPerEarnedPoint == settings.egpPerEarnedPoint.toInt()
+            ? settings.egpPerEarnedPoint.toInt().toString()
+            : settings.egpPerEarnedPoint.toString();
+    _egpValuePerRedeemedPointController.text =
+        settings.egpValuePerRedeemedPoint.toString();
+    _minPointsToRedeemController.text =
+        settings.minPointsToRedeem.toString();
+
     final dynamic rawBranches = (settings as dynamic).branches;
     if (rawBranches is List) {
       _branches = rawBranches.whereType<StoreBranchModel>().toList();
@@ -90,17 +102,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   @override
   void dispose() {
-    if (_isInitialized) {
-      _phoneController.dispose();
-      _whatsController.dispose();
-      _emailController.dispose();
-      _addressController.dispose();
-      _deliveryFeeController.dispose();
-      _thresholdController.dispose();
-      _deliveryTimeController.dispose();
-      _lowStockThresholdController.dispose();
-      _govSearchController.dispose();
-    }
+    _phoneController.dispose();
+    _whatsController.dispose();
+    _emailController.dispose();
+    _addressController.dispose();
+    _deliveryFeeController.dispose();
+    _thresholdController.dispose();
+    _deliveryTimeController.dispose();
+    _lowStockThresholdController.dispose();
+    _govSearchController.dispose();
+    _egpPerEarnedPointController.dispose();
+    _egpValuePerRedeemedPointController.dispose();
+    _minPointsToRedeemController.dispose();
     super.dispose();
   }
 
@@ -113,14 +126,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
       whatsNumber: _whatsController.text.trim(),
       email: _emailController.text.trim(),
       address: _addressController.text.trim(),
-      enforceAgeVerification: _enforceAge,
-      showNicotineWarningBanner: _showWarning,
+      enforceAgeVerification: _enforceAgeSafe,
+      showNicotineWarningBanner: _showWarningSafe,
       flatDeliveryFee: double.tryParse(_deliveryFeeController.text) ?? 0.0,
       freeShippingThreshold:
           double.tryParse(_thresholdController.text) ?? 2000.0,
       estimatedDeliveryTime: _deliveryTimeController.text.trim(),
       lowStockThreshold:
           int.tryParse(_lowStockThresholdController.text.trim()) ?? 10,
+      isLoyaltyEnabled: _isLoyaltyEnabledSafe,
+      egpPerEarnedPoint:
+          double.tryParse(_egpPerEarnedPointController.text.trim()) ?? 10.0,
+      egpValuePerRedeemedPoint:
+          double.tryParse(_egpValuePerRedeemedPointController.text.trim()) ?? 0.5,
+      minPointsToRedeem:
+          int.tryParse(_minPointsToRedeemController.text.trim()) ?? 10,
       branches: _branches,
       governorates: _governorates,
     );
@@ -175,6 +195,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _buildBranchesCard(isDark),
                               const SizedBox(height: AppSizes.lg),
                               _buildDeliveryCard(isDark),
+                              const SizedBox(height: AppSizes.lg),
+                              _buildLoyaltyCard(isDark),
                             ],
                           ),
                         ),
@@ -200,6 +222,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _buildBranchesCard(isDark),
                     const SizedBox(height: AppSizes.lg),
                     _buildDeliveryCard(isDark),
+                    const SizedBox(height: AppSizes.lg),
+                    _buildLoyaltyCard(isDark),
                     const SizedBox(height: AppSizes.lg),
                     _buildGovernoratesDeliveryCard(isDark),
                     const SizedBox(height: AppSizes.lg),
@@ -554,10 +578,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
         color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
         borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
         border: Border.all(
-          color: branch.isPrimary
+          color: branch.isPrimary == true
               ? const Color(0xFF10B981)
               : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
-          width: branch.isPrimary ? 1.5 : 1.0,
+          width: branch.isPrimary == true ? 1.5 : 1.0,
         ),
       ),
       child: Column(
@@ -589,7 +613,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ],
                 ),
               ),
-              if (branch.isPrimary) ...[
+              if (branch.isPrimary == true) ...[
                 const SizedBox(width: 8),
                 Container(
                   padding:
@@ -1229,7 +1253,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           gov.id.toLowerCase().contains(query);
     }).toList();
 
-    final activeCount = _governorates.where((g) => g.isAvailable).length;
+    final activeCount = _governorates.where((g) => g.isAvailable == true).length;
     final totalCount = _governorates.length;
 
     return Container(
@@ -1257,13 +1281,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFF6366F1).withValues(alpha: 0.3),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: const Icon(
                   Icons.map_rounded,
@@ -1674,13 +1691,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             height: 34,
             child: TextFormField(
               initialValue: gov.deliveryFee.toInt().toString(),
-              enabled: gov.isAvailable,
+              enabled: gov.isAvailable == true,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: gov.isAvailable
+                color: (gov.isAvailable == true)
                     ? (isDark ? Colors.white : AppColor.textPrimaryLight)
                     : Colors.grey,
               ),
@@ -1696,7 +1713,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : AppColor.textSecondaryLight,
                 ),
                 filled: true,
-                fillColor: gov.isAvailable
+                fillColor: (gov.isAvailable == true)
                     ? (isDark ? AppColor.darkCard : Colors.white)
                     : (isDark ? Colors.black26 : Colors.grey.shade100),
                 border: OutlineInputBorder(
@@ -1732,7 +1749,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           // Switch
           Switch.adaptive(
-            value: gov.isAvailable,
+            value: gov.isAvailable == true,
             activeThumbColor: const Color(0xFF6366F1),
             activeTrackColor: const Color(0xFF6366F1).withValues(alpha: 0.5),
             onChanged: (v) {
@@ -1871,13 +1888,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
-                  boxShadow: [
-                    BoxShadow(
-                      color: const Color(0xFFF59E0B).withValues(alpha: 0.35),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
                 ),
                 child: const Icon(
                   Icons.stars_rounded,
@@ -2004,13 +2014,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.35),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
       ),
       child: Text(
         label,
@@ -2096,7 +2099,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : AppColor.textSecondaryLight,
                 ),
               ),
-              value: _enforceAge,
+              value: _enforceAgeSafe,
               activeThumbColor: AppColor.primary,
               onChanged: (v) => setState(() => _enforceAge = v),
             ),
@@ -2119,7 +2122,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       : AppColor.textSecondaryLight,
                 ),
               ),
-              value: _showWarning,
+              value: _showWarningSafe,
               activeThumbColor: AppColor.primary,
               onChanged: (v) => setState(() => _showWarning = v),
             ),
@@ -2312,6 +2315,175 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 },
               );
             }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoyaltyCard(bool isDark) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final double egpEarned =
+        double.tryParse(_egpPerEarnedPointController.text.trim()) ?? 10.0;
+    final double egpValue =
+        double.tryParse(_egpValuePerRedeemedPointController.text.trim()) ?? 0.5;
+    final int minPoints =
+        int.tryParse(_minPointsToRedeemController.text.trim()) ?? 10;
+
+    final isLoyaltyActive = _isLoyaltyEnabledSafe;
+    final int simPts200 =
+        egpEarned > 0 && isLoyaltyActive ? (200 / egpEarned).floor() : 0;
+    final double simDisc200 =
+        egpValue > 0 && isLoyaltyActive ? (simPts200 * egpValue) : 0.0;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.lg),
+      decoration: BoxDecoration(
+        color: isDark ? AppColor.darkCard : AppColor.lightCard,
+        borderRadius: BorderRadius.circular(AppSizes.cardRadiusLg),
+        border: Border.all(
+          color: isLoyaltyActive
+              ? const Color(0xFFF59E0B).withValues(alpha: 0.35)
+              : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
+                ),
+                child: const Icon(
+                  Icons.stars_rounded,
+                  color: Color(0xFFF59E0B),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSizes.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isArabic
+                          ? 'برنامج نقاط الولاء والمكافآت'
+                          : 'Loyalty & Rewards Program',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isArabic
+                          ? 'التحكم في معادلة اكتساب النقاط وقيمتها المالية عند الاستبدال'
+                          : 'Configure points earning rate & monetary redemption value',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark
+                            ? AppColor.textSecondaryDark
+                            : AppColor.textSecondaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: isLoyaltyActive,
+                activeThumbColor: const Color(0xFFF59E0B),
+                activeTrackColor: const Color(0xFFF59E0B).withValues(alpha: 0.4),
+                onChanged: (v) => setState(() => _isLoyaltyEnabled = v),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSizes.md),
+          TextFormField(
+            controller: _egpPerEarnedPointController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: isArabic
+                  ? 'معدل الاكتساب (جنيه لكل نقطة)'
+                  : 'Earning Rate (EGP per Point)',
+              hintText: '10',
+              prefixIcon: const Icon(Icons.monetization_on_outlined, size: 18),
+              suffixText: isArabic ? 'ج.م / نقطة' : 'EGP / pt',
+              helperText: isArabic
+                  ? 'كم ينفق العميل ليكسب نقطة واحدة؟ (مثال: 10 ج.م -> كل 200 ج.م مشتريات تمنحه 20 نقطة)'
+                  : 'How many EGP spent awards 1 point (e.g. 10 EGP -> 200 EGP earns 20 pts)',
+            ),
+          ),
+          const SizedBox(height: AppSizes.md),
+          TextFormField(
+            controller: _egpValuePerRedeemedPointController,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: isArabic
+                  ? 'قيمة استبدال النقطة (بالجنيه)'
+                  : 'Redemption Value (EGP)',
+              hintText: '0.5',
+              prefixIcon: const Icon(Icons.discount_outlined, size: 18),
+              suffixText: isArabic ? 'ج.م خصم' : 'EGP disc',
+              helperText: isArabic
+                  ? 'قيمة الخصم بالجنيه لكل نقطة يستبدلها العميل (مثال: 0.5 ج.م للنقطة -> الـ 20 نقطة تخصم 10 جنيهات)'
+                  : 'Monetary discount in EGP per point redeemed (e.g. 0.5 EGP -> 20 pts = 10 EGP disc)',
+            ),
+          ),
+          const SizedBox(height: AppSizes.md),
+          TextFormField(
+            controller: _minPointsToRedeemController,
+            keyboardType: TextInputType.number,
+            onChanged: (_) => setState(() {}),
+            decoration: InputDecoration(
+              labelText: isArabic
+                  ? 'الحد الأدنى للنقاط للاستبدال'
+                  : 'Minimum Points to Redeem',
+              hintText: '10',
+              prefixIcon: const Icon(Icons.shield_outlined, size: 18),
+              suffixText: isArabic ? 'نقطة' : 'pts',
+              helperText: isArabic
+                  ? 'أقل رصيد نقاط يلزم توفره لدى العميل ليتمكن من الخصم من الفاتورة (حماية لمنع الخصم بنقاط قليلة)'
+                  : 'Minimum balance a customer needs before they can redeem points',
+            ),
+          ),
+          const SizedBox(height: AppSizes.md),
+          // Live Calculation Example Badge
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF59E0B).withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+              border: Border.all(
+                color: const Color(0xFFF59E0B).withValues(alpha: 0.25),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.lightbulb_rounded,
+                    color: Color(0xFFF59E0B), size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    isArabic
+                        ? '💡 مثال حي تفاعلي: لو العميل اشترى بـ 200 جنيه -> سيكتسب $simPts200 نقطة ولاء (وقيمتها عند الاستبدال = ${simDisc200.toStringAsFixed(1)} جنيه خصم، والحد الأدنى للاستبدال = $minPoints نقطة).'
+                        : '💡 Live Calculation: If a customer spends 200 EGP -> they earn $simPts200 points (worth ${simDisc200.toStringAsFixed(1)} EGP discount, min $minPoints pts to redeem).',
+                    style: TextStyle(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? AppColor.textPrimaryDark
+                          : AppColor.textPrimaryLight,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),

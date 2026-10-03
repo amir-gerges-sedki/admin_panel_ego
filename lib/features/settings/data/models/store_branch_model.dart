@@ -58,8 +58,10 @@ class StoreBranchModel extends Equatable {
       mapsUrl: json['mapsUrl']?.toString() ?? '',
       latitude: (json['latitude'] as num?)?.toDouble(),
       longitude: (json['longitude'] as num?)?.toDouble(),
-      isPrimary: json['isPrimary'] as bool? ?? false,
-      isWarehouse: json['isWarehouse'] as bool? ?? isWarehouseAuto,
+      isPrimary: json['isPrimary'] is bool ? json['isPrimary'] as bool : false,
+      isWarehouse: json['isWarehouse'] is bool
+          ? json['isWarehouse'] as bool
+          : isWarehouseAuto,
     );
   }
 

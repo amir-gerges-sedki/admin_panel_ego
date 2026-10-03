@@ -4,6 +4,7 @@ import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/helper/color_utils.dart';
 import '../../../../core/helper/helper_fun.dart';
+import '../../../../core/localization/app_localizations.dart';
 
 class ColorPalettePickerDialog extends StatefulWidget {
   final ValueChanged<String> onColorSelected;
@@ -545,7 +546,7 @@ class _ColorPalettePickerDialogState extends State<ColorPalettePickerDialog> {
               children: [
                 OutlinedButton(
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text('إلغاء'),
+                  child: Text('cancel'.tr),
                 ),
                 const SizedBox(width: AppSizes.md),
                 ElevatedButton.icon(
@@ -554,7 +555,7 @@ class _ColorPalettePickerDialogState extends State<ColorPalettePickerDialog> {
                     Icons.check_circle_outline_rounded,
                     size: 18,
                   ),
-                  label: const Text('حفظ واختيار اللون (Save Color)'),
+                  label: Text('save_color_btn'.tr),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF6366F1),
                     foregroundColor: Colors.white,
@@ -875,10 +876,10 @@ class _ColorPalettePickerDialogState extends State<ColorPalettePickerDialog> {
                   child: Image.network(
                     _sampledImageUrl,
                     fit: BoxFit.contain,
-                    errorBuilder: (context, error, stackTrace) => const Center(
+                    errorBuilder: (context, error, stackTrace) => Center(
                       child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Text('فشل تحميل الصورة. يرجى التأكد من الرابط.'),
+                        padding: const EdgeInsets.all(20),
+                        child: Text('image_load_failed'.tr),
                       ),
                     ),
                   ),

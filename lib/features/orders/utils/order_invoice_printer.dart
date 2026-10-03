@@ -976,7 +976,7 @@ class _OrderInvoicePreviewDialog extends StatelessWidget {
                       }
                     },
                     icon: const Icon(Icons.receipt_rounded, size: 16),
-                    label: const Text('إيصال حراري (80mm)', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
+                    label: Text('receipt_thermal_80mm'.tr, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFF97316),
                       foregroundColor: Colors.white,
@@ -991,12 +991,12 @@ class _OrderInvoicePreviewDialog extends StatelessWidget {
                       if (!success && context.mounted) {
                         HelperFun.showNotificationAlert(
                           title: 'print_invoice'.tr,
-                          message: 'Printing initialized in browser',
+                          message: 'printing_initialized'.tr,
                         );
                       }
                     },
                     icon: const Icon(Icons.print_rounded, size: 16),
-                    label: Text('فاتورة A4'.tr, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
+                    label: Text('invoice_a4'.tr, style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800)),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColor.primary,
                       foregroundColor: Colors.white,

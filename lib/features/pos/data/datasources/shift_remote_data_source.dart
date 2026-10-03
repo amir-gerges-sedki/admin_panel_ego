@@ -360,6 +360,50 @@ class ShiftRemoteDataSourceImpl implements ShiftRemoteDataSource {
 
       await docRef.update(updatedData);
 
+      // Auto-Reconcile Cash Discrepancy in Treasury & Accounting
+      if (diff.abs() >= 0.01) {
+        try {
+          final treasuryRef = _firestore.collection('treasury_transactions').doc();
+          final isShortage = diff < 0;
+          final absDiff = diff.abs();
+
+          await treasuryRef.set({
+            'id': treasuryRef.id,
+            'type': isShortage ? 'expense' : 'cashIn',
+            'channel': 'cash',
+            'amount': absDiff,
+            'reason': isShortage
+                ? 'تسوية عجز نقدية درج وردية كاشير (${currentShift.cashierName} - ${currentShift.branchName})'
+                : 'تسوية زيادة نقدية درج وردية كاشير (${currentShift.cashierName} - ${currentShift.branchName})',
+            'referenceNumber': 'SHIFT-SETTLE-$shiftId',
+            'shiftId': shiftId,
+            'branchId': currentShift.branchId,
+            'performedBy': closedBy.isNotEmpty ? closedBy : currentShift.cashierName,
+            'createdAt': Timestamp.fromDate(now),
+          });
+
+          // If it is a deficit/loss, also record in expenses under operational loss for clean accounting
+          if (isShortage) {
+            final expRef = _firestore.collection('expenses').doc();
+            await expRef.set({
+              'title': 'عجز نقدية درج كاشير (${currentShift.cashierName})',
+              'amount': absDiff,
+              'category': 'operational',
+              'date': Timestamp.fromDate(now),
+              'paymentMethod': 'cash',
+              'recordedBy': closedBy.isNotEmpty ? closedBy : currentShift.cashierName,
+              'notes': 'تسوية عجز نقدية وردية ${currentShift.branchName}',
+              'shiftId': shiftId,
+              'branchId': currentShift.branchId,
+              'treasuryTransactionId': treasuryRef.id,
+              'createdAt': Timestamp.fromDate(now),
+            });
+          }
+        } catch (err) {
+          debugPrint('⚠️ Error auto-reconciling shift cash discrepancy: $err');
+        }
+      }
+
       return currentShift.copyWith(
         status: 'closed',
         closedAt: now,

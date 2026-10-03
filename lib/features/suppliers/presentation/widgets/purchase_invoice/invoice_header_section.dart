@@ -5,6 +5,8 @@ import '../../../../../core/constant/app_sizes.dart';
 import '../../../../../core/formatters/formatters.dart';
 import '../../../../../core/helper/helper_fun.dart';
 import '../../../../../core/localization/app_localizations.dart';
+import '../../../../settings/data/models/store_branch_model.dart';
+import '../../../../settings/presentation/cubit/settings_cubit.dart';
 import '../../../data/models/supplier_model.dart';
 import '../../cubit/supplier_cubit.dart';
 import '../../cubit/supplier_state.dart';
@@ -13,6 +15,8 @@ import '../supplier_form_dialog.dart';
 class InvoiceHeaderSection extends StatelessWidget {
   final SupplierModel? selectedSupplier;
   final ValueChanged<SupplierModel?> onSupplierChanged;
+  final String? targetBranchId;
+  final ValueChanged<StoreBranchModel?> onBranchChanged;
   final TextEditingController invoiceNumberController;
   final DateTime invoiceDate;
   final ValueChanged<DateTime> onInvoiceDateChanged;
@@ -25,6 +29,8 @@ class InvoiceHeaderSection extends StatelessWidget {
     super.key,
     required this.selectedSupplier,
     required this.onSupplierChanged,
+    this.targetBranchId,
+    required this.onBranchChanged,
     required this.invoiceNumberController,
     required this.invoiceDate,
     required this.onInvoiceDateChanged,
@@ -115,6 +121,73 @@ class InvoiceHeaderSection extends StatelessWidget {
                         },
                       ),
                     ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 3,
+                  child: BlocBuilder<SettingsCubit, SettingsState>(
+                    builder: (context, settingsState) {
+                      final branches = settingsState is SettingsLoaded &&
+                              settingsState.settings.branches.isNotEmpty
+                          ? settingsState.settings.branches
+                          : [
+                              const StoreBranchModel(
+                                id: 'main_branch',
+                                name: 'المخزن الرئيسي / الفرع الرئيسي',
+                                isPrimary: true,
+                              ),
+                            ];
+
+                      final effectiveBranchId = targetBranchId != null &&
+                              branches.any((b) => b.id == targetBranchId)
+                          ? targetBranchId
+                          : (branches.isNotEmpty
+                              ? branches.first.id
+                              : 'main_branch');
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'target_branch_label'.tr,
+                            style: const TextStyle(
+                                fontSize: 12, fontWeight: FontWeight.w700),
+                          ),
+                          const SizedBox(height: 6),
+                          DropdownButtonFormField<String>(
+                            key: ValueKey('branch_$effectiveBranchId'),
+                            initialValue: effectiveBranchId,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              isDense: true,
+                              prefixIcon:
+                                  Icon(Icons.warehouse_rounded, size: 18),
+                              contentPadding: EdgeInsets.symmetric(
+                                  horizontal: 10, vertical: 8),
+                            ),
+                            items: branches.map((b) {
+                              return DropdownMenuItem<String>(
+                                value: b.id,
+                                child: Text(
+                                  b.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (id) {
+                              if (id != null) {
+                                final found = branches
+                                    .where((b) => b.id == id)
+                                    .firstOrNull;
+                                onBranchChanged(found);
+                              }
+                            },
+                          ),
+                        ],
+                      );
+                    },
                   ),
                 ),
                 const SizedBox(width: 12),

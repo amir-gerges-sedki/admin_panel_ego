@@ -39,7 +39,8 @@ const Map<String, String> ar = {
   'active': 'مفعل',
   'inactive': 'معطل',
   'is_online': 'نشر في تطبيق المتجر أونلاين',
-  'is_online_desc': 'إذا تم الإيقاف، سيظهر المنتج في الكاشير والفرع فقط ولن يظهر لعملاء التطبيق',
+  'is_online_desc':
+      'إذا تم الإيقاف، سيظهر المنتج في الكاشير والفرع فقط ولن يظهر لعملاء التطبيق',
   'online_status': 'حالة النشر أونلاين',
   'published_online': 'منشور في التطبيق أونلاين',
   'pos_only': 'كاشير / فرع فقط',
@@ -53,6 +54,43 @@ const Map<String, String> ar = {
   'ecommerce_section': 'التجارة الإلكترونية',
   'erp_section': 'إدارة العمليات و ERP',
   'system_section': 'النظام والإعدادات',
+
+  // Apps Launcher Keys
+  'apps_launcher_title': 'شبكة التطبيقات',
+  'apps_launcher_subtitle': 'الوصول السريع لجميع موديولات وأدوات النظام',
+  'odoo_apps_title': 'شبكة التطبيقات',
+  'odoo_apps_subtitle': 'الوصول السريع لجميع موديولات وأدوات النظام',
+  'search_apps_hint': 'ابحث عن أي تطبيق أو موديول...',
+  'app_cat_all': 'الكل',
+  'app_cat_sales': 'المبيعات والـ POS',
+  'app_cat_inventory': 'المخزون والمنتجات',
+  'app_cat_finance': 'المالية والمحاسبة',
+  'app_cat_crm': 'العملاء والتسويق',
+  'app_cat_system': 'إدارة النظام',
+  'app_locked_tooltip': 'يتطلب صلاحية وصول أعلى',
+  'app_unlock_elevate': 'ترقية الصلاحية لفتح التطبيق',
+  'view_all_apps': 'عرض التطبيقات',
+  'odoo_view_apps': 'عرض التطبيقات',
+  'open_app_launcher': 'فتح شبكة التطبيقات',
+  'desc_dashboard': 'مؤشرات الأداء ونظرة عامة على النشاط',
+  'desc_pos': 'نقطة البيع، الباركود، وطباعة الفواتير',
+  'desc_products': 'كتالوج المنتجات، الأسعار، والمخزون',
+  'desc_brands': 'الماركات المصنعة وسجل الوكالات',
+  'desc_orders': 'الطلبات أونلاين وتوصيل العملاء',
+  'desc_suppliers': 'فواتير الشراء، التوريد، وحسابات الموردين',
+  'desc_expenses': 'المصروفات اليومية والنفقات التشغيلية',
+  'desc_accounting': 'الدفاتر المحاسبية، الخزينة، والأرصدة',
+  'desc_reports': 'تقارير الأرباح والمبيعات والمؤشرات',
+  'desc_shifts': 'فتح وإغلاق الورديات ومطابقة الصندوق',
+  'desc_transfers': 'مناقلة البضائع بين الفروع والمستودعات',
+  'desc_damaged': 'الهالك والمفقودات وتكلفة الخسائر',
+  'desc_employees': 'سجلات الموظفين، الرواتب، والورديات',
+  'desc_banners': 'بانرات المتجر، العروض، والحملات',
+  'desc_coupons': 'كوبونات الخصم والرموز الترويجية',
+  'desc_customers': 'سجل العملاء، السجل الشرائي، والولاء',
+  'desc_notifications': 'الإشعارات والتنبيهات الجماعية للعملاء',
+  'desc_settings': 'تهيئة الفروع، الضرائب، والطابعات',
+  'desc_roles': 'الأدوار، الصلاحيات، ورموز الحماية',
 
   // Search Hints
   'search_hint_general': 'بحث سريع...',
@@ -112,7 +150,8 @@ const Map<String, String> ar = {
   'kpi_low_stock_healthy': 'آمن ومثالي',
   'kpi_items_count_badge': '{count} أصناف',
   'sales_channel_title': 'مقارنة المبيعات وصافي الأرباح (القنوات)',
-  'sales_channel_subtitle': 'فصل مبيعات وأرباح تطبيق الأونلاين عن كاشير الفرع مع الإجمالي',
+  'sales_channel_subtitle':
+      'فصل مبيعات وأرباح تطبيق الأونلاين عن كاشير الفرع مع الإجمالي',
   'channel_online_share': 'تطبيق الأونلاين: {percent}%',
   'channel_pos_share': 'كاشير الفرع: {percent}%',
   'channel_online_title': 'تطبيق الأونلاين (App)',
@@ -129,9 +168,11 @@ const Map<String, String> ar = {
   'metric_refunds_label': 'مرتجعات ومبالغ مستردة ({count}):',
   'btn_view_product_sales': 'عرض تفاصيل مبيعات المنتجات والأصناف',
   'products_sold_count_badge': '{count} منتج مباع',
-  'btn_view_product_sales_subtitle': 'عرض كميات كل صنف مباع في التطبيق والفرع، التكلفة، وصافي الربح لكل منتج',
+  'btn_view_product_sales_subtitle':
+      'عرض كميات كل صنف مباع في التطبيق والفرع، التكلفة، وصافي الربح لكل منتج',
   'revenue_chart_title': 'حركة الإيرادات والمبيعات',
-  'revenue_chart_subtitle': 'متابعة أداء الإيرادات اليومية بالجنيه المصري (EGP)',
+  'revenue_chart_subtitle':
+      'متابعة أداء الإيرادات اليومية بالجنيه المصري (EGP)',
   'last_7_days': 'آخر 7 أيام',
   'no_revenue_history_7_days': 'لا توجد سجلات إيرادات لآخر 7 أيام حتى الآن',
   'brand_share_title': 'توزيع الحصص السوقية للعلامات التجارية',
@@ -141,7 +182,8 @@ const Map<String, String> ar = {
   'real_time_stream_badge': 'بث لحظي مباشر',
   'order_items_summary': '{count} صنف • {method} • {city}',
   'product_sales_report_title': 'تقرير تفاصيل مبيعات المنتجات والأصناف',
-  'product_sales_report_subtitle': 'تفاصيل الكميات المباعة، التكلفة، وصافي الربح لكل منتج',
+  'product_sales_report_subtitle':
+      'تفاصيل الكميات المباعة، التكلفة، وصافي الربح لكل منتج',
   'total_units_sold_title': 'إجمالي القطع المباعة',
   'units_count_label': '{count} قطعة',
   'from_x_products': 'من {count} منتج مختلف',
@@ -162,7 +204,8 @@ const Map<String, String> ar = {
   'col_sales_actions': 'الطلبات',
   'view_orders_btn': 'عرض الطلبات',
   'no_product_sales_found': 'لم يتم العثور على مبيعات منتجات في هذه الفترة',
-  'try_changing_date_or_filters': 'جرّب تغيير الفترة الزمنية بالتقويم أو إزالة الفلاتر',
+  'try_changing_date_or_filters':
+      'جرّب تغيير الفترة الزمنية بالتقويم أو إزالة الفلاتر',
   'total_sold_label': 'إجمالي المباع',
   'total_sales_label': 'إجمالي المبيعات',
   'net_profit_label': 'صافي الربح',
@@ -361,6 +404,7 @@ const Map<String, String> ar = {
   'item_sku': 'كود: {sku}',
   'item_brand': 'الماركة: {brand}',
   'print_invoice': 'طباعة الفاتورة',
+  'printing_initialized': 'تم بدء إرسال أمر الطباعة بنجاح.',
   'invoice_title': 'فاتورة طلب مبيعات',
   'payment_status_label': 'حالة السداد',
   'paid': 'تم السداد',
@@ -940,6 +984,7 @@ const Map<String, String> ar = {
   'cash_received_from_customer': 'المبلغ المستلم من العميل (ج.م)',
   'remaining_amount_to_pay': 'المتبقي مطلوب سداده:',
   'change_to_customer': 'الباقي للعميل (Change):',
+  'exact_amount_settled': 'تم استلام المبلغ بالكامل (الباقي: 0.00 ج.م)',
   'auto_print_receipt_after_sale': 'طباعة إيصال الكاشير تلقائياً بعد الإتمام',
   'processing_sale': 'جاري الإتمام والخصم...',
   'pos_branch_returns_title': 'مرتجع مبيعات الفرع (POS Returns & Refund)',
@@ -996,6 +1041,31 @@ const Map<String, String> ar = {
       'تأكد من كتابة الكلمة بشكل صحيح أو قم بتغيير القسم المختار.',
   'matching_vars_count': 'مطابق {count} من {total}',
   'options_count_badge': '{count} خيارات',
+
+  // Customer Loyalty & Points
+  'loyalty_points': 'نقاط الولاء',
+  'points_balance': 'رصيد النقاط',
+  'points_count': '{count} نقطة',
+  'points_earned': 'النقاط المكتسبة',
+  'points_redeemed': 'النقاط المستبدلة',
+  'points_discount': 'خصم نقاط الولاء',
+  'points_value_egp': 'تعادل خصم {amount}',
+  'redeem_points_toggle': 'استبدال نقاط الولاء بخصم فوري',
+  'redeem_points_applied': 'تم تطبيق خصم {amount} ({points} نقطة)',
+  'min_points_to_redeem_notice': 'الحد الأدنى لاستبدال النقاط هو 10 نقاط',
+  'points_earned_from_bill_notice': '✨ سيحصل العميل على +{points} نقطة ولاء من هذه الفاتورة',
+  'new_customer_auto_register_notice': 'عميل جديد: سيتم حفظ بياناته تلقائياً وإضافة النقاط إلى حسابه',
+  'customer_found_badge': 'عميل مسجل',
+  'adjust_points_btn': 'تعديل النقاط / إضافة رصيد',
+  'adjust_points_title': 'إدارة وتعديل نقاط ولاء العميل',
+  'adjust_points_subtitle': 'إضافة نقاط هدية أو خصم نقاط مع تسجيل سبب العملية',
+  'current_points_balance': 'رصيد النقاط الحالي: {points} نقطة',
+  'points_adjustment_delta': 'مقدار النقاط (موجب للإضافة أو سالب للخصم)',
+  'quick_bonus_gift': 'إضافة نقاط سريعة (هدية):',
+  'adjustment_reason_hint': 'سبب العملية (مثال: هدية ترحيبية، تعويض، مكافأة تميز)...',
+  'save_points_adjustment': 'حفظ وتحديث النقاط',
+  'points_adjusted_success': 'تم تحديث رصيد نقاط العميل بنجاح!',
+  'invalid_points_delta': 'يرجى إدخال قيمة صحيحة للنقاط',
 
   // Barcode Printing & Order Share
   'total_requested_labels': 'الإجمالي المطلوب: {count} ملصق',
@@ -1189,15 +1259,18 @@ const Map<String, String> ar = {
   // Stock Movements & Audit Log Dialog
   'stock_movements_btn': 'سجل التوريدات',
   'stock_movements_dialog_title': 'سجل حركات المخزون والتوريدات',
-  'stock_movements_dialog_subtitle': 'تتبع تفصيلي لجميع عمليات التوريد، مبيعات الطلبات، التالف، والتسويات الجردية',
+  'stock_movements_dialog_subtitle':
+      'تتبع تفصيلي لجميع عمليات التوريد، مبيعات الطلبات، التالف، والتسويات الجردية',
   'total_restock_capital': 'تكلفة التوريدات الواردة',
   'units_count': '{count} قطعة',
   'units_short': 'وحدة',
-  'search_stock_movements_hint': 'بحث بالـ SKU، اسم المنتج، المورّد، أو رقم الفاتورة...',
+  'search_stock_movements_hint':
+      'بحث بالـ SKU، اسم المنتج، المورّد، أو رقم الفاتورة...',
   'refresh_log_tooltip': 'تحديث السجل',
   'all_filter': 'الكل',
   'no_stock_movements_title': 'لا توجد حركات مخزون مسجلة',
-  'no_stock_movements_desc': 'أي عملية توريد أو بيع أو تعديل جردي ستظهر هنا تلقائياً في السجل',
+  'no_stock_movements_desc':
+      'أي عملية توريد أو بيع أو تعديل جردي ستظهر هنا تلقائياً في السجل',
 
   // Quick Restock Dialog
   'smart_stock_replenishment': 'إعادة توريد المخزون الذكي',
@@ -1222,15 +1295,18 @@ const Map<String, String> ar = {
   'qty_label': '+الكمية',
   'warning_title': 'تنبيه',
   'enter_valid_qty_msg': 'يرجى إدخال كمية توريد صحيحة أكبر من الصفر.',
-  'enter_qty_for_at_least_one_msg': 'يرجى إدخال كمية توريد لمتغير واحد على الأقل.',
+  'enter_qty_for_at_least_one_msg':
+      'يرجى إدخال كمية توريد لمتغير واحد على الأقل.',
   'restock_confirmed_title': 'تم التوريد بنجاح',
   'restock_confirmed_msg': 'تم توريد المخزون وتوثيق حركة التوريد بنجاح.',
-  'restock_product_success_msg': 'تم تحديث مخزون "{title}" وتسجيل حركة التوريد بنجاح.',
+  'restock_product_success_msg':
+      'تم تحديث مخزون "{title}" وتسجيل حركة التوريد بنجاح.',
   'restock_failed_title': 'خطأ في التوريد',
 
   // Variation Image Dialog
   'variation_image_title': 'صورة المتغير ({sku})',
-  'variation_image_subtitle': 'أضف رابط صورة مخصصة لهذا المتغير أو اختر من صور المنتج',
+  'variation_image_subtitle':
+      'أضف رابط صورة مخصصة لهذا المتغير أو اختر من صور المنتج',
   'image_updated_title': 'تم تحديث الصورة',
   'image_updated_msg': 'تم تعيين صورة المتغير {sku} بنجاح.',
   'bulk_applied_title': 'تم التطبيق الجماعي',
@@ -1257,7 +1333,8 @@ const Map<String, String> ar = {
   // General Expenses & OpEx
   'expenses': 'المصاريف العامة',
   'expenses_title': 'إدارة المصاريف العامة',
-  'expenses_subtitle': 'تسجيل وتتبع كافة المصروفات التشغيلية والفواتير والصيانة',
+  'expenses_subtitle':
+      'تسجيل وتتبع كافة المصروفات التشغيلية والفواتير والصيانة',
   'permission_expenses': 'إدارة المصاريف',
   'add_expense_btn': 'إضافة مصروف جديد',
   'add_new_expense': 'تسجيل مصروف جديد',
@@ -1309,7 +1386,8 @@ const Map<String, String> ar = {
   // Damaged Stock & Inventory Waste
   'damaged_stock': 'الهالك والتوالف',
   'damaged_stock_title': 'إدارة الهالك والتوالف المخزنية',
-  'damaged_stock_subtitle': 'تسجيل وإتلاف البضائع التالفة مع خصمها التلقائي من المخزون وحساب الخسائر',
+  'damaged_stock_subtitle':
+      'تسجيل وإتلاف البضائع التالفة مع خصمها التلقائي من المخزون وحساب الخسائر',
   'permission_damaged_stock': 'إدارة الهالك والتوالف',
   'log_damage_btn': 'تسجيل هالك وتالف جديد',
   'log_damage_title': 'تسجيل صنف تالف / هالك',
@@ -1341,11 +1419,14 @@ const Map<String, String> ar = {
   'delete_damage_record_title': 'حذف سجل الهالك',
   'delete_damage_record_confirm': 'هل أنت متأكد من حذف سجل الهالك الخاص بمنتج',
   'restore_stock_on_delete': 'إعادة الكمية للمخزون (Restore Stock)',
-  'restore_stock_on_delete_subtitle': 'تفعيل هذا الخيار سيعيد القطع المحذوفة إلى رصيد المنتج المتاح للبيع',
+  'restore_stock_on_delete_subtitle':
+      'تفعيل هذا الخيار سيعيد القطع المحذوفة إلى رصيد المنتج المتاح للبيع',
   'damaged_item_details': 'تفاصيل التالف المسجل',
-  'search_damaged_stock_hint': 'ابحث باسم المنتج، كود الصنف SKU، الملاحظات، المسؤول...',
+  'search_damaged_stock_hint':
+      'ابحث باسم المنتج، كود الصنف SKU، الملاحظات، المسؤول...',
   'no_damaged_stock_found': 'لا توجد توالف أو هوالك مسجلة',
-  'no_damaged_stock_subtitle': 'اضغط على زر تسجيل هالك جديد لإضافة بضائع تالفة وخصمها من المخزن',
+  'no_damaged_stock_subtitle':
+      'اضغط على زر تسجيل هالك جديد لإضافة بضائع تالفة وخصمها من المخزن',
   'kpi_total_damage_loss': 'إجمالي الخسائر المالية',
   'kpi_total_damaged_units': 'إجمالي القطع التالفة',
   'kpi_this_month_damage_loss': 'خسائر هالك هذا الشهر',
@@ -1356,7 +1437,8 @@ const Map<String, String> ar = {
   'employees': 'الموظفين والرواتب',
   'permission_employees': 'إدارة الموظفين والرواتب والسُلف',
   'employees_management_title': 'إدارة الموظفين والرواتب والسُلف',
-  'employees_management_subtitle': 'سجل العاملين، صرف السُلف المالية، وإعداد مسيرات الرواتب الشهرية',
+  'employees_management_subtitle':
+      'سجل العاملين، صرف السُلف المالية، وإعداد مسيرات الرواتب الشهرية',
   'tab_employees': 'دليل الموظفين',
   'tab_salary_advances': 'سجل السُلف',
   'tab_payroll_history': 'مسيرات الرواتب',
@@ -1368,7 +1450,8 @@ const Map<String, String> ar = {
   'kpi_disbursed_salaries_this_month': 'رواتب مسددة هذا الشهر',
   'kpi_active_employees_count': 'الموظفون النشطون',
   'month_period_label': 'شهر الاستحقاق:',
-  'search_employees_hint': 'بحث باسم الموظف، الوظيفة، الهاتف، أو الرقم القومي...',
+  'search_employees_hint':
+      'بحث باسم الموظف، الوظيفة، الهاتف، أو الرقم القومي...',
   'search_advances_hint': 'بحث باسم الموظف، الملاحظات، أو طريقة الصرف...',
   'search_payroll_hint': 'بحث باسم الموظف، شهر الراتب، أو المسؤول...',
   'no_employees_found': 'لا يوجد موظفون مسجلون',
@@ -1428,7 +1511,8 @@ const Map<String, String> ar = {
   'employee_added_success': 'تمت إضافة الموظف بنجاح',
   'employee_updated_success': 'تم تعديل بيانات الموظف بنجاح',
   'disburse_advance_title': 'صرف سُلفة مالية لموظف',
-  'disburse_advance_subtitle': 'تسجيل سُلفة نقدية وخصمها تلقائياً عند إصدار مسير الراتب الشهري',
+  'disburse_advance_subtitle':
+      'تسجيل سُلفة نقدية وخصمها تلقائياً عند إصدار مسير الراتب الشهري',
   'select_employee': 'اختر الموظف *',
   'select_employee_required': 'يرجى اختيار الموظف أولاً',
   'advance_amount_egp': 'مبلغ السُلفة (ج.م) *',
@@ -1436,13 +1520,16 @@ const Map<String, String> ar = {
   'confirm_disburse_advance': 'تأكيد صرف السُلفة',
   'advance_recorded_success': 'تم تسجيل وصرف السُلفة بنجاح',
   'disburse_payroll_title': 'إصدار مسير راتب شهري',
-  'disburse_payroll_subtitle': 'حساب صافي الراتب بعد المكافآت وخصم السُلف والجزاءات وتسجيله كمصروف',
+  'disburse_payroll_subtitle':
+      'حساب صافي الراتب بعد المكافآت وخصم السُلف والجزاءات وتسجيله كمصروف',
   'payroll_calculation_breakdown': 'تفاصيل واحتساب المسير',
   'bonuses_and_incentives': 'حوافز ومكافآت إضافية (ج.م)',
   'deductions_and_penalties': 'جزاءات وخصومات أخرى (ج.م)',
   'net_salary_to_pay': 'صافي المبلغ المستحق للصرف',
-  'record_to_expenses_checkbox': 'تسجيل الراتب تلقائياً في بند المصاريف العامة (رواتب وأجور)',
-  'record_to_expenses_subtitle': 'تضمين هذا المبلغ مباشرة في تقارير المصروفات والأرباح والخسائر',
+  'record_to_expenses_checkbox':
+      'تسجيل الراتب تلقائياً في بند المصاريف العامة (رواتب وأجور)',
+  'record_to_expenses_subtitle':
+      'تضمين هذا المبلغ مباشرة في تقارير المصروفات والأرباح والخسائر',
   'confirm_disburse_payroll': 'اعتماد وصرف المسير',
   'payroll_disbursed_success': 'تم إصدار مسير الراتب وتسجيل المصروف بنجاح',
   'thermal_receipt': 'إيصال حراري',
@@ -1458,7 +1545,8 @@ const Map<String, String> ar = {
 
   // Dashboard HR & Payroll Card
   'payroll_hr_dashboard_title': 'إدارة الموظفين ومسيرات الرواتب',
-  'payroll_hr_dashboard_subtitle': 'متابعة كتلة الرواتب، السُلف المنصرفة، والمسيرات المسددة خلال الفترة',
+  'payroll_hr_dashboard_subtitle':
+      'متابعة كتلة الرواتب، السُلف المنصرفة، والمسيرات المسددة خلال الفترة',
   'kpi_active_staff_title': 'الموظفون النشطون',
   'kpi_base_salaries_pool_title': 'كتلة الرواتب الشهرية',
   'kpi_advances_period_title': 'سُلف الفترة المحددة',
@@ -1472,9 +1560,11 @@ const Map<String, String> ar = {
 
   // Dashboard Expenses & Damaged Goods Cards
   'expenses_dashboard_title': 'المصاريف التشغيلية (OpEx)',
-  'expenses_dashboard_subtitle': 'تتبع بنود الصرف والفواتير والمصاريف الإدارية خلال الفترة',
+  'expenses_dashboard_subtitle':
+      'تتبع بنود الصرف والفواتير والمصاريف الإدارية خلال الفترة',
   'damaged_goods_dashboard_title': 'الهالك والتوالف المخزنية',
-  'damaged_goods_dashboard_subtitle': 'متابعة الخسائر المالية وتلف البضائع وإتلاف المخزون',
+  'damaged_goods_dashboard_subtitle':
+      'متابعة الخسائر المالية وتلف البضائع وإتلاف المخزون',
   'metric_total_expenses_title': 'إجمالي المصاريف',
   'metric_expenses_count_subtitle': '{count} عملية صرف مسجلة',
   'metric_top_expense_cat': 'أعلى بند صرف',
@@ -1533,7 +1623,8 @@ const Map<String, String> ar = {
   'advances_to_deduct': 'سُلف واجبة الخصم',
   'payment_method': 'طريقة الدفع',
   'record_payroll_as_expense': 'تسجيل الراتب في بند المصاريف العامة',
-  'record_payroll_as_expense_subtitle': 'إدراج المسير تلقائياً ضمن مصاريف الرواتب التشغيلية',
+  'record_payroll_as_expense_subtitle':
+      'إدراج المسير تلقائياً ضمن مصاريف الرواتب التشغيلية',
   'notes': 'الملاحظات',
   'hire_date': 'تاريخ التعيين',
   'employee_active_status': 'حالة الموظف (نشط / متوقف)',
@@ -1565,7 +1656,8 @@ const Map<String, String> ar = {
   'payment_recorded_title': 'تم تسجيل السداد',
   'payment_recorded_msg': 'تم تسجيل سند الصرف وتحديث مديونية المورد بنجاح.',
   'record_payment_voucher_title': 'تسجيل سند صرف / سداد لمورّد',
-  'record_payment_voucher_desc': 'توثيق دفعة مالية مسددة لحساب المورّد أو لفاتورة مشتريات محددة',
+  'record_payment_voucher_desc':
+      'توثيق دفعة مالية مسددة لحساب المورّد أو لفاتورة مشتريات محددة',
   'supplier_payee_req': 'المورّد المستلم *',
   'balance_due_badge': 'مستحق: {amount}',
   'link_invoice_optional': 'ربط بفاتورة توريد محددة (اختياري)',
@@ -1808,19 +1900,22 @@ const Map<String, String> ar = {
   'record_cash_out_btn': 'تسجيل الصرف',
   'shortcut_f6_shift': 'الوردية',
   'delete_transaction': 'حذف حركة الخزينة',
-  'confirm_delete_treasury_tx': 'هل أنت متأكد من حذف هذه الحركة من الخزينة؟ سيتم عكس تأثيرها المالي وحذف القيد المرتبط بها.',
+  'confirm_delete_treasury_tx':
+      'هل أنت متأكد من حذف هذه الحركة من الخزينة؟ سيتم عكس تأثيرها المالي وحذف القيد المرتبط بها.',
   'transaction_deleted_success': 'تم حذف حركة الخزينة بنجاح!',
   'transaction_updated_successfully': 'تم تحديث حركة الخزينة بنجاح!',
   'previous_shift_closing_cash': 'رصيد إغلاق الوردية السابقة:',
   'no_previous_shift_found': 'لا توجد وردية سابقة مسجلة لهذا الفرع (أول وردية)',
   'previous_shift_closed_by': 'أغلقت بواسطة: {name}',
-  'previous_shift_auto_filled_hint': 'تم ضبط عهدة البداية تلقائياً برصيد إغلاق الوردية السابقة. يرجى عدّ نقدية الدرج لتأكيد الاستلام.',
+  'previous_shift_auto_filled_hint':
+      'تم ضبط عهدة البداية تلقائياً برصيد إغلاق الوردية السابقة. يرجى عدّ نقدية الدرج لتأكيد الاستلام.',
   'fetching_drawer_balance': 'جاري استرجاع رصيد إغلاق الوردية السابقة...',
   'drawer_auto_reconciled': 'مطابقة عهدة الاستلام التلقائية',
   'network_url_tab': 'رابط إنترنت',
   'upload_file_tab': 'رفع من الجهاز',
   'image_url_hint': 'https://example.com/photo.jpg',
-  'paste_direct_image_url_desc': 'الصق رابط الصورة المباشر من الإنترنت مع معاينة حية.',
+  'paste_direct_image_url_desc':
+      'الصق رابط الصورة المباشر من الإنترنت مع معاينة حية.',
   'pick_and_upload_device_btn': 'اختيار صورة ورفعها للسحابة',
   'no_image': 'لا توجد صورة',
   'shortcut_f7_transfers': 'طلب بضاعة من فرع',
@@ -1839,7 +1934,8 @@ const Map<String, String> ar = {
   'transfer_priority_urgent': 'عاجل (نفاد مخزون)',
   'transfer_priority_next_shipment': 'مع الشحنة القادمة',
   'transfer_add_products_title': 'إضافة أصناف ونكهات للطلب',
-  'transfer_search_product_hint': 'ابحث باسم المنتج، الماركة، النكهة، أو الـ SKU...',
+  'transfer_search_product_hint':
+      'ابحث باسم المنتج، الماركة، النكهة، أو الـ SKU...',
   'transfer_no_items_selected': 'لم يتم إضافة أصناف إلى طلب التحويل بعد',
   'transfer_requested_items': 'الأصناف المطلوبة',
   'transfer_total_qty': 'إجمالي القطع المطلوبة',
@@ -1851,7 +1947,8 @@ const Map<String, String> ar = {
   'transfer_to': 'إلى',
   'transfer_confirm_receipt_btn': 'تأكيد استلام الشحنة',
   'transfer_confirm_receipt_title': 'تأكيد استلام البضاعة في الفرع',
-  'transfer_confirm_receipt_msg': 'هل تؤكد استلام وفحص جميع الأصناف التابعة للشحنة {num}؟',
+  'transfer_confirm_receipt_msg':
+      'هل تؤكد استلام وفحص جميع الأصناف التابعة للشحنة {num}؟',
   'transfer_confirm_btn': 'نعم، تأكيد الاستلام',
   'transfer_cancel_title': 'إلغاء طلب التحويل',
   'transfer_cancel_msg': 'هل أنت متأكد من رغبتك في إلغاء هذا الطلب؟',
@@ -1866,7 +1963,8 @@ const Map<String, String> ar = {
   'inventory_transfers': 'تحويلات البضاعة',
   'permission_transfers': 'إدارة تحويلات وشحنات الفروع',
   'transfer_screen_title': 'إدارة تحويلات وشحنات البضاعة بين الفروع',
-  'transfer_screen_subtitle': 'تتبع مسار البضاعة والموافقة على الشحنات وتأكيد الاستلام بالمخازن',
+  'transfer_screen_subtitle':
+      'تتبع مسار البضاعة والموافقة على الشحنات وتأكيد الاستلام بالمخازن',
   'all_branches_warehouses': 'جميع الفروع والمخازن',
   'transfer_create_new_btn': 'إنشاء طلب تحويل بضاعة',
   'transfer_kpi_total': 'إجمالي طلبات التحويل',
@@ -1886,8 +1984,10 @@ const Map<String, String> ar = {
   'transfer_action_dispatch': 'بدء شحن البضاعة',
   'transfer_action_reject': 'رفض الطلب',
   'transfer_approve_confirm_msg': 'هل توافق على تجهيز وشحن طلب البضاعة {num}؟',
-  'transfer_dispatch_confirm_msg': 'هل تؤكد خروج البضاعة للشحنة {num} وبدء تحركها نحو الفرع؟',
-  'transfer_courier_notes_hint': 'اسم السائق / المندوب / رقم بوليصة الشحن (اختياري)...',
+  'transfer_dispatch_confirm_msg':
+      'هل تؤكد خروج البضاعة للشحنة {num} وبدء تحركها نحو الفرع؟',
+  'transfer_courier_notes_hint':
+      'اسم السائق / المندوب / رقم بوليصة الشحن (اختياري)...',
   'transfer_reject_confirm_msg': 'يرجى كتابة سبب رفض طلب التحويل:',
   'transfer_reject_reason_hint': 'سبب الرفض (مثال: عدم توفر كميات بالمخزن)...',
   'requested_by': 'مقدم الطلب',
@@ -1895,7 +1995,8 @@ const Map<String, String> ar = {
   // Multi-Branch Inventory Matrix & Tracking
   'branch_stock_label': 'مخزون الفرع',
   'branch_stock_title': 'مخزون الفروع والمخازن',
-  'branch_stock_updated_success': 'تم تحديث رصيد فرع {branch} إلى {qty} قطعة بنجاح.',
+  'branch_stock_updated_success':
+      'تم تحديث رصيد فرع {branch} إلى {qty} قطعة بنجاح.',
   'set_branch_stock_title': 'تحديد رصيد الفرع',
   'branch': 'الفرع',
   'variation': 'المواصفة / النكهة',
@@ -1922,25 +2023,135 @@ const Map<String, String> ar = {
   'apply_btn': 'تطبيق',
   'apply_uniform_cost': 'تكلفة موحدة:',
   'add_selected_vars_btn': 'إضافة المتغيرات المحددة ({count} أصناف)',
-  'no_vars_selected_warning': 'يرجى تحديد متغير واحد على الأقل وإدخال كمية أكبر من صفر',
+  'no_vars_selected_warning':
+      'يرجى تحديد متغير واحد على الأقل وإدخال كمية أكبر من صفر',
   'vars_added_success_msg': 'تمت إضافة {count} متغير إلى الفاتورة بنجاح',
   'search_vars_hint': 'بحث بالنكهة، المقاومة، أو الـ SKU...',
   'current_warehouse_stock_badge': 'المخزون: {count} قطعة',
-  'batch_vars_summary': 'تم اختيار {selected} من {total} متغير • إجمالي: {qty} قطعة • {amount}',
+  'batch_vars_summary':
+      'تم اختيار {selected} من {total} متغير • إجمالي: {qty} قطعة • {amount}',
   'qty_short': 'الكمية',
   'cost_short': 'التكلفة',
 
   // Invoice Payment Validation & Quick Pay
-  'paid_amount_exceeds_total_error': 'المبلغ المدفوع ({paid}) لا يمكن أن يتجاوز إجمالي الفاتورة ({total})',
+  'paid_amount_exceeds_total_error':
+      'المبلغ المدفوع ({paid}) لا يمكن أن يتجاوز إجمالي الفاتورة ({total})',
   'paid_exceeds_total_hint': 'المبلغ أكبر من الفاتورة (الحد الأقصى: {max})',
   'pay_full_total_tooltip': 'سداد إجمالي الفاتورة بالكامل',
   'pay_full_btn': 'سداد بالكامل (100%)',
   'pay_half_btn': 'سداد 50%',
   'pay_zero_btn': 'آجل (0)',
-  'paid_exceeds_warning_banner': 'تنبيه: المبلغ المدفوع ({paid}) أكبر من إجمالي الفاتورة ({total})!',
+  'paid_exceeds_warning_banner':
+      'تنبيه: المبلغ المدفوع ({paid}) أكبر من إجمالي الفاتورة ({total})!',
+
+  // Today's Sales & Movement Summary Dialog
+  'today_movement_title': 'ملخص حركة ومبيعات اليوم',
+  'today_movement_subtitle':
+      'تقرير فوري وشامل لمبيعات الفرع، طرق الدفع، وحركة الخزينة لليوم',
+  'btn_today_movement': 'حركة اليوم',
+  'active_shift_tab': 'الوردية الحالية',
+  'today_total_tab': 'إجمالي اليوم بالفرع',
+  'payment_methods_breakdown': 'تفصيل مبيعات طرق الدفع',
+  'drawer_cash_flow': 'حركة النقدية والخزينة',
+  'recent_shift_txs': 'سجل إيداعات ومصروفات الدرج',
+  'no_shift_txs_found': 'لا توجد حركات إيداع أو صرف مسجلة في هذه الوردية',
+  'average_order_value': 'متوسط الفاتورة',
+  'today_all_shifts_count': 'عدد ورديات اليوم: {count}',
+  'opening_float': 'عهدة البداية',
+  'instapay_sales': 'إنستاباي (Instapay)',
+  'vodafone_cash_sales': 'فودافون كاش / محافظ',
+  'drawer_total_inflow': 'إجمالي الإيداعات (+)',
+  'drawer_total_outflow': 'إجمالي المنصرفات (-)',
+  'drawer_total_refunds': 'المرتجعات نقدية (-)',
+  'shortcut_today_movement': 'حركة اليوم',
+
+  // Physical Stock Count & Reconciliation Audit
+  'inventory_audit_title': 'جرد ومطابقة المخزون الفعلي',
+  'inventory_audit_subtitle':
+      'مطابقة المخزون الفعلي بالفرع مع أرصدة السيستم وتسوية الفروقات بالباركود',
+  'btn_inventory_audit': 'جرد المخزون الفعلي',
+  'scan_barcode_audit_hint': 'امسح باركود المنتج لزيادة العدد الفعلي...',
+  'show_variance_only': 'الفروقات فقط',
+  'system_stock_label': 'رصيد السيستم',
+  'physical_stock_counted': 'المجرود الفعلي',
+  'variance_difference': 'الفارق',
+  'variance_cost_impact': 'الأثر المالي (ج.م)',
+  'no_items_match_audit': 'لا توجد أصناف مطابقة لمعايير البحث في هذا الفرع',
+  'save_audit_draft_btn': 'حفظ كمسودة',
+  'reconcile_and_apply_btn': 'اعتماد وتسوية المخزون',
+  'confirm_audit_reconciliation_title': 'تأكيد تسوية واعتماد الجرد',
+  'confirm_audit_reconciliation_msg':
+      'سيتم تعديل رصيد {count} صنف في {branch} وتسجيل قيود التسوية المخزنية فوراً. هل تريد المتابعة؟',
+  'confirm_and_apply': 'تأكيد واعتماد التسوية',
+
+  // Smart Reorder & Purchase Branch Target
+  'target_branch_label': 'فرع أو مخزن الاستلام',
+  'smart_reorder_po_btn': 'طلب شراء ذكي (PO)',
+  'smart_reorder_po_desc': 'إنشاء فاتورة مشتريات فورية للأصناف التي أوشكت على النفاد',
+  'smart_reorder_created_msg': 'تم تحضير مسودة أمر الشراء للنواقص ({count} صنف)',
+
+  // Business-Task Navigation Sections
+  'nav_section_overview': 'نظرة عامة',
+  'nav_section_sales': 'المبيعات والعملاء',
+  'nav_section_inventory': 'الأصناف والمخزون',
+  'nav_section_purchasing': 'المشتريات والتوريد',
+  'nav_section_finance': 'المالية والخزينة',
+  'nav_section_marketing': 'التسويق والتطبيق',
+  'nav_section_system': 'النظام والصلاحيات',
+
+  // Context-Aware Dashboard & Quick Actions
+  'dashboard_quick_actions_title': 'إجراءات سريعة ومباشرة',
+  'quick_action_pos': 'نقطة البيع (POS)',
+  'quick_action_add_product': 'إضافة صنف جديد',
+  'quick_action_new_po': 'فاتورة مشتريات',
+  'quick_action_add_expense': 'تسجيل مصروف',
+  'quick_action_stock_audit': 'جرد المخزون',
+  'attention_required_title': 'يحتاج إلى انتباهك الآن',
+  'attention_low_stock_msg': '{count} أصناف وصلت لحد إعادة الطلب والنقص',
+  'attention_pending_orders_msg': '{count} طلبات جديدة أونلاين بانتظار التجهيز',
+  'attention_supplier_due_msg': 'مستحقات موردين غير مسددة بقيمة {amount}',
+  'attention_view_orders_btn': 'عرض وتجهيز',
+  'attention_pay_suppliers_btn': 'سداد دفعة',
+  'attention_all_clear_msg': 'حالة العمليات والمخزون ممتازة ولا توجد تنبيهات عاجلة',
+
+  // Missing & UX Simplification Tokens
+  'upload_success_title': 'تم رفع الصورة بنجاح',
+  'upload_success_msg': 'تم رفع الصورة وتحديثها بنجاح',
+  'uploading_to_firebase': 'جاري رفع الصورة إلى التخزين السحابي...',
+  'barcode': 'الباركود',
+  'search_product_hint': 'ابحث عن منتج بالاسم أو الـ SKU...',
+  'all': 'الكل',
+  'items': 'عناصر',
+  'details': 'التفاصيل',
+  'no': 'لا',
+  'yes': 'نعم',
+  'transfer_request_success_msg': 'تم إرسال طلب التحويل بنجاح',
+  'add': 'إضافة',
+  'active_branch_label': 'الفرع النشط',
+  'close_btn': 'إغلاق',
+  'total_sales': 'إجمالي المبيعات',
+  'stock_label': 'المخزون',
+  'clear_all': 'مسح الكل',
+  'add_flavor_dialog_title': 'أضف نكهة جديدة',
+  'add_flavor_btn': 'إضافة النكهة',
+  'add_and_select_btn': 'إضافة واختيار',
+  'add_resistance_btn': 'إضافة المقاومة',
+  'select_wattage_hint': 'اختر قدرة الوات...',
+  'select_battery_hint': 'اختر سعة البطارية (mAh)...',
+  'select_charging_port_hint': 'اختر منفذ الشحن...',
+  'select_screen_type_hint': 'اختر نوع الشاشة...',
+  'select_airflow_hint': 'اختر نظام تدفق الهواء...',
+  'add_image_label': 'إضافة صورة',
+  'add_color_from_picker': 'إضافة لون من المنتقي',
+  'choose_from_picker': 'اختيار من المنتقي',
+  'general_image_no_color': 'صورة عامة (بدون لون)',
+  'save_image_btn': 'حفظ الصورة',
+  'delete_image_btn': 'حذف الصورة',
+  'add_custom_badge_firebase': 'إضافة نوع شارة مخصص',
+  'save_color_btn': 'حفظ واختيار اللون',
+  'image_load_failed': 'فشل تحميل الصورة، يرجى التأكد من الرابط.',
+  'receipt_thermal_80mm': 'إيصال حراري (80mm)',
+  'invoice_a4': 'فاتورة A4',
+  'print_pos_receipt': 'طباعة إيصال حراري (POS)',
+  'more_filters': 'فلاتر إضافية',
 };
-
-
-
-
-

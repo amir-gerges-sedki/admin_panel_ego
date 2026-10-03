@@ -5,6 +5,7 @@ import '../../../../core/constant/app_colors.dart';
 import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/helper/color_utils.dart';
 import '../../../../core/helper/helper_fun.dart';
+import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/product_model.dart';
 import '../cubit/product_form_cubit.dart';
 import 'color_palette_picker_dialog.dart';
@@ -60,11 +61,11 @@ class _LiquidFormSectionState extends State<LiquidFormSection> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Row(
+        title: Row(
           children: [
-            Icon(Icons.add_circle_outline, color: Color(0xFF0EA5E9), size: 22),
-            SizedBox(width: 8),
-            Text('أضف نكهة جديدة (Add Flavor)', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+            const Icon(Icons.add_circle_outline, color: Color(0xFF0EA5E9), size: 22),
+            const SizedBox(width: 8),
+            Text('add_flavor_dialog_title'.tr, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
           ],
         ),
         content: TextField(
@@ -81,7 +82,7 @@ class _LiquidFormSectionState extends State<LiquidFormSection> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('إلغاء'),
+            child: Text('cancel'.tr),
           ),
           ElevatedButton(
             onPressed: () => _addFlavorAndClose(ctx),
@@ -89,7 +90,7 @@ class _LiquidFormSectionState extends State<LiquidFormSection> {
               backgroundColor: const Color(0xFF0EA5E9),
               foregroundColor: Colors.white,
             ),
-            child: const Text('إضافة النكهة'),
+            child: Text('add_flavor_btn'.tr),
           ),
         ],
       ),
@@ -896,7 +897,7 @@ class _DisposableFormSectionState extends State<DisposableFormSection> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('إلغاء'),
+            child: Text('cancel'.tr),
           ),
           ElevatedButton(
             onPressed: () => _addFlavorAndClose(ctx),
@@ -904,7 +905,7 @@ class _DisposableFormSectionState extends State<DisposableFormSection> {
               backgroundColor: const Color(0xFFF59E0B),
               foregroundColor: Colors.white,
             ),
-            child: const Text('إضافة النكهة'),
+            child: Text('add_flavor_btn'.tr),
           ),
         ],
       ),
@@ -2158,7 +2159,7 @@ class _DeviceFormSectionState extends State<DeviceFormSection> {
                                 prefixIcon: Icon(Icons.flash_on_rounded, size: 18, color: Color(0xFF6366F1)),
                                 isDense: true,
                               ),
-                              hint: const Text('اختر قدرة الوات...'),
+                              hint: Text('select_wattage_hint'.tr),
                               items: _buildStringDropdownItems(GlobalDeviceSpecsPool.wattageOptions, state.maxWattage),
                               onChanged: (v) => cubit.updateDeviceSpecs(maxWattage: v ?? ''),
                             ),
@@ -2221,7 +2222,7 @@ class _DeviceFormSectionState extends State<DeviceFormSection> {
                                 prefixIcon: Icon(Icons.battery_std_rounded, size: 18, color: Color(0xFF6366F1)),
                                 isDense: true,
                               ),
-                              hint: const Text('اختر سعة البطارية (mAh)...'),
+                              hint: Text('select_battery_hint'.tr),
                               items: _buildStringDropdownItems(GlobalDeviceSpecsPool.batteryCapacities, state.batteryCapacity),
                               onChanged: (v) => cubit.updateDeviceSpecs(batteryCapacity: v ?? ''),
                             ),
@@ -2324,7 +2325,7 @@ class _DeviceFormSectionState extends State<DeviceFormSection> {
                           labelText: 'منفذ وسرعة الشحن (Charging Port)',
                           prefixIcon: Icon(Icons.electrical_services_rounded, size: 18, color: Color(0xFF6366F1)),
                         ),
-                        hint: const Text('اختر منفذ الشحن...'),
+                        hint: Text('select_charging_port_hint'.tr),
                         items: _buildMapDropdownItems(GlobalDeviceSpecsPool.chargingPorts, state.chargingPort),
                         onChanged: (v) => cubit.updateDeviceSpecs(chargingPort: v ?? ''),
                       ),
@@ -2374,7 +2375,7 @@ class _DeviceFormSectionState extends State<DeviceFormSection> {
                           labelText: 'نوع الشاشة والعرض (Screen Display)',
                           prefixIcon: Icon(Icons.tv_rounded, size: 18, color: Color(0xFF6366F1)),
                         ),
-                        hint: const Text('اختر نوع الشاشة...'),
+                        hint: Text('select_screen_type_hint'.tr),
                         items: _buildMapDropdownItems(GlobalDeviceSpecsPool.screenTypes, state.screenType),
                         onChanged: (v) => cubit.updateDeviceSpecs(screenType: v ?? ''),
                       ),
@@ -2398,7 +2399,7 @@ class _DeviceFormSectionState extends State<DeviceFormSection> {
                           labelText: 'نظام تدفق الهواء (Airflow Control)',
                           prefixIcon: Icon(Icons.air_rounded, size: 18, color: Color(0xFF6366F1)),
                         ),
-                        hint: const Text('اختر نظام تدفق الهواء...'),
+                        hint: Text('select_airflow_hint'.tr),
                         items: _buildMapDropdownItems(GlobalDeviceSpecsPool.airflowTypes, state.airflowType),
                         onChanged: (v) => cubit.updateDeviceSpecs(airflowType: v ?? ''),
                       ),
@@ -2566,7 +2567,7 @@ class _DeviceFormSectionState extends State<DeviceFormSection> {
                           backgroundColor: isDark ? AppColor.darkBorder : AppColor.lightBorder,
                           foregroundColor: isDark ? Colors.white : Colors.black,
                         ),
-                        child: const Text('إضافة'),
+                        child: Text('add'.tr),
                       ),
                     ],
                   ),
@@ -2637,7 +2638,7 @@ class _CoilsAndCartridgesFormSectionState
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('إلغاء'),
+            child: Text('cancel'.tr),
           ),
           ElevatedButton(
             onPressed: () {
@@ -2650,7 +2651,7 @@ class _CoilsAndCartridgesFormSectionState
               backgroundColor: const Color(0xFF10B981),
               foregroundColor: Colors.white,
             ),
-            child: const Text('إضافة المقاومة'),
+            child: Text('add_resistance_btn'.tr),
           ),
         ],
       ),
@@ -4549,15 +4550,15 @@ class AccessoryFormSection extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.of(ctx).pop(),
-                child: const Text('إلغاء'),
+                child: Text('cancel'.tr),
               ),
               ElevatedButton(
                 onPressed: () {
                   final imgUrl = previewUrl.trim();
                   if (imgUrl.isEmpty) {
                     HelperFun.warningSnackbar(
-                      title: 'تنبيه',
-                      message: 'يرجى إدخال أو رفع صورة.',
+                      title: 'warning'.tr,
+                      message: 'image_url_hint'.tr,
                     );
                     return;
                   }
@@ -4572,17 +4573,15 @@ class AccessoryFormSection extends StatelessWidget {
 
                   Navigator.of(ctx).pop();
                   HelperFun.successSnackbar(
-                    'تمت إضافة الصورة',
-                    selectedColor != null
-                        ? 'تم حفظ الصورة وربطها باللون "$selectedColor".'
-                        : 'تمت إضافة صورة الملحق بنجاح.',
+                    'upload_success_title'.tr,
+                    'upload_success_msg'.tr,
                   );
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: _accentColor,
                   foregroundColor: Colors.white,
                 ),
-                child: const Text('إضافة الصورة'),
+                child: Text('save_image_btn'.tr),
               ),
             ],
           );

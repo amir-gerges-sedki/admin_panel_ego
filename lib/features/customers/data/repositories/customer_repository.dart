@@ -6,6 +6,12 @@ abstract class CustomerRepository {
   Future<List<CustomerModel>> getCustomers();
   Stream<List<CustomerModel>> getCustomersStream();
   Stream<CustomerModel?> watchCustomer(CustomerModel initialCustomer);
+  Future<CustomerModel?> findCustomerByPhone(String phone);
+  Future<void> updateCustomerPoints({
+    required String customerId,
+    required int pointsDelta,
+    String? reason,
+  });
 }
 
 class CustomerRepositoryImpl implements CustomerRepository {
@@ -15,6 +21,8 @@ class CustomerRepositoryImpl implements CustomerRepository {
   final Map<String, double> _orderSpentByUid = {};
   final Map<String, int> _orderCountsByEmail = {};
   final Map<String, double> _orderSpentByEmail = {};
+  final Map<String, int> _orderCountsByPhone = {};
+  final Map<String, double> _orderSpentByPhone = {};
 
   CustomerRepositoryImpl({CustomerRemoteDataSource? remoteDataSource})
       : remoteDataSource = remoteDataSource ?? CustomerRemoteDataSourceImpl();
@@ -24,6 +32,8 @@ class CustomerRepositoryImpl implements CustomerRepository {
     _orderSpentByUid.clear();
     _orderCountsByEmail.clear();
     _orderSpentByEmail.clear();
+    _orderCountsByPhone.clear();
+    _orderSpentByPhone.clear();
 
     for (final data in rawOrders) {
       final status = (data['status'] ?? data['orderStatus'] ?? data['Status'] ?? '')
@@ -31,12 +41,18 @@ class CustomerRepositoryImpl implements CustomerRepository {
           .toLowerCase()
           .trim();
 
-      if (status != 'delivered') continue;
+      if (status != 'delivered' && status != 'completed') continue;
 
-      final uid = (data['userId'] ?? data['customerId'] ?? data['uid'] ?? '').toString().trim();
+      final uid = (data['customerId'] ?? data['userId'] ?? data['uid'] ?? '').toString().trim();
       final email = (data['customerEmail'] ?? data['email'] ?? data['userEmail'] ?? '')
           .toString()
           .toLowerCase()
+          .trim();
+      final phone = (data['customerPhone'] ??
+              data['phone'] ??
+              (data['shippingAddress'] is Map ? data['shippingAddress']['phoneNumber'] : ''))
+          .toString()
+          .replaceAll(RegExp(r'\s+|-'), '')
           .trim();
 
       final amount = (data['totalPrice'] ??
@@ -46,14 +62,19 @@ class CustomerRepositoryImpl implements CustomerRepository {
           ?.toDouble() ??
           0.0;
 
-      if (uid.isNotEmpty && uid != 'guest') {
+      if (uid.isNotEmpty && uid != 'guest' && uid != 'pos_cashier') {
         _orderCountsByUid[uid] = (_orderCountsByUid[uid] ?? 0) + 1;
         _orderSpentByUid[uid] = (_orderSpentByUid[uid] ?? 0.0) + amount;
       }
 
-      if (email.isNotEmpty) {
+      if (email.isNotEmpty && !email.contains('walkin.customer') && !email.contains('pos_instore')) {
         _orderCountsByEmail[email] = (_orderCountsByEmail[email] ?? 0) + 1;
         _orderSpentByEmail[email] = (_orderSpentByEmail[email] ?? 0.0) + amount;
+      }
+
+      if (phone.isNotEmpty) {
+        _orderCountsByPhone[phone] = (_orderCountsByPhone[phone] ?? 0) + 1;
+        _orderSpentByPhone[phone] = (_orderSpentByPhone[phone] ?? 0.0) + amount;
       }
     }
   }
@@ -63,14 +84,28 @@ class CustomerRepositoryImpl implements CustomerRepository {
       final data = Map<String, dynamic>.from(rawUser);
       final id = data['id']?.toString() ?? '';
       final email = (data['email'] ?? '').toString().toLowerCase().trim();
+      final phone = (data['phone'] ?? data['phoneNumber'] ?? data['PhoneNumber'] ?? '')
+          .toString()
+          .replaceAll(RegExp(r'\s+|-'), '')
+          .trim();
 
       final ordersFromUid = id.isNotEmpty ? (_orderCountsByUid[id] ?? 0) : 0;
       final ordersFromEmail = email.isNotEmpty ? (_orderCountsByEmail[email] ?? 0) : 0;
-      final computedOrders = ordersFromUid > 0 ? ordersFromUid : ordersFromEmail;
+      final ordersFromPhone = phone.isNotEmpty ? (_orderCountsByPhone[phone] ?? 0) : 0;
+      final docOrders = (data['totalOrders'] as num?)?.toInt() ?? 0;
+
+      final computedOrders = ordersFromPhone > 0
+          ? ordersFromPhone
+          : (ordersFromUid > 0 ? ordersFromUid : (ordersFromEmail > 0 ? ordersFromEmail : docOrders));
 
       final spentFromUid = id.isNotEmpty ? (_orderSpentByUid[id] ?? 0.0) : 0.0;
       final spentFromEmail = email.isNotEmpty ? (_orderSpentByEmail[email] ?? 0.0) : 0.0;
-      final computedSpent = spentFromUid > 0 ? spentFromUid : spentFromEmail;
+      final spentFromPhone = phone.isNotEmpty ? (_orderSpentByPhone[phone] ?? 0.0) : 0.0;
+      final docSpent = (data['totalSpent'] as num?)?.toDouble() ?? 0.0;
+
+      final computedSpent = spentFromPhone > 0
+          ? spentFromPhone
+          : (spentFromUid > 0 ? spentFromUid : (spentFromEmail > 0 ? spentFromEmail : docSpent));
 
       data['totalOrders'] = computedOrders;
       data['totalSpent'] = computedSpent;
@@ -112,5 +147,25 @@ class CustomerRepositoryImpl implements CustomerRepository {
         totalSpent: initialCustomer.totalSpent,
       );
     });
+  }
+
+  @override
+  Future<CustomerModel?> findCustomerByPhone(String phone) async {
+    final raw = await remoteDataSource.findUserByPhone(phone);
+    if (raw == null) return null;
+    return CustomerModel.fromJson(raw);
+  }
+
+  @override
+  Future<void> updateCustomerPoints({
+    required String customerId,
+    required int pointsDelta,
+    String? reason,
+  }) {
+    return remoteDataSource.updateCustomerPoints(
+      userId: customerId,
+      pointsDelta: pointsDelta,
+      reason: reason,
+    );
   }
 }

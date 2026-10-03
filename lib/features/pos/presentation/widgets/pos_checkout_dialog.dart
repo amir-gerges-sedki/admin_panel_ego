@@ -5,6 +5,7 @@ import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/formatters/formatters.dart';
 import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
+import 'package:admin_panel_ego/features/customers/domain/services/loyalty_service.dart';
 import '../cubit/pos_cubit.dart';
 import '../cubit/pos_state.dart';
 import '../cubit/shift_cubit.dart';
@@ -41,14 +42,17 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
   @override
   void initState() {
     super.initState();
-    final state = context.read<PosCubit>().state;
+    final cubit = context.read<PosCubit>();
+    cubit.resetSaleStatus();
+    final state = cubit.state;
     _customerNameController.text = state.customerName;
     _customerPhoneController.text = state.customerPhone;
     _notesController.text = state.orderNotes;
-    if (state.paidAmount > 0) {
-      _cashPaidController.text = state.paidAmount.toStringAsFixed(0);
-    } else {
-      _cashPaidController.text = state.grandTotal.toStringAsFixed(0);
+    final initialPaid = state.paidAmount > 0 ? state.paidAmount : state.grandTotal;
+    _cashPaidController.text = initialPaid.toStringAsFixed(0);
+    cubit.setPaidAmount(initialPaid);
+    if (state.customerPhone.trim().length >= 8) {
+      cubit.onCustomerPhoneChanged(state.customerPhone.trim());
     }
   }
 
@@ -66,8 +70,16 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
     final isDark = HelperFun.isDarkMode(context);
 
     return BlocConsumer<PosCubit, PosState>(
+      listenWhen: (previous, current) =>
+          previous.saleStatus != current.saleStatus ||
+          previous.customerName != current.customerName,
       listener: (context, state) {
+        if (state.customerName.isNotEmpty &&
+            _customerNameController.text.trim().isEmpty) {
+          _customerNameController.text = state.customerName;
+        }
         if (state.saleStatus == PosSaleStatus.success) {
+          context.read<PosCubit>().resetSaleStatus();
           if (context.mounted && Navigator.of(context).canPop()) {
             Navigator.of(context).pop(true);
           }
@@ -91,7 +103,7 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
           insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: SizedBox(
             width: 580,
-            height: 680,
+            height: 720,
             child: Padding(
               padding: const EdgeInsets.all(AppSizes.lg),
               child: Column(
@@ -162,7 +174,11 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
                                 isSelected: state.paymentMethod == 'cash',
                                 icon: Icons.payments_outlined,
                                 label: 'payment_cash_tab'.tr,
-                                onTap: () => context.read<PosCubit>().setPaymentMethod('cash'),
+                                onTap: () {
+                                  context.read<PosCubit>().setPaymentMethod('cash');
+                                  _cashPaidController.text = grandTotal.toStringAsFixed(0);
+                                  context.read<PosCubit>().setPaidAmount(grandTotal);
+                                },
                               ),
                               const SizedBox(width: 8),
                               _buildPaymentOption(
@@ -250,47 +266,64 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
                                   const SizedBox(height: 10),
 
                                   // Change Return Card
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                    decoration: BoxDecoration(
-                                      color: changeAmount > 0
-                                          ? AppColor.success.withValues(alpha: 0.12)
-                                          : (paidAmount < grandTotal
-                                              ? AppColor.error.withValues(alpha: 0.12)
-                                              : (isDark ? AppColor.darkCard : Colors.white)),
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(
-                                        color: changeAmount > 0
-                                            ? AppColor.success.withValues(alpha: 0.3)
-                                            : (paidAmount < grandTotal
-                                                ? AppColor.error.withValues(alpha: 0.3)
-                                                : (isDark ? AppColor.darkBorder : AppColor.lightBorder)),
+                                  Builder(builder: (context) {
+                                    final isExact = (paidAmount - grandTotal).abs() < 0.01;
+                                    final isUnderpaid = paidAmount < grandTotal && !isExact;
+                                    final isOverpaid = paidAmount > grandTotal && !isExact;
+
+                                    return Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                      decoration: BoxDecoration(
+                                        color: isExact || isOverpaid
+                                            ? AppColor.success.withValues(alpha: 0.12)
+                                            : AppColor.error.withValues(alpha: 0.12),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: isExact || isOverpaid
+                                              ? AppColor.success.withValues(alpha: 0.3)
+                                              : AppColor.error.withValues(alpha: 0.3),
+                                        ),
                                       ),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Text(
-                                          paidAmount < grandTotal ? 'remaining_amount_to_pay'.tr : 'change_to_customer'.tr,
-                                          style: TextStyle(
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.w700,
-                                            color: paidAmount < grandTotal ? AppColor.error : (changeAmount > 0 ? AppColor.success : null),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Icon(
+                                                isExact || isOverpaid ? Icons.check_circle_rounded : Icons.info_outline_rounded,
+                                                size: 16,
+                                                color: isExact || isOverpaid ? AppColor.success : AppColor.error,
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                isExact
+                                                    ? 'exact_amount_settled'.tr
+                                                    : (isUnderpaid
+                                                        ? 'remaining_amount_to_pay'.tr
+                                                        : 'change_to_customer'.tr),
+                                                style: TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: isExact || isOverpaid ? AppColor.success : AppColor.error,
+                                                ),
+                                              ),
+                                            ],
                                           ),
-                                        ),
-                                        Text(
-                                          paidAmount < grandTotal
-                                              ? AppFormatters.formatEGP(grandTotal - paidAmount)
-                                              : AppFormatters.formatEGP(changeAmount),
-                                          style: TextStyle(
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w900,
-                                            color: paidAmount < grandTotal ? AppColor.error : (changeAmount > 0 ? AppColor.success : AppColor.primary),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
+                                          if (!isExact)
+                                            Text(
+                                              isUnderpaid
+                                                  ? AppFormatters.formatEGP(grandTotal - paidAmount)
+                                                  : AppFormatters.formatEGP(changeAmount),
+                                              style: TextStyle(
+                                                fontSize: 14,
+                                                fontWeight: FontWeight.w900,
+                                                color: isUnderpaid ? AppColor.error : AppColor.success,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    );
+                                  }),
                                 ],
                               ),
                             ),
@@ -322,14 +355,29 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
                                     labelText: 'customer_phone_optional'.tr,
                                     hintText: '01xxxxxxxxx',
                                     prefixIcon: const Icon(Icons.phone_outlined, size: 18),
+                                    suffixIcon: state.isSearchingCustomer
+                                        ? const Padding(
+                                            padding: EdgeInsets.all(12),
+                                            child: SizedBox(
+                                              width: 14,
+                                              height: 14,
+                                              child: CircularProgressIndicator(strokeWidth: 2),
+                                            ),
+                                          )
+                                        : null,
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd)),
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                   ),
-                                  onChanged: (val) => context.read<PosCubit>().setCustomerInfo(phone: val),
+                                  onChanged: (val) {
+                                    context.read<PosCubit>().onCustomerPhoneChanged(val);
+                                  },
                                 ),
                               ),
                             ],
                           ),
+
+                          // Loyalty Points Card & Auto-Register Status
+                          _buildLoyaltySection(context, state, isDark),
                           const SizedBox(height: 10),
 
                           // Print Checkbox
@@ -475,6 +523,188 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
         _cashPaidController.text = next.toStringAsFixed(0);
         context.read<PosCubit>().setPaidAmount(next);
       },
+    );
+  }
+
+  Widget _buildLoyaltySection(BuildContext context, PosState state, bool isDark) {
+    final matched = state.matchedCustomer;
+    final pointsEarned = state.pointsEarned;
+    final phoneEntered = state.customerPhone.trim().isNotEmpty;
+
+    if (matched == null && !phoneEntered && pointsEarned <= 0) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: matched != null
+            ? Colors.amber.withValues(alpha: isDark ? 0.12 : 0.08)
+            : (isDark ? AppColor.darkSubCard : AppColor.lightSubCard),
+        borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+        border: Border.all(
+          color: matched != null
+              ? Colors.amber.withValues(alpha: 0.4)
+              : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+          width: matched != null ? 1.2 : 1.0,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          if (matched != null) ...[
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(Icons.stars_rounded, color: Colors.amber, size: 20),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              matched.name,
+                              style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: AppColor.success.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'customer_found_badge'.tr,
+                              style: const TextStyle(fontSize: 9.5, fontWeight: FontWeight.w700, color: AppColor.success),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${'points_balance'.tr}: ${matched.loyaltyPoints} ${'points_count'.trParams({'count': ''})} (${'points_value_egp'.trParams({'amount': AppFormatters.formatEGP(LoyaltyService.calculateDiscount(matched.loyaltyPoints))})})',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.amber[300] : const Color(0xFFB45309),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Divider(height: 12),
+
+            // Redemption toggle
+            if (matched.loyaltyPoints >= 10) ...[
+              SwitchListTile.adaptive(
+                value: state.pointsRedeemed > 0,
+                onChanged: (apply) {
+                  context.read<PosCubit>().togglePointsRedemption(apply);
+                  // Update cash paid input if it matches grandTotal
+                  final newGrandTotal = context.read<PosCubit>().state.grandTotal;
+                  _cashPaidController.text = newGrandTotal.toStringAsFixed(0);
+                  context.read<PosCubit>().setPaidAmount(newGrandTotal);
+                },
+                title: Text(
+                  'redeem_points_toggle'.tr,
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  state.pointsRedeemed > 0
+                      ? 'redeem_points_applied'.trParams({
+                          'amount': AppFormatters.formatEGP(state.pointsDiscount),
+                          'points': '${state.pointsRedeemed}',
+                        })
+                      : 'points_value_egp'.trParams({
+                          'amount': AppFormatters.formatEGP(LoyaltyService.calculateDiscount(
+                            LoyaltyService.calculateMaxRedeemablePoints(
+                              customerPoints: matched.loyaltyPoints,
+                              billTotal: (state.subTotal - state.itemDiscounts - state.cartDiscount).clamp(0.0, double.infinity),
+                            ),
+                          )),
+                        }),
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: state.pointsRedeemed > 0 ? AppColor.success : (isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+                    fontWeight: state.pointsRedeemed > 0 ? FontWeight.w800 : FontWeight.w500,
+                  ),
+                ),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                activeThumbColor: Colors.amber,
+              ),
+            ] else ...[
+              Row(
+                children: [
+                  const Icon(Icons.info_outline_rounded, size: 14, color: AppColor.textMutedDark),
+                  const SizedBox(width: 4),
+                  Expanded(
+                    child: Text(
+                      'min_points_to_redeem_notice'.tr,
+                      style: const TextStyle(fontSize: 11, color: AppColor.textMutedDark),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ] else if (phoneEntered) ...[
+            Row(
+              children: [
+                const Icon(Icons.person_add_alt_1_rounded, size: 16, color: AppColor.primary),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    'new_customer_auto_register_notice'.tr,
+                    style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ],
+
+          if (pointsEarned > 0) ...[
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: AppColor.success.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(6),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.auto_awesome_rounded, size: 14, color: AppColor.success),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'points_earned_from_bill_notice'.trParams({'points': '$pointsEarned'}),
+                      style: const TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w700,
+                        color: AppColor.success,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

@@ -31,13 +31,15 @@ class SalesChannelProfitCard extends StatelessWidget {
         color: isDark ? AppColor.darkCard : AppColor.lightCard,
         borderRadius: BorderRadius.circular(AppSizes.borderRadiusLg),
         border: Border.all(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.025),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -262,12 +264,16 @@ class SalesChannelProfitCard extends StatelessWidget {
                       children: [
                         Row(
                           children: [
-                            Text(
-                              'btn_view_product_sales'.tr,
-                              style: TextStyle(
-                                fontSize: 13.5,
-                                fontWeight: FontWeight.w800,
-                                color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
+                            Flexible(
+                              child: Text(
+                                'btn_view_product_sales'.tr,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
+                                ),
                               ),
                             ),
                             const SizedBox(width: 8),

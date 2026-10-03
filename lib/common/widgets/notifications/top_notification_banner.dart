@@ -147,19 +147,14 @@ class _NotificationBannerWidgetState extends State<_NotificationBannerWidget>
                   color: const Color(0xFF0F172A),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: AppColor.primary.withValues(alpha: 0.6),
-                    width: 1.5,
+                    color: AppColor.primary.withValues(alpha: 0.35),
+                    width: 1.0,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColor.primary.withValues(alpha: 0.25),
-                      blurRadius: 24,
-                      offset: const Offset(0, 8),
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.6),
-                      blurRadius: 30,
-                      offset: const Offset(0, 12),
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 12,
+                      offset: const Offset(0, 4),
                     ),
                   ],
                 ),

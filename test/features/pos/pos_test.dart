@@ -7,6 +7,8 @@ import 'package:admin_panel_ego/features/pos/data/models/pos_sale_model.dart';
 import 'package:admin_panel_ego/features/pos/data/repositories/pos_repository.dart';
 import 'package:admin_panel_ego/features/pos/presentation/cubit/pos_cubit.dart';
 import 'package:admin_panel_ego/features/pos/presentation/cubit/pos_state.dart';
+import 'package:admin_panel_ego/features/customers/data/models/customer_model.dart';
+import 'package:admin_panel_ego/features/customers/data/repositories/customer_repository.dart';
 import 'package:admin_panel_ego/features/pos/presentation/widgets/pos_product_grid.dart';
 import 'package:admin_panel_ego/features/pos/utils/pos_receipt_printer.dart';
 import 'package:admin_panel_ego/features/products/data/models/product_model.dart';
@@ -53,6 +55,35 @@ class MockPosRepository implements PosRepository {
   void dispose() {
     _streamController.close();
   }
+}
+
+class FakeCustomerRepository implements CustomerRepository {
+  final List<CustomerModel> customers = [];
+
+  @override
+  Future<List<CustomerModel>> getCustomers() async => customers;
+
+  @override
+  Stream<List<CustomerModel>> getCustomersStream() => Stream.value(customers);
+
+  @override
+  Stream<CustomerModel?> watchCustomer(CustomerModel initialCustomer) =>
+      Stream.value(initialCustomer);
+
+  @override
+  Future<CustomerModel?> findCustomerByPhone(String phone) async {
+    for (final c in customers) {
+      if (c.phone == phone) return c;
+    }
+    return null;
+  }
+
+  @override
+  Future<void> updateCustomerPoints({
+    required String customerId,
+    required int pointsDelta,
+    String? reason,
+  }) async {}
 }
 
 ProductModel createDummyProduct({
@@ -211,9 +242,15 @@ void main() {
       ),
     ];
 
+    late FakeCustomerRepository fakeCustomerRepository;
+
     setUp(() {
       mockRepository = MockPosRepository(dummyProducts);
-      cubit = PosCubit(repository: mockRepository);
+      fakeCustomerRepository = FakeCustomerRepository();
+      cubit = PosCubit(
+        repository: mockRepository,
+        customerRepository: fakeCustomerRepository,
+      );
     });
 
     tearDown(() {
@@ -260,13 +297,13 @@ void main() {
       expect(cubit.state.filteredProducts.length, 3);
     });
 
-    test('PosProductGrid category list contains required categories and excludes Pods/Coils', () {
+    test('PosProductGrid category list contains required categories including Pods/Coils', () {
       expect(PosProductGrid.posCategories.contains(ProductCategoryType.liquid), true);
       expect(PosProductGrid.posCategories.contains(ProductCategoryType.disposable), true);
       expect(PosProductGrid.posCategories.contains(ProductCategoryType.device), true);
       expect(PosProductGrid.posCategories.contains(ProductCategoryType.accessory), true);
-      expect(PosProductGrid.posCategories.contains(ProductCategoryType.pod), false);
-      expect(PosProductGrid.posCategories.contains(ProductCategoryType.coil), false);
+      expect(PosProductGrid.posCategories.contains(ProductCategoryType.pod), true);
+      expect(PosProductGrid.posCategories.contains(ProductCategoryType.coil), true);
     });
 
     test('Adds products to cart and stacks identical items', () async {

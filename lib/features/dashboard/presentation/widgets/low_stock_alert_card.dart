@@ -9,6 +9,8 @@ import '../../../products/presentation/cubit/product_cubit.dart';
 import '../../../products/presentation/widgets/quick_restock_dialog.dart';
 import '../../../products/presentation/widgets/stock_movements_dialog.dart';
 import '../../../settings/presentation/cubit/settings_cubit.dart';
+import '../../../suppliers/data/models/purchase_invoice_model.dart';
+import '../../../suppliers/presentation/widgets/create_purchase_invoice_dialog.dart';
 
 class LowStockAlertCard extends StatelessWidget {
   const LowStockAlertCard({super.key});
@@ -70,11 +72,15 @@ class LowStockAlertCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Card Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // Card Header (Responsive Wrap)
+                  Wrap(
+                    alignment: WrapAlignment.spaceBetween,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    spacing: 12,
+                    runSpacing: 8,
                     children: [
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
                             padding: const EdgeInsets.all(6),
@@ -93,7 +99,7 @@ class LowStockAlertCard extends StatelessWidget {
                           Text(
                             'kpi_low_stock_alerts'.tr,
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: 15,
                               fontWeight: FontWeight.w700,
                               color: isDark
                                   ? AppColor.textPrimaryDark
@@ -102,21 +108,50 @@ class LowStockAlertCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      Row(
+                      Wrap(
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        spacing: 6,
+                        runSpacing: 6,
                         children: [
+                          if (urgentItems.isNotEmpty)
+                            ElevatedButton.icon(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF10B981),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                visualDensity: VisualDensity.compact,
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 9, vertical: 5),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                              ),
+                              icon: const Icon(Icons.flash_on_rounded, size: 14),
+                              label: Text(
+                                'smart_reorder_po_btn'.tr,
+                                style: const TextStyle(
+                                    fontSize: 11, fontWeight: FontWeight.w700),
+                              ),
+                              onPressed: () => _openSmartReorderPO(
+                                context,
+                                urgentItems,
+                                threshold,
+                              ),
+                            ),
                           TextButton.icon(
                             style: TextButton.styleFrom(
                               visualDensity: VisualDensity.compact,
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 4),
                             ),
                             icon: const Icon(Icons.history_rounded, size: 14),
                             label: Text(
                               'audit_log'.tr,
-                              style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700),
+                              style: const TextStyle(
+                                  fontSize: 11, fontWeight: FontWeight.w700),
                             ),
                             onPressed: () => StockMovementsDialog.show(context),
                           ),
-                          const SizedBox(width: 6),
                           if (urgentItems.isNotEmpty)
                             Container(
                               padding: const EdgeInsets.symmetric(
@@ -312,5 +347,60 @@ class LowStockAlertCard extends StatelessWidget {
         );
       },
     );
+  }
+
+  void _openSmartReorderPO(
+    BuildContext context,
+    List<Map<String, dynamic>> urgentItems,
+    int threshold,
+  ) {
+    final List<PurchaseInvoiceItemModel> poItems = [];
+
+    for (final entry in urgentItems) {
+      final ProductModel product = entry['product'] as ProductModel;
+      final List<ProductVariationModel> lowVars =
+          entry['lowVars'] as List<ProductVariationModel>;
+
+      if (product.productVariations.isNotEmpty) {
+        final varsToOrder =
+            lowVars.isNotEmpty ? lowVars : product.productVariations;
+        for (final v in varsToOrder) {
+          final reorderQty = (threshold * 2 - v.stock).clamp(5, 50);
+          final unitCost = v.costPrice > 0 ? v.costPrice : product.costPrice;
+
+          poItems.add(
+            PurchaseInvoiceItemModel(
+              productId: product.id,
+              productTitle: product.displayTitle,
+              variationSku: v.sku,
+              variationAttributes: v.attributeValues,
+              quantity: reorderQty,
+              unitCost: unitCost,
+              subtotal: reorderQty * unitCost,
+            ),
+          );
+        }
+      } else {
+        final reorderQty = (threshold * 2 - product.stock).clamp(5, 50);
+        poItems.add(
+          PurchaseInvoiceItemModel(
+            productId: product.id,
+            productTitle: product.displayTitle,
+            variationSku: '',
+            variationAttributes: const {},
+            quantity: reorderQty,
+            unitCost: product.costPrice,
+            subtotal: reorderQty * product.costPrice,
+          ),
+        );
+      }
+    }
+
+    if (poItems.isNotEmpty) {
+      CreatePurchaseInvoiceDialog.show(
+        context,
+        initialItems: poItems,
+      );
+    }
   }
 }

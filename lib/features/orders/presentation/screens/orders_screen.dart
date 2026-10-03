@@ -51,7 +51,9 @@ class OrdersScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
                     borderRadius: BorderRadius.circular(AppSizes.borderRadiusLg),
-                    border: Border.all(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+                    border: Border.all(
+                      color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
+                    ),
                   ),
                   child: Row(
                     children: [
@@ -61,37 +63,34 @@ class OrdersScreen extends StatelessWidget {
                           isDark: isDark,
                           keyName: 'ONLINE',
                           icon: Icons.phone_android_rounded,
-                          title: 'طلبات الأبلكيشن والتوصيل',
-                          subtitle: 'طلبات الشحن والديسباتش',
+                          title: 'الأونلاين والتوصيل',
                           count: state.onlineCount,
                           isSelected: state.sourceFilter == 'ONLINE',
                           activeColor: const Color(0xFF3B82F6),
                           badgeAlert: state.pendingOnlineCount > 0 ? '${state.pendingOnlineCount} جديد' : null,
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: _buildSourceTabButton(
                           context,
                           isDark: isDark,
                           keyName: 'POS',
                           icon: Icons.point_of_sale_rounded,
-                          title: 'مبيعات الفرع والكاشير',
-                          subtitle: 'بيع مباشر فوري بالمتجر',
+                          title: 'مبيعات الكاشير',
                           count: state.posCount,
                           isSelected: state.sourceFilter == 'POS',
                           activeColor: const Color(0xFF8B5CF6),
                         ),
                       ),
-                      const SizedBox(width: 6),
+                      const SizedBox(width: 4),
                       Expanded(
                         child: _buildSourceTabButton(
                           context,
                           isDark: isDark,
                           keyName: 'ALL',
                           icon: Icons.all_inclusive_rounded,
-                          title: 'كافة المعاملات والطلبات',
-                          subtitle: 'سجل المبيعات الشامل',
+                          title: 'كافة المعاملات',
                           count: state.totalCount,
                           isSelected: state.sourceFilter == 'ALL',
                           activeColor: AppColor.primary,
@@ -180,12 +179,12 @@ class OrdersScreen extends StatelessWidget {
                         // 2. Source / Channel Badge
                         DataCell(
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3.5),
                             decoration: BoxDecoration(
-                              color: (isPos ? const Color(0xFF8B5CF6) : const Color(0xFF3B82F6)).withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(6),
+                              color: (isPos ? const Color(0xFF8B5CF6) : const Color(0xFF3B82F6)).withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(100),
                               border: Border.all(
-                                color: (isPos ? const Color(0xFF8B5CF6) : const Color(0xFF3B82F6)).withValues(alpha: 0.3),
+                                color: (isPos ? const Color(0xFF8B5CF6) : const Color(0xFF3B82F6)).withValues(alpha: 0.20),
                                 width: 1,
                               ),
                             ),
@@ -194,7 +193,7 @@ class OrdersScreen extends StatelessWidget {
                               children: [
                                 Icon(
                                   isPos ? Icons.storefront_rounded : Icons.phone_android_rounded,
-                                  size: 13,
+                                  size: 12,
                                   color: isPos ? const Color(0xFF8B5CF6) : const Color(0xFF3B82F6),
                                 ),
                                 const SizedBox(width: 4),
@@ -202,7 +201,7 @@ class OrdersScreen extends StatelessWidget {
                                   isPos ? 'كاشير الفرع' : 'تطبيق أونلاين',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w600,
                                     color: isPos ? const Color(0xFF8B5CF6) : const Color(0xFF3B82F6),
                                   ),
                                 ),
@@ -398,7 +397,6 @@ class OrdersScreen extends StatelessWidget {
     required String keyName,
     required IconData icon,
     required String title,
-    required String subtitle,
     required int count,
     required bool isSelected,
     required Color activeColor,
@@ -411,91 +409,78 @@ class OrdersScreen extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
         decoration: BoxDecoration(
-          color: isSelected ? activeColor.withValues(alpha: isDark ? 0.22 : 0.12) : Colors.transparent,
+          color: isSelected
+              ? (isDark ? AppColor.darkCard : Colors.white)
+              : Colors.transparent,
           borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-          border: Border.all(
-            color: isSelected ? activeColor : Colors.transparent,
-            width: 1.5,
-          ),
+          boxShadow: isSelected && !isDark
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.04),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
         ),
         child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: isSelected ? activeColor : (isDark ? AppColor.darkCard : AppColor.lightCard),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                size: 20,
-                color: isSelected ? Colors.white : (isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+            Icon(
+              icon,
+              size: 16,
+              color: isSelected ? activeColor : (isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                title,
+                style: TextStyle(
+                  fontSize: 12.5,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected
+                      ? (isDark ? Colors.white : AppColor.textPrimaryLight)
+                      : (isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          title,
-                          style: TextStyle(
-                            fontSize: 13,
-                            fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                            color: isSelected ? activeColor : (isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                      if (badgeAlert != null) ...[
-                        const SizedBox(width: 6),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                          decoration: BoxDecoration(
-                            color: AppColor.error,
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: Text(
-                            badgeAlert,
-                            style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
-                    ),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
+            const SizedBox(width: 6),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
               decoration: BoxDecoration(
-                color: isSelected ? activeColor : (isDark ? AppColor.darkCard : AppColor.lightCard),
-                borderRadius: BorderRadius.circular(12),
+                color: isSelected
+                    ? activeColor.withValues(alpha: 0.14)
+                    : (isDark ? AppColor.darkCard : AppColor.lightCard),
+                borderRadius: BorderRadius.circular(100),
               ),
               child: Text(
                 '$count',
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: isSelected ? Colors.white : (isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected
+                      ? activeColor
+                      : (isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
                 ),
               ),
             ),
+            if (badgeAlert != null) ...[
+              const SizedBox(width: 4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                decoration: BoxDecoration(
+                  color: AppColor.error,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  badgeAlert,
+                  style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
           ],
         ),
       ),
@@ -510,22 +495,50 @@ class OrdersScreen extends StatelessWidget {
     Color color = AppColor.primary,
   }) {
     final isSelected = selectedStatus.toLowerCase() == statusKey.toLowerCase();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Padding(
-      padding: const EdgeInsetsDirectional.only(end: 8),
-      child: FilterChip(
-        label: Text(label),
-        selected: isSelected,
-        selectedColor: color.withValues(alpha: 0.2),
-        checkmarkColor: color,
-        labelStyle: TextStyle(
-          color: isSelected ? color : null,
-          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-          fontSize: 12,
-        ),
-        onSelected: (_) {
+      padding: const EdgeInsetsDirectional.only(end: 6),
+      child: InkWell(
+        onTap: () {
           context.read<OrderCubit>().filterOrders(status: statusKey);
         },
+        borderRadius: BorderRadius.circular(100),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: isSelected
+                ? (color == AppColor.primary ? AppColor.primary : color)
+                : (isDark ? AppColor.darkSubCard : AppColor.lightSubCard),
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(
+              color: isSelected
+                  ? Colors.transparent
+                  : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+              width: 0.8,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isSelected) ...[
+                const Icon(Icons.check_rounded, size: 13, color: Colors.white),
+                const SizedBox(width: 4),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  color: isSelected
+                      ? Colors.white
+                      : (isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  fontSize: 12,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

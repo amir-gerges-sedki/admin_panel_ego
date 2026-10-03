@@ -91,7 +91,7 @@ class DashboardKpiGrid extends StatelessWidget {
             children: cards
                 .map((c) => Expanded(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 5),
+                        padding: const EdgeInsets.symmetric(horizontal: 4),
                         child: c,
                       ),
                     ))
@@ -105,19 +105,19 @@ class DashboardKpiGrid extends StatelessWidget {
                     .sublist(0, 3)
                     .map((c) => Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
                             child: c,
                           ),
                         ))
                     .toList(),
               ),
-              const SizedBox(height: AppSizes.md),
+              const SizedBox(height: AppSizes.sm + 4),
               Row(
                 children: cards
                     .sublist(3, 6)
                     .map((c) => Expanded(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 5),
+                            padding: const EdgeInsets.symmetric(horizontal: 4),
                             child: c,
                           ),
                         ))
@@ -129,7 +129,7 @@ class DashboardKpiGrid extends StatelessWidget {
           return Column(
             children: cards
                 .map((c) => Padding(
-                      padding: const EdgeInsets.only(bottom: AppSizes.md),
+                      padding: const EdgeInsets.only(bottom: AppSizes.sm + 4),
                       child: c,
                     ))
                 .toList(),

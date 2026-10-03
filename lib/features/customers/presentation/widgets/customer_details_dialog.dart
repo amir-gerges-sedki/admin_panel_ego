@@ -7,7 +7,9 @@ import '../../../../core/formatters/formatters.dart';
 import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/customer_model.dart';
+import 'package:admin_panel_ego/features/customers/domain/services/loyalty_service.dart';
 import '../cubit/customer_cubit.dart';
+import 'adjust_customer_points_dialog.dart';
 
 class CustomerDetailsDialog extends StatelessWidget {
   final CustomerModel customer;
@@ -180,6 +182,66 @@ class _CustomerDetailsContent extends StatelessWidget {
               ),
             ),
           ],
+        ),
+        const SizedBox(height: AppSizes.md),
+
+        // Loyalty Points Card
+        Container(
+          padding: const EdgeInsets.all(AppSizes.md),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: isDark ? 0.12 : 0.08),
+            borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+            border: Border.all(color: Colors.amber.withValues(alpha: 0.35)),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.amber.withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.stars_rounded, color: Colors.amber, size: 28),
+              ),
+              const SizedBox(width: AppSizes.md),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'loyalty_points'.tr,
+                      style: const TextStyle(fontSize: 11.5, color: AppColor.textMutedDark, fontWeight: FontWeight.w600),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${customer.loyaltyPoints} ${'points_count'.trParams({'count': ''})}',
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                    ),
+                    Text(
+                      'points_value_egp'.trParams({
+                        'amount': AppFormatters.formatEGP(LoyaltyService.calculateDiscount(customer.loyaltyPoints)),
+                      }),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark ? Colors.amber[300] : const Color(0xFFB45309),
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => AdjustCustomerPointsDialog.show(context, customer),
+                icon: const Icon(Icons.edit_rounded, size: 14),
+                label: Text('adjust_points_btn'.tr, style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700)),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.amber[800],
+                  side: BorderSide(color: Colors.amber.withValues(alpha: 0.5)),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                ),
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: AppSizes.md),
 

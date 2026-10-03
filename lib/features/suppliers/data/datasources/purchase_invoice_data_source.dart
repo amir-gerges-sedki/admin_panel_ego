@@ -149,6 +149,8 @@ class PurchaseInvoiceDataSourceImpl implements PurchaseInvoiceDataSource {
             supplierName: invoice.supplierName,
             invoiceNumber: invoice.invoiceNumber,
             invoiceNotes: invoice.notes,
+            targetBranchId: invoice.targetBranchId,
+            targetBranchName: invoice.targetBranchName,
           );
         }
       }
@@ -195,6 +197,8 @@ class PurchaseInvoiceDataSourceImpl implements PurchaseInvoiceDataSource {
     required String supplierName,
     required String invoiceNumber,
     String? invoiceNotes,
+    String targetBranchId = 'main_branch',
+    String targetBranchName = 'المخزن الرئيسي / الفرع الرئيسي',
   }) async {
     try {
       final prodDocRef = _firestore.collection('Products').doc(productId);
@@ -205,8 +209,14 @@ class PurchaseInvoiceDataSourceImpl implements PurchaseInvoiceDataSource {
       data['id'] = prodDoc.id;
       final product = ProductModel.fromJson(data);
 
+      final effectiveBranchId = targetBranchId.isNotEmpty ? targetBranchId : 'main_branch';
       int previousStock = product.stock;
       int newStock = product.stock + quantity;
+
+      // Update product level branchStock
+      final Map<String, int> updatedBranchStock = Map<String, int>.from(product.branchStock);
+      updatedBranchStock[effectiveBranchId] = (updatedBranchStock[effectiveBranchId] ?? 0) + quantity;
+
       List<ProductVariationModel> updatedVariations = [];
 
       if (product.productVariations.isNotEmpty &&
@@ -216,7 +226,13 @@ class PurchaseInvoiceDataSourceImpl implements PurchaseInvoiceDataSource {
           if (v.sku == variationSku) {
             previousStock = v.stock;
             final updatedVStock = v.stock + quantity;
-            return v.copyWith(stock: updatedVStock);
+            final Map<String, int> vBranchStock = Map<String, int>.from(v.branchStock);
+            vBranchStock[effectiveBranchId] = (vBranchStock[effectiveBranchId] ?? 0) + quantity;
+
+            return v.copyWith(
+              stock: updatedVStock,
+              branchStock: vBranchStock,
+            );
           }
           return v;
         }).toList();
@@ -227,6 +243,7 @@ class PurchaseInvoiceDataSourceImpl implements PurchaseInvoiceDataSource {
       // Update Product in Firestore
       final updateMap = <String, dynamic>{
         'stock': newStock,
+        'branchStock': updatedBranchStock,
         'updatedAt': FieldValue.serverTimestamp(),
       };
       if (updatedVariations.isNotEmpty) {
@@ -262,8 +279,8 @@ class PurchaseInvoiceDataSourceImpl implements PurchaseInvoiceDataSource {
         supplierName: supplierName,
         invoiceNumber: invoiceNumber,
         notes: invoiceNotes?.isNotEmpty == true
-            ? invoiceNotes!
-            : 'Purchase Invoice Restock #$invoiceNumber',
+            ? '$invoiceNotes (فرع: $targetBranchName)'
+            : 'Purchase Invoice Restock #$invoiceNumber -> الفرع: $targetBranchName',
         performedBy: 'Admin / Purchase Engine',
         createdAt: DateTime.now(),
       );

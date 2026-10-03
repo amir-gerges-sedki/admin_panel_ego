@@ -134,6 +134,8 @@ class PurchaseInvoiceModel extends Equatable {
   final InvoicePaymentStatus paymentStatus;
   final String paymentMethod;
   final bool stockReceived;
+  final String targetBranchId;
+  final String targetBranchName;
   final String notes;
   final String attachmentUrl;
   final DateTime createdAt;
@@ -157,6 +159,8 @@ class PurchaseInvoiceModel extends Equatable {
     this.paymentStatus = InvoicePaymentStatus.unpaid,
     this.paymentMethod = 'Cash',
     this.stockReceived = true,
+    this.targetBranchId = 'main_branch',
+    this.targetBranchName = 'المخزن الرئيسي / الفرع الرئيسي',
     this.notes = '',
     this.attachmentUrl = '',
     required this.createdAt,
@@ -218,6 +222,8 @@ class PurchaseInvoiceModel extends Equatable {
       paymentStatus: status,
       paymentMethod: json['paymentMethod']?.toString() ?? 'Cash',
       stockReceived: json['stockReceived'] == true || json['stockReceived'] == null,
+      targetBranchId: json['targetBranchId']?.toString() ?? 'main_branch',
+      targetBranchName: json['targetBranchName']?.toString() ?? 'المخزن الرئيسي / الفرع الرئيسي',
       notes: json['notes']?.toString() ?? '',
       attachmentUrl: json['attachmentUrl']?.toString() ?? '',
       createdAt: _parseDateTime(json['createdAt']),
@@ -242,6 +248,8 @@ class PurchaseInvoiceModel extends Equatable {
         'paymentStatus': paymentStatus.value,
         'paymentMethod': paymentMethod,
         'stockReceived': stockReceived,
+        'targetBranchId': targetBranchId,
+        'targetBranchName': targetBranchName,
         'notes': notes,
         'attachmentUrl': attachmentUrl,
         'createdAt': Timestamp.fromDate(createdAt),
@@ -266,6 +274,8 @@ class PurchaseInvoiceModel extends Equatable {
     InvoicePaymentStatus? paymentStatus,
     String? paymentMethod,
     bool? stockReceived,
+    String? targetBranchId,
+    String? targetBranchName,
     String? notes,
     String? attachmentUrl,
     DateTime? createdAt,
@@ -289,6 +299,8 @@ class PurchaseInvoiceModel extends Equatable {
       paymentStatus: paymentStatus ?? this.paymentStatus,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       stockReceived: stockReceived ?? this.stockReceived,
+      targetBranchId: targetBranchId ?? this.targetBranchId,
+      targetBranchName: targetBranchName ?? this.targetBranchName,
       notes: notes ?? this.notes,
       attachmentUrl: attachmentUrl ?? this.attachmentUrl,
       createdAt: createdAt ?? this.createdAt,
@@ -297,5 +309,5 @@ class PurchaseInvoiceModel extends Equatable {
   }
 
   @override
-  List<Object?> get props => [id];
+  List<Object?> get props => [id, invoiceNumber, supplierId, targetBranchId];
 }

@@ -1,4 +1,6 @@
 import 'package:equatable/equatable.dart';
+import '../../../customers/data/models/customer_model.dart';
+import 'package:admin_panel_ego/features/customers/domain/services/loyalty_service.dart';
 import '../../../products/data/models/product_model.dart';
 import '../../data/models/pos_cart_item_model.dart';
 import '../../data/models/pos_catalog_item.dart';
@@ -15,6 +17,10 @@ class PosState extends Equatable {
   final double cartDiscount; // Additional discount on the total bill
   final String customerName;
   final String customerPhone;
+  final CustomerModel? matchedCustomer;
+  final int pointsRedeemed;
+  final double pointsDiscount;
+  final bool isSearchingCustomer;
   final String orderNotes;
   final String paymentMethod; // 'cash', 'card', 'instapay'
   final double paidAmount;
@@ -32,6 +38,10 @@ class PosState extends Equatable {
     this.cartDiscount = 0.0,
     this.customerName = '',
     this.customerPhone = '',
+    this.matchedCustomer,
+    this.pointsRedeemed = 0,
+    this.pointsDiscount = 0.0,
+    this.isSearchingCustomer = false,
     this.orderNotes = '',
     this.paymentMethod = 'cash',
     this.paidAmount = 0.0,
@@ -79,8 +89,11 @@ class PosState extends Equatable {
   /// Total sum of discounts applied directly to items
   double get itemDiscounts => cartItems.fold(0.0, (sum, itm) => sum + itm.totalLineDiscount);
 
-  /// Grand total discount (item discounts + overall cart discount)
-  double get totalDiscount => itemDiscounts + cartDiscount;
+  /// Grand total discount (item discounts + overall cart discount + loyalty points discount)
+  double get totalDiscount => itemDiscounts + cartDiscount + pointsDiscount;
+
+  /// Loyalty points earned on this sale
+  int get pointsEarned => LoyaltyService.calculateEarnedPoints(grandTotal);
 
   /// Final payable amount
   double get grandTotal => (subTotal - totalDiscount).clamp(0.0, double.infinity);
@@ -107,6 +120,11 @@ class PosState extends Equatable {
     double? cartDiscount,
     String? customerName,
     String? customerPhone,
+    CustomerModel? matchedCustomer,
+    bool clearMatchedCustomer = false,
+    int? pointsRedeemed,
+    double? pointsDiscount,
+    bool? isSearchingCustomer,
     String? orderNotes,
     String? paymentMethod,
     double? paidAmount,
@@ -125,6 +143,10 @@ class PosState extends Equatable {
       cartDiscount: cartDiscount ?? this.cartDiscount,
       customerName: customerName ?? this.customerName,
       customerPhone: customerPhone ?? this.customerPhone,
+      matchedCustomer: clearMatchedCustomer ? null : (matchedCustomer ?? this.matchedCustomer),
+      pointsRedeemed: pointsRedeemed ?? this.pointsRedeemed,
+      pointsDiscount: pointsDiscount ?? this.pointsDiscount,
+      isSearchingCustomer: isSearchingCustomer ?? this.isSearchingCustomer,
       orderNotes: orderNotes ?? this.orderNotes,
       paymentMethod: paymentMethod ?? this.paymentMethod,
       paidAmount: paidAmount ?? this.paidAmount,
@@ -145,6 +167,10 @@ class PosState extends Equatable {
         cartDiscount,
         customerName,
         customerPhone,
+        matchedCustomer,
+        pointsRedeemed,
+        pointsDiscount,
+        isSearchingCustomer,
         orderNotes,
         paymentMethod,
         paidAmount,

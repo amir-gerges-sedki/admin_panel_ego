@@ -70,11 +70,50 @@ class AppTheme {
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColor.darkDialog,
-        elevation: 12,
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizes.cardRadiusLg),
           side: const BorderSide(color: AppColor.darkBorder),
         ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColor.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+          ),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColor.textPrimaryDark,
+          side: const BorderSide(color: AppColor.darkBorder),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+          ),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+          ),
+        ),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: AppColor.darkSubCard,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: AppColor.darkBorder),
+        ),
+        textStyle: const TextStyle(color: AppColor.textPrimaryDark, fontSize: 12),
+        waitDuration: const Duration(milliseconds: 400),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -83,7 +122,7 @@ class AppTheme {
           horizontal: AppSizes.md,
           vertical: AppSizes.sm + 4,
         ),
-        hintStyle: const TextStyle(color: AppColor.textMutedDark, fontSize: 14),
+        hintStyle: const TextStyle(color: AppColor.textMutedDark, fontSize: 13),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
           borderSide: const BorderSide(color: AppColor.darkBorder),
@@ -167,11 +206,57 @@ class AppTheme {
       ),
       dialogTheme: DialogThemeData(
         backgroundColor: AppColor.lightDialog,
-        elevation: 12,
+        elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(AppSizes.cardRadiusLg),
           side: const BorderSide(color: AppColor.lightBorder),
         ),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColor.primary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+          ),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColor.textPrimaryLight,
+          side: const BorderSide(color: AppColor.lightBorder),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+          ),
+          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+        ),
+      ),
+      iconButtonTheme: IconButtonThemeData(
+        style: IconButton.styleFrom(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+          ),
+        ),
+      ),
+      tooltipTheme: TooltipThemeData(
+        decoration: BoxDecoration(
+          color: AppColor.lightCard,
+          borderRadius: BorderRadius.circular(6),
+          border: Border.all(color: AppColor.lightBorder),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        textStyle: const TextStyle(color: AppColor.textPrimaryLight, fontSize: 12),
+        waitDuration: const Duration(milliseconds: 400),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -180,7 +265,7 @@ class AppTheme {
           horizontal: AppSizes.md,
           vertical: AppSizes.sm + 4,
         ),
-        hintStyle: const TextStyle(color: AppColor.textMutedLight, fontSize: 14),
+        hintStyle: const TextStyle(color: AppColor.textMutedLight, fontSize: 13),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
           borderSide: const BorderSide(color: AppColor.lightBorder),

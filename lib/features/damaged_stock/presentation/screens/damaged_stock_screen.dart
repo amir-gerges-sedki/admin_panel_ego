@@ -321,17 +321,18 @@ class _DamagedStockScreenState extends State<DamagedStockScreen> {
         // Log Damaged Stock Button
         ElevatedButton.icon(
           onPressed: () => DamagedStockFormDialog.show(context),
-          icon: const Icon(Icons.add_rounded, size: 20),
+          icon: const Icon(Icons.add_rounded, size: 18),
           label: Text(
             'log_damage_btn'.tr,
-            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
           ),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFFEF4444),
             foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 0),
+            minimumSize: const Size(0, 36),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
+              borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
             ),
           ),
         ),
@@ -402,8 +403,17 @@ class _DamagedStockScreenState extends State<DamagedStockScreen> {
       padding: const EdgeInsets.all(AppSizes.md),
       decoration: BoxDecoration(
         color: isDark ? AppColor.darkCard : Colors.white,
-        borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+        borderRadius: BorderRadius.circular(AppSizes.cardRadiusMd),
         border: Border.all(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.025),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Row(
         children: [
@@ -812,6 +822,20 @@ class _DamagedStockScreenState extends State<DamagedStockScreen> {
                 style: TextStyle(
                   fontSize: 12,
                   color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
+                ),
+              ),
+              const SizedBox(height: AppSizes.md),
+              ElevatedButton.icon(
+                onPressed: () => DamagedStockFormDialog.show(context),
+                icon: const Icon(Icons.add_rounded, size: 18),
+                label: Text('log_damage_btn'.tr),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFEF4444),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
             ],

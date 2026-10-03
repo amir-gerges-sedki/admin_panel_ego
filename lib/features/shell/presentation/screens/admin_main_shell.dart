@@ -268,6 +268,7 @@ class _AdminMainShellState extends State<AdminMainShell> {
                                     title: _selectedTabIndex < _tabTitles.length
                                         ? _tabTitles[_selectedTabIndex]
                                         : 'dashboard',
+                                    currentTabIndex: _selectedTabIndex,
                                     onMenuPressed: showMobileDrawer
                                         ? () => _scaffoldKey.currentState?.openDrawer()
                                         : null,

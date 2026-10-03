@@ -42,15 +42,17 @@ class ExpensesSummaryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppSizes.cardRadiusLg),
         border: Border.all(
           color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
-          width: 1.2,
+          width: 1.0,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.12 : 0.04),
-            blurRadius: 14,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        boxShadow: isDark
+            ? null
+            : [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.025),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../core/constant/app_colors.dart';
-import '../../../core/constant/app_sizes.dart';
 import '../../../core/localization/app_localizations.dart';
 
 enum StatusType {
@@ -121,11 +120,11 @@ class StatusChip extends StatelessWidget {
     final color = _getColor();
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSizes.sm + 2, vertical: AppSizes.xs),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-        border: Border.all(color: color.withValues(alpha: 0.35), width: 1),
+        color: color.withValues(alpha: 0.10),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: color.withValues(alpha: 0.20), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -136,16 +135,9 @@ class StatusChip extends StatelessWidget {
             decoration: BoxDecoration(
               color: color,
               shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: color.withValues(alpha: 0.6),
-                  blurRadius: 4,
-                  spreadRadius: 1,
-                ),
-              ],
             ),
           ),
-          const SizedBox(width: AppSizes.xs + 2),
+          const SizedBox(width: 6),
           Flexible(
             child: Text(
               label,
@@ -153,7 +145,7 @@ class StatusChip extends StatelessWidget {
               maxLines: 1,
               style: TextStyle(
                 color: color,
-                fontSize: 12,
+                fontSize: 11.5,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 0.2,
               ),

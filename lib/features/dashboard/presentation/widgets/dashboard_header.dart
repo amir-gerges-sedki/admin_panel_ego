@@ -4,43 +4,60 @@ import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
 
+import '../../../../common/widgets/apps_launcher/apps_launcher_dialog.dart';
+
 class DashboardHeader extends StatelessWidget {
   final VoidCallback? onExportPressed;
+  final ValueChanged<int>? onNavigateTab;
 
-  const DashboardHeader({super.key, this.onExportPressed});
+  const DashboardHeader({
+    super.key,
+    this.onExportPressed,
+    this.onNavigateTab,
+  });
 
   @override
   Widget build(BuildContext context) {
     final isDark = HelperFun.isDarkMode(context);
 
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'executive_overview'.tr,
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
-                ),
-              ),
-              const SizedBox(height: 2),
-              Text(
-                'executive_overview_sub'.tr,
-                style: TextStyle(
-                  fontSize: 13,
-                  color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
-                ),
-              ),
-            ],
+          child: Text(
+            'executive_overview'.tr,
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w800,
+              color: isDark ? AppColor.textPrimaryDark : AppColor.textPrimaryLight,
+            ),
           ),
         ),
-        const SizedBox(width: AppSizes.md),
-        ElevatedButton.icon(
+        const SizedBox(width: AppSizes.sm),
+        if (onNavigateTab != null) ...[
+          FilledButton.icon(
+            onPressed: () => AppsLauncherDialog.show(
+              context,
+              currentTabIndex: 0,
+              onSelectTab: onNavigateTab!,
+            ),
+            icon: const Icon(Icons.apps_rounded, size: 16),
+            label: Text('apps_launcher_title'.tr),
+            style: FilledButton.styleFrom(
+              backgroundColor: const Color(0xFF7C3AED),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(
+                horizontal: 14,
+                vertical: 8,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+              ),
+              textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(width: AppSizes.xs + 2),
+        ],
+        OutlinedButton.icon(
           onPressed: onExportPressed ??
               () {
                 HelperFun.successSnackbar(
@@ -48,18 +65,21 @@ class DashboardHeader extends StatelessWidget {
                   'export_download_success'.tr.replaceAll('{name}', 'executive_summary_file'.tr),
                 );
               },
-          icon: const Icon(Icons.download_rounded, size: 16),
+          icon: const Icon(Icons.download_rounded, size: 15),
           label: Text('export_csv'.tr),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColor.primary,
-            foregroundColor: Colors.white,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+            side: BorderSide(
+              color: isDark ? AppColor.darkBorder : AppColor.lightBorder,
+            ),
             padding: const EdgeInsets.symmetric(
-              horizontal: AppSizes.md,
-              vertical: AppSizes.sm,
+              horizontal: 14,
+              vertical: 8,
             ),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
             ),
+            textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
           ),
         ),
       ],

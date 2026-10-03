@@ -17,14 +17,33 @@ import 'purchase_invoice/invoice_header_section.dart';
 import 'purchase_invoice/invoice_items_table.dart';
 import 'purchase_invoice/invoice_product_picker_section.dart';
 
+import '../../../settings/data/models/store_branch_model.dart';
+import '../../../settings/presentation/cubit/settings_cubit.dart';
+
 class CreatePurchaseInvoiceDialog extends StatefulWidget {
   final String? initialSupplierId;
+  final String? initialBranchId;
+  final String? initialBranchName;
+  final List<PurchaseInvoiceItemModel>? initialItems;
 
-  const CreatePurchaseInvoiceDialog({super.key, this.initialSupplierId});
+  const CreatePurchaseInvoiceDialog({
+    super.key,
+    this.initialSupplierId,
+    this.initialBranchId,
+    this.initialBranchName,
+    this.initialItems,
+  });
 
-  static void show(BuildContext context, {String? initialSupplierId}) {
+  static void show(
+    BuildContext context, {
+    String? initialSupplierId,
+    String? initialBranchId,
+    String? initialBranchName,
+    List<PurchaseInvoiceItemModel>? initialItems,
+  }) {
     final supplierCubit = context.read<SupplierCubit>();
     final productCubit = context.read<ProductCubit>();
+    final settingsCubit = context.read<SettingsCubit>();
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -32,9 +51,13 @@ class CreatePurchaseInvoiceDialog extends StatefulWidget {
         providers: [
           BlocProvider.value(value: supplierCubit),
           BlocProvider.value(value: productCubit),
+          BlocProvider.value(value: settingsCubit),
         ],
         child: CreatePurchaseInvoiceDialog(
           initialSupplierId: initialSupplierId,
+          initialBranchId: initialBranchId,
+          initialBranchName: initialBranchName,
+          initialItems: initialItems,
         ),
       ),
     );
@@ -50,6 +73,8 @@ class _CreatePurchaseInvoiceDialogState
   final _formKey = GlobalKey<FormState>();
 
   SupplierModel? _selectedSupplier;
+  late String _selectedBranchId;
+  late String _selectedBranchName;
   late TextEditingController _invoiceNumberController;
   DateTime _invoiceDate = DateTime.now();
   DateTime? _dueDate;
@@ -106,6 +131,14 @@ class _CreatePurchaseInvoiceDialogState
   @override
   void initState() {
     super.initState();
+    _selectedBranchId = widget.initialBranchId ?? 'main_branch';
+    _selectedBranchName =
+        widget.initialBranchName ?? 'المخزن الرئيسي / الفرع الرئيسي';
+
+    if (widget.initialItems != null && widget.initialItems!.isNotEmpty) {
+      _items.addAll(widget.initialItems!);
+    }
+
     final now = DateTime.now();
     final seq = 1000 + (now.millisecondsSinceEpoch % 9000);
     _invoiceNumberController = TextEditingController(
@@ -450,6 +483,8 @@ class _CreatePurchaseInvoiceDialogState
             : 'INV-${DateTime.now().millisecondsSinceEpoch}',
         supplierId: _selectedSupplier!.id,
         supplierName: _selectedSupplier!.name,
+        targetBranchId: _selectedBranchId,
+        targetBranchName: _selectedBranchName,
         invoiceDate: _invoiceDate,
         dueDate: _dueDate,
         items: _items,
@@ -601,6 +636,15 @@ class _CreatePurchaseInvoiceDialogState
                         selectedSupplier: _selectedSupplier,
                         onSupplierChanged: (SupplierModel? s) =>
                             setState(() => _selectedSupplier = s),
+                        targetBranchId: _selectedBranchId,
+                        onBranchChanged: (StoreBranchModel? b) {
+                          if (b != null) {
+                            setState(() {
+                              _selectedBranchId = b.id;
+                              _selectedBranchName = b.name;
+                            });
+                          }
+                        },
                         invoiceNumberController: _invoiceNumberController,
                         invoiceDate: _invoiceDate,
                         onInvoiceDateChanged: (d) =>

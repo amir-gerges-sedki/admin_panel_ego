@@ -74,7 +74,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           }
 
                           return Container(
-                            height: 38,
+                            height: 36,
                             padding: const EdgeInsets.symmetric(horizontal: 10),
                             decoration: BoxDecoration(
                               color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
@@ -90,7 +90,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                               children: [
                                 Icon(
                                   Icons.storefront_rounded,
-                                  size: 16,
+                                  size: 15,
                                   color: state.selectedBranchId != 'all'
                                       ? const Color(0xFF06B6D4)
                                       : (isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
@@ -141,11 +141,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           );
                         },
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 6),
 
                       // 2. Category Selector Filter
                       Container(
-                        height: 38,
+                        height: 36,
                         padding: const EdgeInsets.symmetric(horizontal: 10),
                         decoration: BoxDecoration(
                           color: isDark ? AppColor.darkSubCard : AppColor.lightSubCard,
@@ -159,7 +159,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                           children: [
                             Icon(
                               Icons.sort_rounded,
-                              size: 16,
+                              size: 15,
                               color: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
                             ),
                             const SizedBox(width: 6),
@@ -193,28 +193,26 @@ class _ProductsScreenState extends State<ProductsScreen> {
                 children: [
                   OutlinedButton.icon(
                     onPressed: () => PhysicalStocktakeDialog.show(context),
-                    icon: const Icon(Icons.fact_check_rounded, size: 16),
+                    icon: const Icon(Icons.fact_check_rounded, size: 15),
                     label: Text('physical_stocktake_btn'.tr),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: AppSizes.sm,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                      minimumSize: const Size(0, 36),
+                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   OutlinedButton.icon(
                     onPressed: () => StockMovementsDialog.show(context),
-                    icon: const Icon(Icons.history_rounded, size: 16),
+                    icon: const Icon(Icons.history_rounded, size: 15),
                     label: Text('stock_movements_btn'.tr),
                     style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: AppSizes.sm,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 0),
+                      minimumSize: const Size(0, 36),
+                      textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(width: 6),
                   ElevatedButton.icon(
                     onPressed: () {
                       ProductCreationWizard.show(context);
@@ -224,10 +222,9 @@ class _ProductsScreenState extends State<ProductsScreen> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: AppColor.primary,
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppSizes.md,
-                        vertical: AppSizes.sm,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                      minimumSize: const Size(0, 36),
+                      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ],
@@ -287,24 +284,22 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                           ),
                                           if (p.isBadgeEnabled && p.badgeId.isNotEmpty)
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFFF59E0B).withValues(alpha: 0.18),
-                                                borderRadius: BorderRadius.circular(3),
-                                                border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.35)),
+                                                color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                                                borderRadius: BorderRadius.circular(100),
                                               ),
                                               child: const Text(
                                                 '⭐ BADGE',
-                                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w800, color: Color(0xFFF59E0B)),
+                                                style: TextStyle(fontSize: 9, fontWeight: FontWeight.w700, color: Color(0xFFF59E0B)),
                                               ),
                                             ),
                                           if (!p.isOnline)
                                             Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-                                                borderRadius: BorderRadius.circular(3),
-                                                border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                                                color: const Color(0xFFF59E0B).withValues(alpha: 0.12),
+                                                borderRadius: BorderRadius.circular(100),
                                               ),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,
@@ -337,11 +332,11 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         // Type Badge
                         DataCell(
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                             decoration: BoxDecoration(
-                              color: typeColor.withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
-                              border: Border.all(color: typeColor.withValues(alpha: 0.25)),
+                              color: typeColor.withValues(alpha: 0.10),
+                              borderRadius: BorderRadius.circular(100),
+                              border: Border.all(color: typeColor.withValues(alpha: 0.20)),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -351,7 +346,7 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                 Text(
                                   resolvedDisplayName,
                                   style: TextStyle(
-                                    fontWeight: FontWeight.w700,
+                                    fontWeight: FontWeight.w600,
                                     fontSize: 11,
                                     color: typeColor,
                                   ),
@@ -363,14 +358,14 @@ class _ProductsScreenState extends State<ProductsScreen> {
                         // Brand
                         DataCell(
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
                             decoration: BoxDecoration(
                               color: AppColor.primary.withValues(alpha: 0.08),
-                              borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
+                              borderRadius: BorderRadius.circular(100),
                             ),
                             child: Text(
                               p.brand.name.isNotEmpty ? p.brand.name : 'General',
-                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12),
+                              style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 11.5),
                             ),
                           ),
                         ),
@@ -525,31 +520,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                 onPressed: () => ProductDetailsDialog.show(context, p),
                               ),
                               IconButton(
-                                icon: const Icon(Icons.store_mall_directory_rounded, size: 18, color: Color(0xFF06B6D4)),
-                                tooltip: 'branch_stock_action_tooltip'.tr,
-                                onPressed: () => BranchStockMatrixDialog.show(context, p),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.tune_rounded, size: 18, color: Color(0xFF8B5CF6)),
-                                tooltip: isArabic ? 'تسوية وجرد المخزون' : 'Stock Audit / Adjust',
-                                onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (_) => StockAdjustmentDialog(product: p),
-                                  );
-                                },
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.qr_code_2_rounded, size: 18, color: Color(0xFFF97316)),
-                                tooltip: isArabic ? 'طباعة ملصقات الباركود' : 'Print Barcode Labels',
-                                onPressed: () => ProductBarcodePrintDialog.show(context, product: p),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.add_shopping_cart_rounded, size: 18, color: Color(0xFF10B981)),
-                                tooltip: isArabic ? 'إعادة توريد المخزون' : 'Quick Restock',
-                                onPressed: () => QuickRestockDialog.show(context, product: p),
-                              ),
-                              IconButton(
                                 icon: const Icon(Icons.edit_outlined, size: 18, color: AppColor.primary),
                                 tooltip: 'edit_product'.tr,
                                 onPressed: () {
@@ -559,11 +529,125 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                   );
                                 },
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete_outline_rounded, size: 18, color: AppColor.error),
-                                tooltip: 'delete_product'.tr,
-                                onPressed: () {
-                                  _confirmDelete(context, p);
+                              PopupMenuButton<String>(
+                                icon: const Icon(Icons.more_vert_rounded, size: 18),
+                                tooltip: 'actions'.tr,
+                                color: isDark ? AppColor.darkCard : AppColor.lightCard,
+                                elevation: 3,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+                                  side: BorderSide(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+                                ),
+                                onSelected: (val) {
+                                  switch (val) {
+                                    case 'toggle_online':
+                                      _toggleOnlineStatus(context, p);
+                                      break;
+                                    case 'branch_stock':
+                                      BranchStockMatrixDialog.show(context, p);
+                                      break;
+                                    case 'stock_audit':
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => StockAdjustmentDialog(product: p),
+                                      );
+                                      break;
+                                    case 'print_barcode':
+                                      ProductBarcodePrintDialog.show(context, product: p);
+                                      break;
+                                    case 'quick_restock':
+                                      QuickRestockDialog.show(context, product: p);
+                                      break;
+                                    case 'delete':
+                                      _confirmDelete(context, p);
+                                      break;
+                                  }
+                                },
+                                itemBuilder: (context) {
+                                  final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+                                  return [
+                                    PopupMenuItem(
+                                      value: 'toggle_online',
+                                      height: 36,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            p.isOnline ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                                            size: 16,
+                                            color: p.isOnline ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            p.isOnline
+                                                ? (isArabic ? 'إطفاء المنتج أونلاين (كاشير فقط)' : 'Disable Online (POS Only)')
+                                                : (isArabic ? 'تفعيل المنتج أونلاين' : 'Enable Online Store'),
+                                            style: TextStyle(
+                                              fontSize: 12.5,
+                                              color: p.isOnline ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                                              fontWeight: FontWeight.w600,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuDivider(height: 6),
+                                    PopupMenuItem(
+                                      value: 'branch_stock',
+                                      height: 36,
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.store_mall_directory_rounded, size: 16, color: Color(0xFF06B6D4)),
+                                          const SizedBox(width: 8),
+                                          Text('branch_stock_action_tooltip'.tr, style: const TextStyle(fontSize: 12.5)),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'stock_audit',
+                                      height: 36,
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.tune_rounded, size: 16, color: Color(0xFF8B5CF6)),
+                                          const SizedBox(width: 8),
+                                          Text('quick_action_stock_audit'.tr, style: const TextStyle(fontSize: 12.5)),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'print_barcode',
+                                      height: 36,
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.qr_code_2_rounded, size: 16, color: Color(0xFFF97316)),
+                                          const SizedBox(width: 8),
+                                          Text('print_barcode_stickers'.tr, style: const TextStyle(fontSize: 12.5)),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: 'quick_restock',
+                                      height: 36,
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.add_shopping_cart_rounded, size: 16, color: Color(0xFF10B981)),
+                                          const SizedBox(width: 8),
+                                          Text('quick_restock'.tr, style: const TextStyle(fontSize: 12.5)),
+                                        ],
+                                      ),
+                                    ),
+                                    const PopupMenuDivider(height: 8),
+                                    PopupMenuItem(
+                                      value: 'delete',
+                                      height: 36,
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.delete_outline_rounded, size: 16, color: AppColor.error),
+                                          const SizedBox(width: 8),
+                                          Text('delete_product'.tr, style: const TextStyle(fontSize: 12.5, color: AppColor.error)),
+                                        ],
+                                      ),
+                                    ),
+                                  ];
                                 },
                               ),
                             ],
@@ -583,6 +667,24 @@ class _ProductsScreenState extends State<ProductsScreen> {
           ),
         );
       },
+    );
+  }
+
+  void _toggleOnlineStatus(BuildContext context, ProductModel product) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final newStatus = !product.isOnline;
+    final updated = product.copyWith(isOnline: newStatus);
+    context.read<ProductCubit>().updateProduct(updated);
+
+    HelperFun.successSnackbar(
+      isArabic ? 'حالة توفر المنتج' : 'Product Availability',
+      newStatus
+          ? (isArabic
+              ? 'تم تفعيل ظهور "${product.title}" في تطبيق المتجر أونلاين والكاشير'
+              : 'Product "${product.title}" is now active in Online store and POS')
+          : (isArabic
+              ? 'تم إطفاء "${product.title}" عن تطبيق المتجر (متاح كاشير فقط)'
+              : 'Product "${product.title}" is now POS only (hidden online)'),
     );
   }
 

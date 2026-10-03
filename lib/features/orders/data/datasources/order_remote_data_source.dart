@@ -135,17 +135,19 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
 
         bool newStockDeducted = currentlyDeducted;
 
+        final orderBranchId = orderData['branchId']?.toString() ?? 'main_branch';
+
         // If transitioning TO cancelled -> Restock
         if (isCancelledTarget && currentlyDeducted) {
           if (rawItems.isNotEmpty) {
-            await _adjustStockForItems(rawItems, isRestock: true);
+            await _adjustStockForItems(rawItems, isRestock: true, branchId: orderBranchId);
           }
           newStockDeducted = false;
         }
         // If transitioning FROM cancelled back to active -> Deduct stock again
         else if (isCancelledPrev && !isCancelledTarget && !currentlyDeducted) {
           if (rawItems.isNotEmpty) {
-            await _adjustStockForItems(rawItems, isRestock: false);
+            await _adjustStockForItems(rawItems, isRestock: false, branchId: orderBranchId);
           }
           newStockDeducted = true;
         }
@@ -265,7 +267,11 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     }
   }
 
-  Future<void> _adjustStockForItems(List<dynamic> rawItems, {required bool isRestock}) async {
+  Future<void> _adjustStockForItems(
+    List<dynamic> rawItems, {
+    required bool isRestock,
+    String branchId = 'main_branch',
+  }) async {
     for (final rawItem in rawItems) {
       if (rawItem is! Map) continue;
       final item = Map<String, dynamic>.from(rawItem);
@@ -287,6 +293,22 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
 
           final prodData = prodSnap.data() ?? {};
           final currentStock = (prodData['stock'] as num?)?.toInt() ?? 0;
+
+          // Branch stock calculation
+          final rawBranchStock = prodData['branchStock'] ?? prodData['BranchStock'] ?? {};
+          final Map<String, int> updatedBranchStock = {};
+          if (rawBranchStock is Map) {
+            rawBranchStock.forEach((k, v) {
+              if (v is num) updatedBranchStock[k.toString()] = v.toInt();
+            });
+          }
+          final effectiveBranchId = branchId.isNotEmpty ? branchId : 'main_branch';
+          final currBranchQty = updatedBranchStock[effectiveBranchId] ?? currentStock;
+          final updatedBranchQty = isRestock
+              ? (currBranchQty + quantity)
+              : (currBranchQty - quantity).clamp(0, 999999).toInt();
+          updatedBranchStock[effectiveBranchId] = updatedBranchQty;
+
           final rawVars = prodData['productVariations'];
           final List<Map<String, dynamic>> updatedVars = [];
           bool variationUpdated = false;
@@ -333,6 +355,21 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
                   final vStock = (vMap['stock'] as num?)?.toInt() ?? 0;
                   final newVStock = isRestock ? (vStock + quantity) : (vStock - quantity).clamp(0, 999999).toInt();
                   vMap['stock'] = newVStock;
+
+                  final vBranchRaw = vMap['branchStock'] ?? vMap['BranchStock'] ?? {};
+                  final Map<String, int> vBranchStock = {};
+                  if (vBranchRaw is Map) {
+                    vBranchRaw.forEach((k, val) {
+                      if (val is num) vBranchStock[k.toString()] = val.toInt();
+                    });
+                  }
+                  final currVBranchQty = vBranchStock[effectiveBranchId] ?? vStock;
+                  final updatedVBranchQty = isRestock
+                      ? (currVBranchQty + quantity)
+                      : (currVBranchQty - quantity).clamp(0, 999999).toInt();
+                  vBranchStock[effectiveBranchId] = updatedVBranchQty;
+                  vMap['branchStock'] = vBranchStock;
+
                   variationUpdated = true;
                 }
                 updatedVars.add(vMap);
@@ -355,6 +392,7 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
 
           final updateData = <String, dynamic>{
             'stock': newTotalStock,
+            'branchStock': updatedBranchStock,
           };
           if (updatedVars.isNotEmpty && variationUpdated) {
             updateData['productVariations'] = updatedVars;
@@ -362,7 +400,7 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
 
           transaction.update(prodRef, updateData);
         });
-        debugPrint('📦 [Admin Dynamic Stock] ${isRestock ? "Restocked" : "Deducted"} $quantity units for product $productId');
+        debugPrint('📦 [Admin Dynamic Stock] ${isRestock ? "Restocked" : "Deducted"} $quantity units for product $productId at branch $branchId');
       } catch (e) {
         debugPrint('⚠️ [Admin Dynamic Stock] Error updating stock for product $productId: $e');
       }
@@ -427,9 +465,11 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
           'performedBy': performedBy ?? 'Admin/Cashier',
         };
 
+        final orderBranchId = orderData['branchId']?.toString() ?? 'main_branch';
+
         // 2. Restock inventory if requested & log stock movement audit
         if (restockInventory && itemsToReturn.isNotEmpty) {
-          await _adjustStockForItems(itemsToReturn, isRestock: true);
+          await _adjustStockForItems(itemsToReturn, isRestock: true, branchId: orderBranchId);
 
           for (final item in itemsToReturn) {
             try {

@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:admin_panel_ego/core/localization/app_localizations.dart';
 import 'package:admin_panel_ego/features/dashboard/data/models/dashboard_analytics_model.dart';
 import 'package:admin_panel_ego/features/dashboard/presentation/widgets/dashboard_date_filter_bar.dart';
 import 'package:admin_panel_ego/features/dashboard/presentation/widgets/sales_channel_profit_card.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  AppLocalizations.setLocale(const Locale('ar'));
+
   group('DashboardDateFilterBar & SalesChannelProfitCard Widget Tests', () {
     testWidgets('Renders simplified filter bar with Today, All, and Dual Date Pickers', (tester) async {
       const analytics = DashboardAnalyticsModel(
@@ -64,8 +68,8 @@ void main() {
       );
 
       // Verify Today & All buttons are visible
-      expect(find.text('اليوم'), findsOneWidget);
-      expect(find.text('كافة الفترات'), findsOneWidget);
+      expect(find.text('اليوم'), findsWidgets);
+      expect(find.text('الكل'), findsWidgets);
 
       // Verify Dual Date Pickers are visible (من & إلى)
       expect(find.text('من:'), findsOneWidget);

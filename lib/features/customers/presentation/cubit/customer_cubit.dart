@@ -102,6 +102,57 @@ class CustomerCubit extends Cubit<CustomerState> {
     }).toList();
   }
 
+  Future<CustomerModel?> findCustomerByPhone(String phone) async {
+    final clean = phone.trim().replaceAll(RegExp(r'\s+|-'), '');
+    if (clean.isEmpty) return null;
+
+    if (state is CustomerLoaded) {
+      final matches = (state as CustomerLoaded).customers.where((c) {
+        final cp = c.phone.replaceAll(RegExp(r'\s+|-'), '');
+        if (cp.isEmpty) return false;
+        return cp == clean || (clean.length >= 9 && cp.endsWith(clean.substring(clean.length - 9)));
+      });
+      if (matches.isNotEmpty) return matches.first;
+    }
+
+    return customerRepository.findCustomerByPhone(clean);
+  }
+
+  Future<void> adjustCustomerPoints({
+    required String customerId,
+    required int pointsDelta,
+    String? reason,
+  }) async {
+    try {
+      await customerRepository.updateCustomerPoints(
+        customerId: customerId,
+        pointsDelta: pointsDelta,
+        reason: reason,
+      );
+
+      if (state is CustomerLoaded) {
+        final currentState = state as CustomerLoaded;
+        final updatedList = currentState.customers.map((c) {
+          if (c.id == customerId) {
+            return c.copyWith(
+              loyaltyPoints: (c.loyaltyPoints + pointsDelta).clamp(0, 9999999),
+            );
+          }
+          return c;
+        }).toList();
+
+        final filtered = _filterCustomersList(updatedList, currentState.searchQuery);
+        emit(currentState.copyWith(
+          customers: updatedList,
+          filteredCustomers: filtered,
+        ));
+      }
+    } catch (e) {
+      debugPrint('Error adjusting points: $e');
+      rethrow;
+    }
+  }
+
   @override
   Future<void> close() {
     _customersSubscription?.cancel();
