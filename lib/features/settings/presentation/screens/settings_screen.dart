@@ -37,10 +37,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final _egpPerEarnedPointController = TextEditingController();
   final _egpValuePerRedeemedPointController = TextEditingController();
   final _minPointsToRedeemController = TextEditingController();
+  final _cessationDiscountController = TextEditingController();
+  final _defaultPackPriceController = TextEditingController();
 
   bool _enforceAge = true;
   bool _showWarning = true;
   bool _isLoyaltyEnabled = true;
+  bool _enableSmokingCessationProgram = true;
   bool _isInitialized = false;
   bool _isSaving = false;
   List<StoreBranchModel> _branches = [];
@@ -50,6 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool get _enforceAgeSafe => _enforceAge == true;
   bool get _showWarningSafe => _showWarning == true;
   bool get _isLoyaltyEnabledSafe => _isLoyaltyEnabled == true;
+  bool get _enableSmokingCessationSafe => _enableSmokingCessationProgram == true;
 
   @override
   void initState() {
@@ -60,11 +64,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _initFields(StoreSettingsModel settings) {
+    if (_isInitialized) return;
+
     _enforceAge = settings.enforceAgeVerification == true;
     _showWarning = settings.showNicotineWarningBanner == true;
     _isLoyaltyEnabled = settings.isLoyaltyEnabled == true;
-
-    if (_isInitialized) return;
+    _enableSmokingCessationProgram =
+        settings.enableSmokingCessationProgram == true;
 
     _phoneController.text = settings.phoneNumber;
     _whatsController.text = settings.whatsNumber;
@@ -83,6 +89,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
         settings.egpValuePerRedeemedPoint.toString();
     _minPointsToRedeemController.text =
         settings.minPointsToRedeem.toString();
+    _cessationDiscountController.text =
+        settings.cessationDiscountPercent == settings.cessationDiscountPercent.toInt()
+            ? settings.cessationDiscountPercent.toInt().toString()
+            : settings.cessationDiscountPercent.toString();
+    _defaultPackPriceController.text =
+        settings.defaultCigarettePackPrice == settings.defaultCigarettePackPrice.toInt()
+            ? settings.defaultCigarettePackPrice.toInt().toString()
+            : settings.defaultCigarettePackPrice.toString();
 
     final dynamic rawBranches = (settings as dynamic).branches;
     if (rawBranches is List) {
@@ -114,6 +128,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _egpPerEarnedPointController.dispose();
     _egpValuePerRedeemedPointController.dispose();
     _minPointsToRedeemController.dispose();
+    _cessationDiscountController.dispose();
+    _defaultPackPriceController.dispose();
     super.dispose();
   }
 
@@ -141,6 +157,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
           double.tryParse(_egpValuePerRedeemedPointController.text.trim()) ?? 0.5,
       minPointsToRedeem:
           int.tryParse(_minPointsToRedeemController.text.trim()) ?? 10,
+      enableSmokingCessationProgram: _enableSmokingCessationSafe,
+      cessationDiscountPercent:
+          double.tryParse(_cessationDiscountController.text.trim()) ?? 10.0,
+      defaultCigarettePackPrice:
+          double.tryParse(_defaultPackPriceController.text.trim()) ?? 90.0,
       branches: _branches,
       governorates: _governorates,
     );
@@ -211,6 +232,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               _buildBadgesCard(isDark),
                               const SizedBox(height: AppSizes.lg),
                               _buildRegulatoryCard(isDark),
+                              const SizedBox(height: AppSizes.lg),
+                              _buildSmokingCessationCard(isDark),
                             ],
                           ),
                         ),
@@ -232,6 +255,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     _buildBadgesCard(isDark),
                     const SizedBox(height: AppSizes.lg),
                     _buildRegulatoryCard(isDark),
+                    const SizedBox(height: AppSizes.lg),
+                    _buildSmokingCessationCard(isDark),
                   ],
 
                   const SizedBox(height: AppSizes.lg),
@@ -2127,6 +2152,170 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onChanged: (v) => setState(() => _showWarning = v),
             ),
           ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSmokingCessationCard(bool isDark) {
+    final isArabic = Localizations.localeOf(context).languageCode == 'ar';
+    final isCessationActive = _enableSmokingCessationSafe;
+    final double packPrice =
+        double.tryParse(_defaultPackPriceController.text.trim()) ?? 90.0;
+    final double discount =
+        double.tryParse(_cessationDiscountController.text.trim()) ?? 10.0;
+
+    // Financial & Health Simulator: 1 pack per day
+    final double monthlySavings = packPrice * 30;
+    final double yearlySavings = packPrice * 365;
+    final int cigarettesAvoidedMonth = 20 * 30;
+
+    return Container(
+      padding: const EdgeInsets.all(AppSizes.lg),
+      decoration: BoxDecoration(
+        color: isDark ? AppColor.darkCard : AppColor.lightCard,
+        borderRadius: BorderRadius.circular(AppSizes.cardRadiusLg),
+        border: Border.all(
+          color: isCessationActive
+              ? const Color(0xFF10B981).withValues(alpha: 0.35)
+              : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm),
+                ),
+                child: const Icon(
+                  Icons.smoke_free_rounded,
+                  color: Color(0xFF10B981),
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: AppSizes.sm),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      isArabic
+                          ? 'برنامج ومساعد الإقلاع عن التدخين'
+                          : 'Quit Smoking & Cessation Hub',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      isArabic
+                          ? 'عرض حاسبة التوفير المالي والصحي وخطة النزول بالنيكوتين في تطبيق العملاء'
+                          : 'Show health/money savings calculator & nicotine step-down plan in customer app',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark
+                            ? AppColor.textSecondaryDark
+                            : AppColor.textSecondaryLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Switch(
+                value: isCessationActive,
+                activeThumbColor: const Color(0xFF10B981),
+                activeTrackColor: const Color(0xFF10B981).withValues(alpha: 0.4),
+                onChanged: (v) =>
+                    setState(() => _enableSmokingCessationProgram = v),
+              ),
+            ],
+          ),
+          if (isCessationActive) ...[
+            const SizedBox(height: AppSizes.md),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _defaultPackPriceController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      labelText: isArabic
+                          ? 'سعر علبة السجائر الافتراضي'
+                          : 'Default Cigarette Pack Price',
+                      hintText: '90',
+                      prefixIcon: const Icon(Icons.payments_outlined, size: 18),
+                      suffixText: isArabic ? 'ج.م' : 'EGP',
+                      helperText: isArabic
+                          ? 'يُستخدم لحساب التوفير المالي الشهري للعميل'
+                          : 'Used to calculate customer monthly money saved',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: AppSizes.md),
+                Expanded(
+                  child: TextFormField(
+                    controller: _cessationDiscountController,
+                    keyboardType:
+                        const TextInputType.numberWithOptions(decimal: true),
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      labelText: isArabic
+                          ? 'خصم تشجيعي لخفض النيكوتين (%)'
+                          : 'Nicotine Step-Down Discount (%)',
+                      hintText: '10',
+                      prefixIcon:
+                          const Icon(Icons.trending_down_rounded, size: 18),
+                      suffixText: '%',
+                      helperText: isArabic
+                          ? 'خصم تشجيعي عند طلب تركيز نيكوتين أقل'
+                          : 'Incentive discount when buying lower nicotine',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: AppSizes.md),
+            // Simulator Box
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+                border: Border.all(
+                  color: const Color(0xFF10B981).withValues(alpha: 0.25),
+                ),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.health_and_safety_rounded,
+                      color: Color(0xFF10B981), size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      isArabic
+                          ? '🚭 محاكاة تجربة العميل: لو كان يدخن علبة واحدة يومياً بسعر ${packPrice.toInt()} ج.م -> سيعرض له التطبيق توفير ${monthlySavings.toInt()} ج.م شهرياً (${yearlySavings.toInt()} ج.م سنوياً) مع تجنب $cigarettesAvoidedMonth سيجارة احتراق وقطران، وخصم ${discount.toInt()}% على بدائل النيكوتين المخفف!'
+                          : '🚭 Customer Preview: Smoking 1 pack/day at ${packPrice.toInt()} EGP -> app shows savings of ${monthlySavings.toInt()} EGP/mo (${yearlySavings.toInt()} EGP/yr), avoiding $cigarettesAvoidedMonth cigarettes and ${discount.toInt()}% off lower nicotine products!',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: isDark
+                            ? AppColor.textPrimaryDark
+                            : AppColor.textPrimaryLight,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ],
       ),
     );

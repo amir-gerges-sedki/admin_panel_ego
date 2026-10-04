@@ -17,6 +17,9 @@ class StoreSettingsModel extends Equatable {
   final double egpPerEarnedPoint;
   final double egpValuePerRedeemedPoint;
   final int minPointsToRedeem;
+  final bool enableSmokingCessationProgram;
+  final double cessationDiscountPercent;
+  final double defaultCigarettePackPrice;
   final List<StoreBranchModel> branches;
   final List<GovernorateDeliveryModel> governorates;
 
@@ -35,6 +38,9 @@ class StoreSettingsModel extends Equatable {
     this.egpPerEarnedPoint = 10.0,
     this.egpValuePerRedeemedPoint = 0.5,
     this.minPointsToRedeem = 10,
+    this.enableSmokingCessationProgram = true,
+    this.cessationDiscountPercent = 10.0,
+    this.defaultCigarettePackPrice = 90.0,
     List<StoreBranchModel>? branches,
     List<GovernorateDeliveryModel>? governorates,
   })  : branches = branches ?? const [],
@@ -55,6 +61,9 @@ class StoreSettingsModel extends Equatable {
     double? egpPerEarnedPoint,
     double? egpValuePerRedeemedPoint,
     int? minPointsToRedeem,
+    bool? enableSmokingCessationProgram,
+    double? cessationDiscountPercent,
+    double? defaultCigarettePackPrice,
     List<StoreBranchModel>? branches,
     List<GovernorateDeliveryModel>? governorates,
   }) {
@@ -78,6 +87,12 @@ class StoreSettingsModel extends Equatable {
       egpValuePerRedeemedPoint:
           egpValuePerRedeemedPoint ?? this.egpValuePerRedeemedPoint,
       minPointsToRedeem: minPointsToRedeem ?? this.minPointsToRedeem,
+      enableSmokingCessationProgram:
+          enableSmokingCessationProgram ?? this.enableSmokingCessationProgram,
+      cessationDiscountPercent:
+          cessationDiscountPercent ?? this.cessationDiscountPercent,
+      defaultCigarettePackPrice:
+          defaultCigarettePackPrice ?? this.defaultCigarettePackPrice,
       branches: branches ?? this.branches,
       governorates: governorates ?? this.governorates,
     );
@@ -150,6 +165,13 @@ class StoreSettingsModel extends Equatable {
       egpValuePerRedeemedPoint:
           (json['egpValuePerRedeemedPoint'] as num?)?.toDouble() ?? 0.5,
       minPointsToRedeem: (json['minPointsToRedeem'] as num?)?.toInt() ?? 10,
+      enableSmokingCessationProgram: json['enableSmokingCessationProgram'] is bool
+          ? json['enableSmokingCessationProgram'] as bool
+          : (json['enableSmokingCessationProgram']?.toString().toLowerCase() != 'false'),
+      cessationDiscountPercent:
+          (json['cessationDiscountPercent'] as num?)?.toDouble() ?? 10.0,
+      defaultCigarettePackPrice:
+          (json['defaultCigarettePackPrice'] as num?)?.toDouble() ?? 90.0,
       branches: parsedBranches,
       governorates: parsedGovs,
     );
@@ -170,6 +192,9 @@ class StoreSettingsModel extends Equatable {
         'egpPerEarnedPoint': egpPerEarnedPoint,
         'egpValuePerRedeemedPoint': egpValuePerRedeemedPoint,
         'minPointsToRedeem': minPointsToRedeem,
+        'enableSmokingCessationProgram': enableSmokingCessationProgram,
+        'cessationDiscountPercent': cessationDiscountPercent,
+        'defaultCigarettePackPrice': defaultCigarettePackPrice,
         'branches': branches.map((b) => b.toJson()).toList(),
         'governorates': governorates.map((g) => g.toJson()).toList(),
       };
@@ -190,6 +215,9 @@ class StoreSettingsModel extends Equatable {
         egpPerEarnedPoint,
         egpValuePerRedeemedPoint,
         minPointsToRedeem,
+        enableSmokingCessationProgram,
+        cessationDiscountPercent,
+        defaultCigarettePackPrice,
         branches,
         governorates,
       ];
