@@ -1,0 +1,11 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ⚠️ For Development / Internal Admin Panel:
+    // Allows full read & write access to all collections used by the Admin Panel.
+    // For Production, you can restrict this to authenticated admin users (request.auth != null).
+    match /{document=**} {
+      allow read, write: if true;
+    }
+  }
+}

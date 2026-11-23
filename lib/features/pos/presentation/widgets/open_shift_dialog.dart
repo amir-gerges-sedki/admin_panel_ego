@@ -130,6 +130,17 @@ class _OpenShiftDialogState extends State<OpenShiftDialog> {
           );
         } else {
           setState(() => _isSubmitting = false);
+          final errorMsg = context.read<ShiftCubit>().state.errorMessage;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                (errorMsg != null && errorMsg.isNotEmpty)
+                    ? errorMsg
+                    : 'فشل في فتح الوردية',
+              ),
+              backgroundColor: AppColor.error,
+            ),
+          );
         }
       }
     } catch (e) {
