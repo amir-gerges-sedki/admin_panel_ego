@@ -20,6 +20,7 @@ class StoreSettingsModel extends Equatable {
   final bool enableSmokingCessationProgram;
   final double cessationDiscountPercent;
   final double defaultCigarettePackPrice;
+  final double defaultSalesCommissionRate;
   final List<StoreBranchModel> branches;
   final List<GovernorateDeliveryModel> governorates;
 
@@ -41,6 +42,7 @@ class StoreSettingsModel extends Equatable {
     this.enableSmokingCessationProgram = true,
     this.cessationDiscountPercent = 10.0,
     this.defaultCigarettePackPrice = 90.0,
+    this.defaultSalesCommissionRate = 2.5,
     List<StoreBranchModel>? branches,
     List<GovernorateDeliveryModel>? governorates,
   })  : branches = branches ?? const [],
@@ -64,6 +66,7 @@ class StoreSettingsModel extends Equatable {
     bool? enableSmokingCessationProgram,
     double? cessationDiscountPercent,
     double? defaultCigarettePackPrice,
+    double? defaultSalesCommissionRate,
     List<StoreBranchModel>? branches,
     List<GovernorateDeliveryModel>? governorates,
   }) {
@@ -93,6 +96,8 @@ class StoreSettingsModel extends Equatable {
           cessationDiscountPercent ?? this.cessationDiscountPercent,
       defaultCigarettePackPrice:
           defaultCigarettePackPrice ?? this.defaultCigarettePackPrice,
+      defaultSalesCommissionRate:
+          defaultSalesCommissionRate ?? this.defaultSalesCommissionRate,
       branches: branches ?? this.branches,
       governorates: governorates ?? this.governorates,
     );
@@ -172,6 +177,9 @@ class StoreSettingsModel extends Equatable {
           (json['cessationDiscountPercent'] as num?)?.toDouble() ?? 10.0,
       defaultCigarettePackPrice:
           (json['defaultCigarettePackPrice'] as num?)?.toDouble() ?? 90.0,
+      defaultSalesCommissionRate: (json['defaultSalesCommissionRate'] as num?)?.toDouble() ??
+          (json['staffSalesCommissionRate'] as num?)?.toDouble() ??
+          2.5,
       branches: parsedBranches,
       governorates: parsedGovs,
     );
@@ -195,6 +203,7 @@ class StoreSettingsModel extends Equatable {
         'enableSmokingCessationProgram': enableSmokingCessationProgram,
         'cessationDiscountPercent': cessationDiscountPercent,
         'defaultCigarettePackPrice': defaultCigarettePackPrice,
+        'defaultSalesCommissionRate': defaultSalesCommissionRate,
         'branches': branches.map((b) => b.toJson()).toList(),
         'governorates': governorates.map((g) => g.toJson()).toList(),
       };
@@ -218,6 +227,7 @@ class StoreSettingsModel extends Equatable {
         enableSmokingCessationProgram,
         cessationDiscountPercent,
         defaultCigarettePackPrice,
+        defaultSalesCommissionRate,
         branches,
         governorates,
       ];

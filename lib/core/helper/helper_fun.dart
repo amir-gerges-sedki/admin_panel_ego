@@ -124,6 +124,8 @@ class HelperFun {
                     imageUrl,
                     width: 36,
                     height: 36,
+                    cacheWidth: 100,
+                    cacheHeight: 100,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => const SizedBox.shrink(),
                   ),

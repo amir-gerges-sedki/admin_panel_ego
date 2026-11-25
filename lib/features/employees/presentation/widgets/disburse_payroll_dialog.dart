@@ -36,6 +36,7 @@ class _DisbursePayrollDialogState extends State<DisbursePayrollDialog> {
   final _bonusesController = TextEditingController(text: '0');
   final _deductionsController = TextEditingController(text: '0');
   final _notesController = TextEditingController();
+  bool _hasInitializedBonus = false;
 
   final DateTime _paymentDate = DateTime.now();
   String _paymentMethod = 'cash';
@@ -141,6 +142,25 @@ class _DisbursePayrollDialogState extends State<DisbursePayrollDialog> {
           _selectedEmployee = employees.first;
         }
 
+        final double monthlySales = (_selectedEmployee != null && state is EmployeeLoaded)
+            ? state.getMonthlySalesForEmployee(_selectedEmployee!.id)
+            : 0.0;
+        final int ordersCount = (_selectedEmployee != null && state is EmployeeLoaded)
+            ? state.getMonthlyOrdersCountForEmployee(_selectedEmployee!.id)
+            : 0;
+        final double calculatedBonus = (_selectedEmployee != null && state is EmployeeLoaded)
+            ? state.calculateBonusForEmployee(_selectedEmployee!)
+            : 0.0;
+
+        final double effectiveCommissionRate = (_selectedEmployee != null && state is EmployeeLoaded)
+            ? state.getEffectiveCommissionRate(_selectedEmployee!)
+            : (_selectedEmployee?.commissionRate ?? 0.0);
+
+        if (!_hasInitializedBonus && _selectedEmployee != null) {
+          _bonusesController.text = calculatedBonus > 0 ? calculatedBonus.toStringAsFixed(2) : '0';
+          _hasInitializedBonus = true;
+        }
+
         final List<SalaryAdvanceModel> advancesToDeduct = (_selectedEmployee != null && state is EmployeeLoaded)
             ? state.getUnsettledAdvancesForEmployee(_selectedEmployee!.id)
             : <SalaryAdvanceModel>[];
@@ -166,38 +186,44 @@ class _DisbursePayrollDialogState extends State<DisbursePayrollDialog> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF10B981).withValues(alpha: 0.12),
-                              borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-                            ),
-                            child: const Icon(
-                              Icons.receipt_long_rounded,
-                              color: Color(0xFF10B981),
-                              size: 24,
-                            ),
-                          ),
-                          const SizedBox(width: AppSizes.sm + 4),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'disburse_payroll_title'.tr,
-                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      Expanded(
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
                               ),
-                              Text(
-                                'disburse_payroll_subtitle'.tr,
-                                style: TextStyle(
-                                  fontSize: 11.5,
-                                  color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
-                                ),
+                              child: const Icon(
+                                Icons.receipt_long_rounded,
+                                color: Color(0xFF10B981),
+                                size: 24,
                               ),
-                            ],
-                          ),
-                        ],
+                            ),
+                            const SizedBox(width: AppSizes.sm + 4),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'disburse_payroll_title'.tr,
+                                    style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    'disburse_payroll_subtitle'.tr,
+                                    style: TextStyle(
+                                      fontSize: 11.5,
+                                      color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       IconButton(
                         icon: const Icon(Icons.close_rounded),
@@ -241,7 +267,16 @@ class _DisbursePayrollDialogState extends State<DisbursePayrollDialog> {
                                   );
                                 }).toList(),
                                 onChanged: (val) {
-                                  if (val != null) setState(() => _selectedEmployee = val);
+                                  if (val != null) {
+                                    setState(() {
+                                      _selectedEmployee = val;
+                                      final bonus = state is EmployeeLoaded
+                                          ? state.calculateBonusForEmployee(val)
+                                          : 0.0;
+                                      _bonusesController.text =
+                                          bonus > 0 ? bonus.toStringAsFixed(2) : '0';
+                                    });
+                                  }
                                 },
                               ),
                             ),
@@ -269,6 +304,72 @@ class _DisbursePayrollDialogState extends State<DisbursePayrollDialog> {
                                   ],
                                 ),
                                 const SizedBox(height: 6),
+
+                                // Sales & Commission Line - Senior UI/UX (Clean & Responsive)
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF6366F1).withValues(alpha: 0.08),
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(color: const Color(0xFF6366F1).withValues(alpha: 0.2)),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        padding: const EdgeInsets.all(6),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: const Icon(Icons.stars_rounded, size: 18, color: Color(0xFF6366F1)),
+                                      ),
+                                      const SizedBox(width: 10),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'مبيعات الشهر: ${AppFormatters.formatEGP(monthlySales)}${ordersCount > 0 ? " ($ordersCount فاتورة)" : ""}',
+                                              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            Text(
+                                              'العمولة: $effectiveCommissionRate%${_selectedEmployee != null && _selectedEmployee!.commissionRate <= 0 ? " (عامة)" : ""}',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
+                                              ),
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Column(
+                                        crossAxisAlignment: CrossAxisAlignment.end,
+                                        children: [
+                                          Text(
+                                            '+ ${AppFormatters.formatEGP(calculatedBonus)}',
+                                            style: const TextStyle(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w900,
+                                              color: Color(0xFF10B981),
+                                            ),
+                                          ),
+                                          Text(
+                                            'مكافأة تلقائية',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 6),
+
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [

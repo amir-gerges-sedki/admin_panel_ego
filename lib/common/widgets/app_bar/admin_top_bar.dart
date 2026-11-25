@@ -152,6 +152,41 @@ class _AdminTopBarState extends State<AdminTopBar> {
               ),
               const SizedBox(height: AppSizes.md),
 
+              // Lock Session to PIN Screen
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.15),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.lock_rounded,
+                    color: Colors.redAccent,
+                    size: 20,
+                  ),
+                ),
+                title: const Text(
+                  'قفل الشاشة / تبديل الموظف',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.5,
+                  ),
+                ),
+                subtitle: Text(
+                  'العودة لشاشة الـ PIN وتأمين لوحة التحكم',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
+                  ),
+                ),
+                onTap: () {
+                  context.read<AuthRoleCubit>().lockSession();
+                  Navigator.of(dialogCtx).pop();
+                },
+              ),
+              const Divider(height: 1),
+
               // If currently elevated (Super Admin or Admin), allow Locking session back to Staff
               if (authState.isElevated) ...[
                 ListTile(
@@ -419,7 +454,7 @@ class _AdminTopBarState extends State<AdminTopBar> {
           ],
         ),
       ),
-    );
+    ).then((_) => pinController.dispose());
   }
 
   void _submitPin(

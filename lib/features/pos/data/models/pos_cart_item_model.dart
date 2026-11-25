@@ -16,6 +16,7 @@ class PosCartItemModel extends Equatable {
   final String? variationId;
   final double discount; // Per-unit discount in EGP
   final String notes;
+  final List<String> serialNumbers; // Hardware / device serial numbers & warranty
 
   const PosCartItemModel({
     required this.productId,
@@ -31,6 +32,7 @@ class PosCartItemModel extends Equatable {
     this.variationId,
     this.discount = 0.0,
     this.notes = '',
+    this.serialNumbers = const [],
   });
 
   /// Effective price after unit discount
@@ -75,6 +77,7 @@ class PosCartItemModel extends Equatable {
     String? variationId,
     double? discount,
     String? notes,
+    List<String>? serialNumbers,
   }) {
     return PosCartItemModel(
       productId: productId ?? this.productId,
@@ -90,6 +93,7 @@ class PosCartItemModel extends Equatable {
       variationId: variationId ?? this.variationId,
       discount: discount ?? this.discount,
       notes: notes ?? this.notes,
+      serialNumbers: serialNumbers ?? this.serialNumbers,
     );
   }
 
@@ -142,6 +146,7 @@ class PosCartItemModel extends Equatable {
         if (variationId != null) 'variationId': variationId,
         if (discount > 0) 'discount': discount,
         if (notes.isNotEmpty) 'notes': notes,
+        if (serialNumbers.isNotEmpty) 'serialNumbers': serialNumbers,
         'lineTotal': lineTotal,
       };
 
@@ -162,6 +167,9 @@ class PosCartItemModel extends Equatable {
       variationId: json['variationId']?.toString(),
       discount: (json['discount'] as num?)?.toDouble() ?? 0.0,
       notes: json['notes']?.toString() ?? '',
+      serialNumbers: json['serialNumbers'] is List
+          ? (json['serialNumbers'] as List).map((e) => e.toString()).toList()
+          : const [],
     );
   }
 
@@ -180,5 +188,6 @@ class PosCartItemModel extends Equatable {
         variationId,
         discount,
         notes,
+        serialNumbers,
       ];
 }

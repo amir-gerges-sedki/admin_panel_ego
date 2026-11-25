@@ -19,6 +19,7 @@ import '../widgets/stock_adjustment_dialog.dart';
 import '../widgets/stock_movements_dialog.dart';
 import '../../../settings/data/models/store_branch_model.dart';
 import '../../../settings/presentation/cubit/settings_cubit.dart';
+import '../../../suppliers/presentation/widgets/smart_inbound_invoice_dialog.dart';
 
 class ProductsScreen extends StatefulWidget {
   const ProductsScreen({super.key});
@@ -62,8 +63,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       ? state.selectedCategory
                       : 'ALL';
 
-                  return Row(
-                    mainAxisSize: MainAxisSize.min,
+                  return Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    crossAxisAlignment: WrapCrossAlignment.center,
                     children: [
                       // 1. Branch / Store Selector Filter
                       BlocBuilder<SettingsCubit, SettingsState>(
@@ -188,8 +191,10 @@ class _ProductsScreenState extends State<ProductsScreen> {
                   );
                 },
               ),
-              trailingHeaderAction: Row(
-                mainAxisSize: MainAxisSize.min,
+              trailingHeaderAction: Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   OutlinedButton.icon(
                     onPressed: () => PhysicalStocktakeDialog.show(context),
@@ -201,7 +206,6 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
-                  const SizedBox(width: 6),
                   OutlinedButton.icon(
                     onPressed: () => StockMovementsDialog.show(context),
                     icon: const Icon(Icons.history_rounded, size: 15),
@@ -212,7 +216,26 @@ class _ProductsScreenState extends State<ProductsScreen> {
                       textStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
-                  const SizedBox(width: 6),
+                  ElevatedButton.icon(
+                    onPressed: () => SmartInboundInvoiceDialog.show(context),
+                    icon: const Icon(Icons.input_rounded, size: 16),
+                    label: Text(
+                      Localizations.localeOf(context).languageCode == 'ar'
+                          ? 'وارد وتوزيع بضاعة'
+                          : 'Inbound & Distribute',
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0D9488),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 0),
+                      minimumSize: const Size(0, 36),
+                      textStyle: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
+                      elevation: 1,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+                      ),
+                    ),
+                  ),
                   ElevatedButton.icon(
                     onPressed: () {
                       ProductCreationWizard.show(context);
@@ -257,6 +280,8 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                     p.thumbnail,
                                     width: 34,
                                     height: 34,
+                                    cacheWidth: 100,
+                                    cacheHeight: 100,
                                     fit: BoxFit.cover,
                                     errorBuilder: (context, error, stackTrace) => Container(
                                       width: 34,
@@ -543,6 +568,12 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                     case 'toggle_online':
                                       _toggleOnlineStatus(context, p);
                                       break;
+                                    case 'inbound_stock':
+                                      SmartInboundInvoiceDialog.show(
+                                        context,
+                                        initialProductId: p.id,
+                                      );
+                                      break;
                                     case 'branch_stock':
                                       BranchStockMatrixDialog.show(context, p);
                                       break;
@@ -591,6 +622,20 @@ class _ProductsScreenState extends State<ProductsScreen> {
                                       ),
                                     ),
                                     const PopupMenuDivider(height: 6),
+                                    PopupMenuItem(
+                                      value: 'inbound_stock',
+                                      height: 36,
+                                      child: Row(
+                                        children: [
+                                          const Icon(Icons.input_rounded, size: 16, color: Color(0xFF0D9488)),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            isArabic ? 'وارد موردين وتوزيع فروع' : 'Inbound & Distribute',
+                                            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF0D9488)),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
                                     PopupMenuItem(
                                       value: 'branch_stock',
                                       height: 36,

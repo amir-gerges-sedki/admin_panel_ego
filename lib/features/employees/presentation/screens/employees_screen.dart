@@ -199,13 +199,13 @@ class _EmployeesScreenState extends State<EmployeesScreen> with SingleTickerProv
               _buildTabBarAndMonthFilter(state, isDark),
               const SizedBox(height: AppSizes.md),
 
-              // Tab Views
+              // Tab Views (3 Unified Tabs)
               SizedBox(
                 height: 600,
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    // Tab 1: Employees List
+                    // Tab 1: Unified Staff & Sales Dashboard
                     _buildEmployeesTable(state, isDark),
 
                     // Tab 2: Salary Advances
@@ -324,7 +324,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> with SingleTickerProv
         final isMobile = constraints.maxWidth < 700;
         final cardWidth = isMobile
             ? (constraints.maxWidth - AppSizes.sm) / 2
-            : (constraints.maxWidth - (AppSizes.md * 3)) / 4;
+            : (constraints.maxWidth - (AppSizes.md * 4)) / 5;
 
         return Wrap(
           spacing: isMobile ? AppSizes.sm : AppSizes.md,
@@ -335,6 +335,14 @@ class _EmployeesScreenState extends State<EmployeesScreen> with SingleTickerProv
               value: AppFormatters.formatEGP(state.totalMonthlyBaseSalaries),
               icon: Icons.account_balance_wallet_rounded,
               color: const Color(0xFF6366F1),
+              isDark: isDark,
+              width: cardWidth,
+            ),
+            _buildKpiCard(
+              title: 'مكافآت المبيعات المحسوبة',
+              value: AppFormatters.formatEGP(state.totalCalculatedBonusesInSelectedMonth),
+              icon: Icons.stars_rounded,
+              color: const Color(0xFF10B981),
               isDark: isDark,
               width: cardWidth,
             ),
@@ -350,7 +358,7 @@ class _EmployeesScreenState extends State<EmployeesScreen> with SingleTickerProv
               title: 'kpi_disbursed_salaries_this_month'.tr,
               value: AppFormatters.formatEGP(state.totalPaidSalariesInSelectedMonth),
               icon: Icons.check_circle_rounded,
-              color: const Color(0xFF10B981),
+              color: const Color(0xFF06B6D4),
               isDark: isDark,
               width: cardWidth,
             ),
@@ -447,8 +455,8 @@ class _EmployeesScreenState extends State<EmployeesScreen> with SingleTickerProv
               unselectedLabelColor: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
               tabs: [
                 Tab(
-                  icon: const Icon(Icons.badge_outlined, size: 18),
-                  text: '${"employees_tab".tr} (${state.allEmployees.length})',
+                  icon: const Icon(Icons.people_alt_outlined, size: 18),
+                  text: 'الموظفين والمبيعات (${state.allEmployees.length})',
                 ),
                 Tab(
                   icon: const Icon(Icons.payments_outlined, size: 18),
@@ -489,86 +497,152 @@ class _EmployeesScreenState extends State<EmployeesScreen> with SingleTickerProv
 
   Widget _buildEmployeesTable(EmployeeLoaded state, bool isDark) {
     final columns = [
-      DataTableColumn(label: 'employee_name'.tr),
-      DataTableColumn(label: 'job_title_position'.tr),
-      DataTableColumn(label: 'employee_phone'.tr),
-      DataTableColumn(label: 'base_monthly_salary'.tr, isNumeric: true),
-      DataTableColumn(label: 'current_month_advances'.tr, isNumeric: true),
-      DataTableColumn(label: 'net_salary_due'.tr, isNumeric: true),
-      DataTableColumn(label: 'status'.tr),
-      DataTableColumn(label: 'actions'.tr),
+      const DataTableColumn(label: 'الموظف'),
+      const DataTableColumn(label: 'المرتب الأساسي', isNumeric: true),
+      const DataTableColumn(label: 'مبيعات وعمولة الشهر', isNumeric: true),
+      const DataTableColumn(label: 'السلفيات المعلقة', isNumeric: true),
+      const DataTableColumn(label: 'صافي المستحق للصرف', isNumeric: true),
+      const DataTableColumn(label: 'الحالة'),
+      const DataTableColumn(label: 'الإجراءات'),
     ];
 
     final rows = state.filteredEmployees.map((emp) {
+      final monthlySales = state.getMonthlySalesForEmployee(emp.id);
+      final ordersCount = state.getMonthlyOrdersCountForEmployee(emp.id);
+      final calculatedBonus = state.calculateBonusForEmployee(emp);
       final unsettledAdvances = state.getUnsettledAdvancesAmountForEmployee(emp.id);
-      final netEstimated = (emp.baseSalary - unsettledAdvances).clamp(0.0, double.infinity);
+      final estimatedPayout = state.calculateTotalEstimatedPayout(emp);
+      final effectiveRate = state.getEffectiveCommissionRate(emp);
       final hasDisbursedPayroll = state.getPayrollSlipForEmployee(emp.id) != null;
 
       return DataRow(
         cells: [
-          // 1. Name & National ID
+          // 1. Employee Info (Avatar + Name + Job Title + PIN badge)
           DataCell(
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
+            Row(
               children: [
-                Text(emp.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-                if (emp.nationalId.isNotEmpty)
-                  Text(
-                    emp.nationalId,
-                    style: TextStyle(fontSize: 10.5, color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+                CircleAvatar(
+                  radius: 17,
+                  backgroundColor: const Color(0xFF6366F1).withValues(alpha: 0.15),
+                  child: Text(
+                    emp.name.isNotEmpty ? emp.name[0].toUpperCase() : '?',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF6366F1)),
                   ),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Row(
+                      children: [
+                        Text(emp.name, style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                        if (emp.pinCode.isNotEmpty) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: Colors.amber.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: Colors.amber.withValues(alpha: 0.4)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.pin_rounded, size: 9, color: Colors.amber),
+                                const SizedBox(width: 2),
+                                Text(
+                                  emp.pinCode,
+                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.amber),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${emp.jobTitle} • ${emp.phone}',
+                      style: TextStyle(fontSize: 10.5, color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),
 
-          // 2. Job Title
-          DataCell(
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xFF6366F1).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                emp.jobTitle,
-                style: const TextStyle(fontSize: 11.5, fontWeight: FontWeight.w700, color: Color(0xFF6366F1)),
-              ),
-            ),
-          ),
-
-          // 3. Phone
-          DataCell(Text(emp.phone, style: const TextStyle(fontSize: 12))),
-
-          // 4. Base Salary
+          // 2. Base Salary
           DataCell(
             Text(
               AppFormatters.formatEGP(emp.baseSalary),
-              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+              style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600),
             ),
           ),
 
-          // 5. Unsettled Advances
+          // 3. Sales & Commission
+          DataCell(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  AppFormatters.formatEGP(monthlySales),
+                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 2),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '+${AppFormatters.formatEGP(calculatedBonus)}',
+                      style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                    ),
+                    Text(
+                      ' ($effectiveRate%)',
+                      style: TextStyle(fontSize: 10, color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+                    ),
+                    if (ordersCount > 0) ...[
+                      const SizedBox(width: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '$ordersCount فاتورة',
+                          style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF6366F1)),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // 4. Unsettled Advances
           DataCell(
             Text(
-              unsettledAdvances > 0 ? AppFormatters.formatEGP(unsettledAdvances) : AppFormatters.formatEGP(0),
+              unsettledAdvances > 0 ? '- ${AppFormatters.formatEGP(unsettledAdvances)}' : '0 ج.م',
               style: TextStyle(
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: FontWeight.bold,
                 color: unsettledAdvances > 0 ? const Color(0xFFF59E0B) : Colors.grey,
               ),
             ),
           ),
 
-          // 6. Net Estimated Salary
+          // 5. Net Estimated Payout
           DataCell(
             Text(
-              AppFormatters.formatEGP(netEstimated),
-              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w900, color: Color(0xFF10B981)),
+              AppFormatters.formatEGP(estimatedPayout),
+              style: const TextStyle(fontSize: 13.5, fontWeight: FontWeight.w900, color: Color(0xFF10B981)),
             ),
           ),
 
-          // 7. Status Badge
+          // 6. Status Badge
           DataCell(
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
@@ -587,21 +661,45 @@ class _EmployeesScreenState extends State<EmployeesScreen> with SingleTickerProv
             ),
           ),
 
-          // 8. Actions
+          // 7. Actions
           DataCell(
             Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Quick Disburse Payroll Button
-                IconButton(
-                  icon: Icon(
-                    hasDisbursedPayroll ? Icons.receipt_long_rounded : Icons.payments_rounded,
-                    size: 18,
-                    color: hasDisbursedPayroll ? const Color(0xFF10B981) : const Color(0xFF6366F1),
+                if (hasDisbursedPayroll)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.check_circle_rounded, size: 13, color: Color(0xFF10B981)),
+                        SizedBox(width: 3),
+                        Text(
+                          'تم الصرف',
+                          style: TextStyle(fontSize: 10.5, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                        ),
+                      ],
+                    ),
+                  )
+                else
+                  ElevatedButton.icon(
+                    onPressed: () => DisbursePayrollDialog.show(context, initialEmployee: emp),
+                    icon: const Icon(Icons.receipt_long_rounded, size: 13),
+                    label: const Text('صرف الراتب', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      visualDensity: VisualDensity.compact,
+                    ),
                   ),
-                  tooltip: hasDisbursedPayroll ? 'payroll_already_disbursed'.tr : 'disburse_payroll_btn'.tr,
-                  onPressed: () => DisbursePayrollDialog.show(context, initialEmployee: emp),
-                ),
+
+                const SizedBox(width: 4),
 
                 // Quick Advance Button
                 IconButton(
@@ -631,8 +729,8 @@ class _EmployeesScreenState extends State<EmployeesScreen> with SingleTickerProv
     }).toList();
 
     return CustomDataTable(
-      title: 'employees_list_title'.tr,
-      subtitle: '${state.filteredEmployees.length} ${"records_found".tr}',
+      title: 'قائمة الموظفين ومبيعات الشهر',
+      subtitle: '${state.filteredEmployees.length} موظف مسجل • متابعة شاملة للرواتب والمبيعات والعمولات',
       searchHint: 'search_employees_hint'.tr,
       onSearchChanged: (q) => context.read<EmployeeCubit>().filterEmployees(query: q),
       columns: columns,

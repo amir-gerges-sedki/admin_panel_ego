@@ -23,6 +23,9 @@ class EmployeeLoaded extends EmployeeState {
   final List<EmployeeModel> filteredEmployees;
   final List<SalaryAdvanceModel> allAdvances;
   final List<PayrollSlipModel> allPayrollSlips;
+  final Map<String, double> monthlySalesByEmployee;
+  final Map<String, int> monthlyOrdersCountByEmployee;
+  final double defaultSalesCommissionRate;
   final String searchQuery;
   final String selectedMonthPeriod; // "YYYY-MM"
   final String? selectedEmployeeFilterId;
@@ -32,6 +35,9 @@ class EmployeeLoaded extends EmployeeState {
     required this.filteredEmployees,
     this.allAdvances = const [],
     this.allPayrollSlips = const [],
+    this.monthlySalesByEmployee = const {},
+    this.monthlyOrdersCountByEmployee = const {},
+    this.defaultSalesCommissionRate = 2.5,
     this.searchQuery = '',
     required this.selectedMonthPeriod,
     this.selectedEmployeeFilterId,
@@ -69,6 +75,37 @@ class EmployeeLoaded extends EmployeeState {
     return getUnsettledAdvancesForEmployee(employeeId).fold(0.0, (sum, a) => sum + a.amount);
   }
 
+  // Helper: Staff Monthly Sales & Commission Calculations
+  double getMonthlySalesForEmployee(String employeeId) =>
+      monthlySalesByEmployee[employeeId] ?? 0.0;
+
+  int getMonthlyOrdersCountForEmployee(String employeeId) =>
+      monthlyOrdersCountByEmployee[employeeId] ?? 0;
+
+  double getEffectiveCommissionRate(EmployeeModel employee) {
+    return employee.commissionRate > 0
+        ? employee.commissionRate
+        : defaultSalesCommissionRate;
+  }
+
+  double calculateBonusForEmployee(EmployeeModel employee) {
+    final sales = getMonthlySalesForEmployee(employee.id);
+    final rate = getEffectiveCommissionRate(employee);
+    return (sales * (rate / 100.0)).clamp(0.0, double.infinity);
+  }
+
+  double calculateTotalEstimatedPayout(EmployeeModel employee) {
+    final bonus = calculateBonusForEmployee(employee);
+    final advances = getUnsettledAdvancesAmountForEmployee(employee.id);
+    return (employee.baseSalary + bonus - advances).clamp(0.0, double.infinity);
+  }
+
+  double get totalCalculatedBonusesInSelectedMonth =>
+      allEmployees.where((e) => e.isActive).fold(0.0, (sum, e) => sum + calculateBonusForEmployee(e));
+
+  double get totalMonthlySalesInSelectedMonth =>
+      monthlySalesByEmployee.values.fold(0.0, (sum, val) => sum + val);
+
   // Helper: Check if payroll was already disbursed for employee in this month
   PayrollSlipModel? getPayrollSlipForEmployee(String employeeId) {
     for (final slip in allPayrollSlips) {
@@ -84,6 +121,9 @@ class EmployeeLoaded extends EmployeeState {
     List<EmployeeModel>? filteredEmployees,
     List<SalaryAdvanceModel>? allAdvances,
     List<PayrollSlipModel>? allPayrollSlips,
+    Map<String, double>? monthlySalesByEmployee,
+    Map<String, int>? monthlyOrdersCountByEmployee,
+    double? defaultSalesCommissionRate,
     String? searchQuery,
     String? selectedMonthPeriod,
     String? selectedEmployeeFilterId,
@@ -94,6 +134,9 @@ class EmployeeLoaded extends EmployeeState {
       filteredEmployees: filteredEmployees ?? this.filteredEmployees,
       allAdvances: allAdvances ?? this.allAdvances,
       allPayrollSlips: allPayrollSlips ?? this.allPayrollSlips,
+      monthlySalesByEmployee: monthlySalesByEmployee ?? this.monthlySalesByEmployee,
+      monthlyOrdersCountByEmployee: monthlyOrdersCountByEmployee ?? this.monthlyOrdersCountByEmployee,
+      defaultSalesCommissionRate: defaultSalesCommissionRate ?? this.defaultSalesCommissionRate,
       searchQuery: searchQuery ?? this.searchQuery,
       selectedMonthPeriod: selectedMonthPeriod ?? this.selectedMonthPeriod,
       selectedEmployeeFilterId: clearEmployeeFilter
@@ -108,6 +151,9 @@ class EmployeeLoaded extends EmployeeState {
         filteredEmployees,
         allAdvances,
         allPayrollSlips,
+        monthlySalesByEmployee,
+        monthlyOrdersCountByEmployee,
+        defaultSalesCommissionRate,
         searchQuery,
         selectedMonthPeriod,
         selectedEmployeeFilterId,

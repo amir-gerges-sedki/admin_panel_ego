@@ -246,6 +246,28 @@ class SupplierCubit extends Cubit<SupplierState> {
     }
   }
 
+  Future<void> updatePurchaseInvoice(
+    PurchaseInvoiceModel invoice, {
+    double oldPaidAmount = 0.0,
+    double oldTotalAmount = 0.0,
+  }) async {
+    if (state is! SupplierLoaded) return;
+    final currentState = state as SupplierLoaded;
+    try {
+      emit(currentState.copyWith(isSubmitting: true));
+      await invoiceRepository.updatePurchaseInvoice(
+        invoice,
+        oldPaidAmount: oldPaidAmount,
+        oldTotalAmount: oldTotalAmount,
+      );
+      await loadSuppliersData();
+    } catch (e) {
+      debugPrint('SupplierCubit updatePurchaseInvoice error: $e');
+      emit(currentState.copyWith(isSubmitting: false));
+      rethrow;
+    }
+  }
+
   Future<void> recordPayment(SupplierPaymentModel payment) async {
     if (state is! SupplierLoaded) return;
     final currentState = state as SupplierLoaded;

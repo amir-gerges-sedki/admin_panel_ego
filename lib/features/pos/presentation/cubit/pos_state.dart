@@ -1,5 +1,6 @@
 import 'package:equatable/equatable.dart';
 import '../../../customers/data/models/customer_model.dart';
+import '../../../employees/data/models/employee_model.dart';
 import 'package:admin_panel_ego/features/customers/domain/services/loyalty_service.dart';
 import '../../../products/data/models/product_model.dart';
 import '../../data/models/pos_cart_item_model.dart';
@@ -28,6 +29,8 @@ class PosState extends Equatable {
   final PosSaleModel? lastCompletedSale;
   final String? errorMessage;
   final String? barcodeFeedbackMessage;
+  final EmployeeModel? activeSalesPerson;
+  final List<EmployeeModel> availableStaff;
 
   const PosState({
     this.allProducts = const [],
@@ -49,6 +52,8 @@ class PosState extends Equatable {
     this.lastCompletedSale,
     this.errorMessage,
     this.barcodeFeedbackMessage,
+    this.activeSalesPerson,
+    this.availableStaff = const [],
   });
 
   /// All flattened saleable units across the entire catalog (every variation as a separate item)
@@ -133,6 +138,9 @@ class PosState extends Equatable {
     String? errorMessage,
     String? barcodeFeedbackMessage,
     bool clearFeedback = false,
+    EmployeeModel? activeSalesPerson,
+    bool clearActiveSalesPerson = false,
+    List<EmployeeModel>? availableStaff,
   }) {
     return PosState(
       allProducts: allProducts ?? this.allProducts,
@@ -154,6 +162,8 @@ class PosState extends Equatable {
       lastCompletedSale: lastCompletedSale ?? this.lastCompletedSale,
       errorMessage: errorMessage,
       barcodeFeedbackMessage: clearFeedback ? null : (barcodeFeedbackMessage ?? this.barcodeFeedbackMessage),
+      activeSalesPerson: clearActiveSalesPerson ? null : (activeSalesPerson ?? this.activeSalesPerson),
+      availableStaff: availableStaff ?? this.availableStaff,
     );
   }
 
@@ -178,5 +188,7 @@ class PosState extends Equatable {
         lastCompletedSale,
         errorMessage,
         barcodeFeedbackMessage,
+        activeSalesPerson,
+        availableStaff,
       ];
 }

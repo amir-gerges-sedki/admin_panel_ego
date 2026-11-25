@@ -26,6 +26,9 @@ class PosSaleModel extends Equatable {
   final int pointsEarned;
   final int pointsRedeemed;
   final double pointsDiscount;
+  final String salesPersonId;
+  final String salesPersonName;
+  final double commissionRate;
 
   const PosSaleModel({
     required this.id,
@@ -33,6 +36,9 @@ class PosSaleModel extends Equatable {
     required this.createdAt,
     this.cashierName = 'Store Cashier',
     this.cashierId = '',
+    this.salesPersonId = '',
+    this.salesPersonName = '',
+    this.commissionRate = 0.0,
     this.branchId = 'main_branch',
     this.branchName = 'Main Branch',
     this.shiftId = '',
@@ -79,6 +85,9 @@ class PosSaleModel extends Equatable {
     int? pointsEarned,
     int? pointsRedeemed,
     double? pointsDiscount,
+    String? salesPersonId,
+    String? salesPersonName,
+    double? commissionRate,
   }) {
     return PosSaleModel(
       id: id ?? this.id,
@@ -86,6 +95,9 @@ class PosSaleModel extends Equatable {
       createdAt: createdAt ?? this.createdAt,
       cashierName: cashierName ?? this.cashierName,
       cashierId: cashierId ?? this.cashierId,
+      salesPersonId: salesPersonId ?? this.salesPersonId,
+      salesPersonName: salesPersonName ?? this.salesPersonName,
+      commissionRate: commissionRate ?? this.commissionRate,
       branchId: branchId ?? this.branchId,
       branchName: branchName ?? this.branchName,
       shiftId: shiftId ?? this.shiftId,
@@ -113,6 +125,9 @@ class PosSaleModel extends Equatable {
         'createdAt': createdAt.toIso8601String(),
         'cashierName': cashierName,
         'cashierId': cashierId,
+        'salesPersonId': salesPersonId.isNotEmpty ? salesPersonId : cashierId,
+        'salesPersonName': salesPersonName.isNotEmpty ? salesPersonName : cashierName,
+        'commissionRate': commissionRate,
         'branchId': branchId,
         'branchName': branchName,
         'shiftId': shiftId,
@@ -144,6 +159,9 @@ class PosSaleModel extends Equatable {
           : DateTime.now(),
       cashierName: json['cashierName']?.toString() ?? 'Store Cashier',
       cashierId: json['cashierId']?.toString() ?? '',
+      salesPersonId: json['salesPersonId']?.toString() ?? json['cashierId']?.toString() ?? '',
+      salesPersonName: json['salesPersonName']?.toString() ?? json['cashierName']?.toString() ?? 'Store Cashier',
+      commissionRate: (json['commissionRate'] as num?)?.toDouble() ?? 0.0,
       branchId: json['branchId']?.toString() ?? 'main_branch',
       branchName: json['branchName']?.toString() ?? 'Main Branch',
       shiftId: json['shiftId']?.toString() ?? '',
@@ -209,6 +227,10 @@ class PosSaleModel extends Equatable {
       orderNumber: order.rawDocData?['orderNumber']?.toString() ?? order.id ?? '',
       createdAt: order.orderDate ?? DateTime.now(),
       cashierName: cashier,
+      cashierId: order.rawDocData?['cashierId']?.toString() ?? '',
+      salesPersonId: order.rawDocData?['salesPersonId']?.toString() ?? order.rawDocData?['cashierId']?.toString() ?? '',
+      salesPersonName: order.rawDocData?['salesPersonName']?.toString() ?? cashier,
+      commissionRate: (order.rawDocData?['commissionRate'] as num?)?.toDouble() ?? 0.0,
       branchId: bId,
       branchName: bName,
       shiftId: sId,
@@ -237,6 +259,9 @@ class PosSaleModel extends Equatable {
         createdAt,
         cashierName,
         cashierId,
+        salesPersonId,
+        salesPersonName,
+        commissionRate,
         branchId,
         branchName,
         shiftId,

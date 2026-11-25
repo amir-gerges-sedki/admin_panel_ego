@@ -6,9 +6,11 @@ import '../../../../core/formatters/formatters.dart';
 import '../../../../core/helper/color_utils.dart';
 import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../data/models/pos_cart_item_model.dart';
 import '../cubit/pos_cubit.dart';
 import '../cubit/pos_state.dart';
 import 'pos_checkout_dialog.dart';
+import 'quick_staff_switch_dialog.dart';
 
 /// The active POS Register Cart and Financial Total breakdown panel
 class PosCartPanel extends StatelessWidget {
@@ -19,6 +21,17 @@ class PosCartPanel extends StatelessWidget {
     final isDark = HelperFun.isDarkMode(context);
 
     return BlocBuilder<PosCubit, PosState>(
+      buildWhen: (prev, curr) =>
+          prev.cartItems != curr.cartItems ||
+          prev.cartDiscount != curr.cartDiscount ||
+          prev.customerPhone != curr.customerPhone ||
+          prev.customerName != curr.customerName ||
+          prev.matchedCustomer != curr.matchedCustomer ||
+          prev.pointsRedeemed != curr.pointsRedeemed ||
+          prev.pointsDiscount != curr.pointsDiscount ||
+          prev.orderNotes != curr.orderNotes ||
+          prev.activeSalesPerson != curr.activeSalesPerson ||
+          prev.saleStatus != curr.saleStatus,
       builder: (context, state) {
         final hasItems = state.hasItems;
 
@@ -85,6 +98,10 @@ class PosCartPanel extends StatelessWidget {
                   ],
                 ),
               ),
+              const Divider(height: 1),
+
+              // Staff Salesperson Attribution Bar
+              _buildSalesPersonBar(context, state, isDark),
               const Divider(height: 1),
 
               // Items List or Empty State
@@ -197,6 +214,20 @@ class PosCartPanel extends StatelessWidget {
                                               ],
                                             ),
                                           ],
+                                          if (item.serialNumbers.isNotEmpty) ...[
+                                            const SizedBox(height: 2),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                              decoration: BoxDecoration(
+                                                color: AppColor.success.withValues(alpha: 0.12),
+                                                borderRadius: BorderRadius.circular(4),
+                                              ),
+                                              child: Text(
+                                                'S/N: ${item.serialNumbers.join(', ')}',
+                                                style: const TextStyle(fontSize: 9.5, color: AppColor.success, fontWeight: FontWeight.w700),
+                                              ),
+                                            ),
+                                          ],
                                           if (item.discount > 0) ...[
                                             const SizedBox(height: 2),
                                             Text(
@@ -236,26 +267,68 @@ class PosCartPanel extends StatelessWidget {
                                 Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    // Item Discount Button
-                                    InkWell(
-                                      onTap: () => _showItemDiscountDialog(context, index, item.discount, item.unitPrice),
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: Padding(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            const Icon(Icons.local_offer_outlined, size: 12, color: AppColor.primary),
-                                            const SizedBox(width: 4),
-                                            Text(
-                                              item.discount > 0
-                                                  ? 'item_discount_badge'.trParams({'amount': item.discount.toStringAsFixed(0)})
-                                                  : 'add_discount'.tr,
-                                              style: const TextStyle(fontSize: 10.5, fontWeight: FontWeight.w700, color: AppColor.primary),
+                                    // Item Actions (Discount & Serial Number)
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Item Discount Button
+                                        InkWell(
+                                          onTap: () => _showItemDiscountDialog(context, index, item.discount, item.unitPrice),
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.local_offer_outlined, size: 12, color: AppColor.primary),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  item.discount > 0
+                                                      ? 'item_discount_badge'.trParams({'amount': item.discount.toStringAsFixed(0)})
+                                                      : 'add_discount'.tr,
+                                                  style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: AppColor.primary),
+                                                ),
+                                              ],
                                             ),
-                                          ],
+                                          ),
                                         ),
-                                      ),
+                                        const SizedBox(width: 4),
+                                        // Item Serial/Warranty Button
+                                        InkWell(
+                                          onTap: () => _showItemSerialDialog(context, index, item),
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Icon(
+                                                  item.serialNumbers.isNotEmpty
+                                                      ? Icons.qr_code_2_rounded
+                                                      : Icons.qr_code_scanner_rounded,
+                                                  size: 13,
+                                                  color: item.serialNumbers.isNotEmpty
+                                                      ? AppColor.success
+                                                      : (isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
+                                                ),
+                                                const SizedBox(width: 3),
+                                                Text(
+                                                  item.serialNumbers.isNotEmpty
+                                                      ? 'سيريال (${item.serialNumbers.length})'
+                                                      : 'سيريال',
+                                                  style: TextStyle(
+                                                    fontSize: 10,
+                                                    fontWeight: FontWeight.w700,
+                                                    color: item.serialNumbers.isNotEmpty
+                                                        ? AppColor.success
+                                                        : (isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
 
                                     // Quantity Stepper
@@ -519,6 +592,156 @@ class PosCartPanel extends StatelessWidget {
               if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
             },
             child: Text('apply_discount'.tr),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showItemSerialDialog(BuildContext context, int index, PosCartItemModel item) {
+    final controllers = List.generate(
+      item.quantity,
+      (i) => TextEditingController(
+        text: i < item.serialNumbers.length ? item.serialNumbers[i] : '',
+      ),
+    );
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Row(
+          children: [
+            const Icon(Icons.qr_code_2_rounded, color: AppColor.primary, size: 22),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'تسجيل السيريال والضمان (${item.title})',
+                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 420,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'قم بمسح الباركود أو إدخال السيريال الخاص بكل قطعة (${item.quantity} قطع) لتفعيل الضمان وتتبعه:',
+                style: const TextStyle(fontSize: 12),
+              ),
+              const SizedBox(height: 12),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: item.quantity,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (_, i) => TextField(
+                    controller: controllers[i],
+                    autofocus: i == 0,
+                    decoration: InputDecoration(
+                      labelText: 'السيريال للقطعة #${i + 1}',
+                      prefixIcon: const Icon(Icons.vpn_key_rounded, size: 16),
+                      border: const OutlineInputBorder(),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
+            },
+            child: Text('cancel'.tr),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              final serials = controllers
+                  .map((c) => c.text.trim())
+                  .where((s) => s.isNotEmpty)
+                  .toList();
+              context.read<PosCubit>().updateItemSerialNumbers(index, serials);
+              if (Navigator.of(ctx).canPop()) Navigator.of(ctx).pop();
+            },
+            child: const Text('حفظ السيريال'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSalesPersonBar(BuildContext context, PosState state, bool isDark) {
+    final staff = state.activeSalesPerson;
+    final hasStaff = staff != null;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: 7),
+      color: hasStaff
+          ? const Color(0xFF10B981).withValues(alpha: 0.08)
+          : (isDark ? const Color(0xFF1E293B).withValues(alpha: 0.5) : const Color(0xFFF8FAFC)),
+      child: Row(
+        children: [
+          Icon(
+            hasStaff ? Icons.badge_rounded : Icons.person_outline_rounded,
+            size: 16,
+            color: hasStaff ? const Color(0xFF10B981) : (isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Row(
+              children: [
+                Text(
+                  hasStaff ? staff.name : 'سيلز الفاتورة: غير محدد',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: hasStaff ? FontWeight.w800 : FontWeight.w600,
+                    color: hasStaff ? (isDark ? Colors.white : Colors.black87) : (isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+                  ),
+                ),
+                if (hasStaff && staff.commissionRate > 0) ...[
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      '${staff.commissionRate}% عمولة',
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          InkWell(
+            onTap: () => QuickStaffSwitchDialog.show(context),
+            borderRadius: BorderRadius.circular(4),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    hasStaff ? Icons.swap_horiz_rounded : Icons.add_circle_outline_rounded,
+                    size: 14,
+                    color: AppColor.primary,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    hasStaff ? 'تبديل' : 'تحديد سيلز',
+                    style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColor.primary),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),

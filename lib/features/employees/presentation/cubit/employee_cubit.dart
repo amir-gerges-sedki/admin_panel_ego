@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../../../core/di/injection_container.dart';
+import '../../../settings/data/repositories/settings_repository.dart';
 import '../../data/models/employee_model.dart';
 import '../../data/models/payroll_slip_model.dart';
 import '../../data/models/salary_advance_model.dart';
@@ -13,6 +14,9 @@ class EmployeeCubit extends Cubit<EmployeeState> {
   StreamSubscription<List<EmployeeModel>>? _employeesSub;
   StreamSubscription<List<SalaryAdvanceModel>>? _advancesSub;
   StreamSubscription<List<PayrollSlipModel>>? _payrollSub;
+  StreamSubscription<Map<String, double>>? _salesSub;
+  StreamSubscription<Map<String, int>>? _ordersCountSub;
+  double _defaultCommissionRate = 2.5;
 
   EmployeeCubit([EmployeesRepository? repository])
       : employeesRepository = repository ??
@@ -34,6 +38,21 @@ class EmployeeCubit extends Cubit<EmployeeState> {
     _employeesSub?.cancel();
     _advancesSub?.cancel();
     _payrollSub?.cancel();
+    _salesSub?.cancel();
+    _ordersCountSub?.cancel();
+
+    try {
+      final settingsRepo = sl.isRegistered<SettingsRepository>()
+          ? sl<SettingsRepository>()
+          : SettingsRepositoryImpl();
+      settingsRepo.getSettings().then((settings) {
+        _defaultCommissionRate = settings.defaultSalesCommissionRate;
+        _updateOrEmitState(
+          defaultCommissionRate: _defaultCommissionRate,
+          initialMonth: initialMonth,
+        );
+      }).catchError((_) {});
+    } catch (_) {}
 
     _employeesSub = employeesRepository.watchEmployees().listen((employees) {
       _updateOrEmitState(employees: employees, initialMonth: initialMonth);
@@ -52,19 +71,34 @@ class EmployeeCubit extends Cubit<EmployeeState> {
     }, onError: (e) {
       emit(EmployeeError(e.toString()));
     });
+
+    _salesSub = employeesRepository.watchMonthlySales(initialMonth).listen((salesMap) {
+      _updateOrEmitState(monthlySales: salesMap, initialMonth: initialMonth);
+    }, onError: (_) {});
+
+    _ordersCountSub = employeesRepository.watchMonthlyOrdersCount(initialMonth).listen((countsMap) {
+      _updateOrEmitState(monthlyOrdersCount: countsMap, initialMonth: initialMonth);
+    }, onError: (_) {});
   }
 
   void _updateOrEmitState({
     List<EmployeeModel>? employees,
     List<SalaryAdvanceModel>? advances,
     List<PayrollSlipModel>? payrollSlips,
+    Map<String, double>? monthlySales,
+    Map<String, int>? monthlyOrdersCount,
+    double? defaultCommissionRate,
     String? initialMonth,
   }) {
+    final effectiveDefaultRate = defaultCommissionRate ?? _defaultCommissionRate;
+
     if (state is EmployeeLoaded) {
       final current = state as EmployeeLoaded;
       final emps = employees ?? current.allEmployees;
       final advs = advances ?? current.allAdvances;
       final slips = payrollSlips ?? current.allPayrollSlips;
+      final sales = monthlySales ?? current.monthlySalesByEmployee;
+      final orders = monthlyOrdersCount ?? current.monthlyOrdersCountByEmployee;
 
       final filtered = _applyFilters(emps, current.searchQuery);
 
@@ -73,17 +107,25 @@ class EmployeeCubit extends Cubit<EmployeeState> {
         filteredEmployees: filtered,
         allAdvances: advs,
         allPayrollSlips: slips,
+        monthlySalesByEmployee: sales,
+        monthlyOrdersCountByEmployee: orders,
+        defaultSalesCommissionRate: effectiveDefaultRate,
       ));
     } else {
       final emps = employees ?? <EmployeeModel>[];
       final advs = advances ?? <SalaryAdvanceModel>[];
       final slips = payrollSlips ?? <PayrollSlipModel>[];
+      final sales = monthlySales ?? <String, double>{};
+      final orders = monthlyOrdersCount ?? <String, int>{};
 
       emit(EmployeeLoaded(
         allEmployees: emps,
         filteredEmployees: emps,
         allAdvances: advs,
         allPayrollSlips: slips,
+        monthlySalesByEmployee: sales,
+        monthlyOrdersCountByEmployee: orders,
+        defaultSalesCommissionRate: effectiveDefaultRate,
         selectedMonthPeriod: initialMonth ?? _getCurrentMonthPeriod(),
       ));
     }
@@ -96,6 +138,20 @@ class EmployeeCubit extends Cubit<EmployeeState> {
     final newQuery = query ?? current.searchQuery;
     final newMonth = monthPeriod ?? current.selectedMonthPeriod;
     final newEmpFilter = clearEmployeeFilter ? null : (employeeFilterId ?? current.selectedEmployeeFilterId);
+
+    // If month changed, resubscribe to sales streams for new month
+    if (monthPeriod != null && monthPeriod != current.selectedMonthPeriod) {
+      _salesSub?.cancel();
+      _ordersCountSub?.cancel();
+
+      _salesSub = employeesRepository.watchMonthlySales(newMonth).listen((salesMap) {
+        _updateOrEmitState(monthlySales: salesMap, initialMonth: newMonth);
+      }, onError: (_) {});
+
+      _ordersCountSub = employeesRepository.watchMonthlyOrdersCount(newMonth).listen((countsMap) {
+        _updateOrEmitState(monthlyOrdersCount: countsMap, initialMonth: newMonth);
+      }, onError: (_) {});
+    }
 
     final filtered = _applyFilters(current.allEmployees, newQuery);
 
@@ -189,6 +245,8 @@ class EmployeeCubit extends Cubit<EmployeeState> {
     _employeesSub?.cancel();
     _advancesSub?.cancel();
     _payrollSub?.cancel();
+    _salesSub?.cancel();
+    _ordersCountSub?.cancel();
     return super.close();
   }
 }

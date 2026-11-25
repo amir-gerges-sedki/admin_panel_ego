@@ -9,6 +9,8 @@ import 'package:admin_panel_ego/features/customers/domain/services/loyalty_servi
 import '../cubit/pos_cubit.dart';
 import '../cubit/pos_state.dart';
 import '../cubit/shift_cubit.dart';
+import '../../../roles/presentation/cubit/auth_role_cubit.dart';
+import 'quick_staff_switch_dialog.dart';
 
 /// Interactive checkout dialog with cash change calculator, card/instapay selection, and instant thermal printing
 class PosCheckoutDialog extends StatefulWidget {
@@ -22,6 +24,7 @@ class PosCheckoutDialog extends StatefulWidget {
         providers: [
           BlocProvider.value(value: context.read<PosCubit>()),
           BlocProvider.value(value: context.read<ShiftCubit>()),
+          BlocProvider.value(value: context.read<AuthRoleCubit>()),
         ],
         child: const PosCheckoutDialog(),
       ),
@@ -155,6 +158,10 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
                     ],
                   ),
                   const Divider(height: 20),
+
+                  // Active Salesperson Attribution in Checkout
+                  _buildSalesPersonSection(context, state, isDark),
+                  const SizedBox(height: AppSizes.sm),
 
                   Expanded(
                     child: SingleChildScrollView(
@@ -419,11 +426,25 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
                           onPressed: isSubmitting
                               ? null
                               : () async {
+                                  final authState = context.read<AuthRoleCubit>().state;
                                   final activeShift = context.read<ShiftCubit>().state.activeShift;
+
+                                  final effectiveCashierName = authState.currentEmployee?.name.trim().isNotEmpty == true
+                                      ? authState.currentEmployee!.name.trim()
+                                      : (activeShift?.cashierName.trim().isNotEmpty == true
+                                          ? activeShift!.cashierName.trim()
+                                          : (authState.isAuthenticated && authState.activeAdminName.isNotEmpty
+                                              ? authState.activeAdminName
+                                              : 'Store Cashier'));
+
+                                  final effectiveCashierId = authState.currentEmployee?.id.trim().isNotEmpty == true
+                                      ? authState.currentEmployee!.id.trim()
+                                      : (activeShift?.cashierId ?? '');
+
                                   final success = await context.read<PosCubit>().completeSale(
-                                        cashierName: activeShift?.cashierName ?? 'Store Cashier',
-                                        cashierId: activeShift?.cashierId ?? '',
-                                        branchId: activeShift?.branchId ?? 'main_branch',
+                                        cashierName: effectiveCashierName,
+                                        cashierId: effectiveCashierId,
+                                        branchId: activeShift?.branchId ?? (authState.activeBranchId.isNotEmpty ? authState.activeBranchId : 'main_branch'),
                                         branchName: activeShift?.branchName ?? 'Main Branch',
                                         shiftId: activeShift?.id ?? '',
                                         autoPrint: _autoPrint,
@@ -535,22 +556,23 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
       return const SizedBox.shrink();
     }
 
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: matched != null
-            ? Colors.amber.withValues(alpha: isDark ? 0.12 : 0.08)
-            : (isDark ? AppColor.darkSubCard : AppColor.lightSubCard),
+    return Material(
+      color: matched != null
+          ? Colors.amber.withValues(alpha: isDark ? 0.12 : 0.08)
+          : (isDark ? AppColor.darkSubCard : AppColor.lightSubCard),
+      borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+      shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-        border: Border.all(
+        side: BorderSide(
           color: matched != null
               ? Colors.amber.withValues(alpha: 0.4)
               : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
           width: matched != null ? 1.2 : 1.0,
         ),
       ),
-      child: Column(
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (matched != null) ...[
@@ -611,42 +633,45 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
 
             // Redemption toggle
             if (matched.loyaltyPoints >= 10) ...[
-              SwitchListTile.adaptive(
-                value: state.pointsRedeemed > 0,
-                onChanged: (apply) {
-                  context.read<PosCubit>().togglePointsRedemption(apply);
-                  // Update cash paid input if it matches grandTotal
-                  final newGrandTotal = context.read<PosCubit>().state.grandTotal;
-                  _cashPaidController.text = newGrandTotal.toStringAsFixed(0);
-                  context.read<PosCubit>().setPaidAmount(newGrandTotal);
-                },
-                title: Text(
-                  'redeem_points_toggle'.tr,
-                  style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
-                ),
-                subtitle: Text(
-                  state.pointsRedeemed > 0
-                      ? 'redeem_points_applied'.trParams({
-                          'amount': AppFormatters.formatEGP(state.pointsDiscount),
-                          'points': '${state.pointsRedeemed}',
-                        })
-                      : 'points_value_egp'.trParams({
-                          'amount': AppFormatters.formatEGP(LoyaltyService.calculateDiscount(
-                            LoyaltyService.calculateMaxRedeemablePoints(
-                              customerPoints: matched.loyaltyPoints,
-                              billTotal: (state.subTotal - state.itemDiscounts - state.cartDiscount).clamp(0.0, double.infinity),
-                            ),
-                          )),
-                        }),
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: state.pointsRedeemed > 0 ? AppColor.success : (isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
-                    fontWeight: state.pointsRedeemed > 0 ? FontWeight.w800 : FontWeight.w500,
+              Material(
+                color: Colors.transparent,
+                child: SwitchListTile.adaptive(
+                  value: state.pointsRedeemed > 0,
+                  onChanged: (apply) {
+                    context.read<PosCubit>().togglePointsRedemption(apply);
+                    // Update cash paid input if it matches grandTotal
+                    final newGrandTotal = context.read<PosCubit>().state.grandTotal;
+                    _cashPaidController.text = newGrandTotal.toStringAsFixed(0);
+                    context.read<PosCubit>().setPaidAmount(newGrandTotal);
+                  },
+                  title: Text(
+                    'redeem_points_toggle'.tr,
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w700),
                   ),
+                  subtitle: Text(
+                    state.pointsRedeemed > 0
+                        ? 'redeem_points_applied'.trParams({
+                            'amount': AppFormatters.formatEGP(state.pointsDiscount),
+                            'points': '${state.pointsRedeemed}',
+                          })
+                        : 'points_value_egp'.trParams({
+                            'amount': AppFormatters.formatEGP(LoyaltyService.calculateDiscount(
+                              LoyaltyService.calculateMaxRedeemablePoints(
+                                customerPoints: matched.loyaltyPoints,
+                                billTotal: (state.subTotal - state.itemDiscounts - state.cartDiscount).clamp(0.0, double.infinity),
+                              ),
+                            )),
+                          }),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: state.pointsRedeemed > 0 ? AppColor.success : (isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+                      fontWeight: state.pointsRedeemed > 0 ? FontWeight.w800 : FontWeight.w500,
+                    ),
+                  ),
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  activeThumbColor: Colors.amber,
                 ),
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                activeThumbColor: Colors.amber,
               ),
             ] else ...[
               Row(
@@ -703,6 +728,101 @@ class _PosCheckoutDialogState extends State<PosCheckoutDialog> {
               ),
             ),
           ],
+        ],
+      ),
+    ),
+  );
+}
+
+  Widget _buildSalesPersonSection(BuildContext context, PosState state, bool isDark) {
+    final staff = state.activeSalesPerson;
+    final hasStaff = staff != null;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: hasStaff
+            ? const Color(0xFF10B981).withValues(alpha: 0.08)
+            : (isDark ? AppColor.darkSubCard : AppColor.lightSubCard),
+        borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
+        border: Border.all(
+          color: hasStaff
+              ? const Color(0xFF10B981).withValues(alpha: 0.3)
+              : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+        ),
+      ),
+      child: Row(
+        children: [
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: hasStaff
+                ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+            child: Icon(
+              hasStaff ? Icons.person_rounded : Icons.person_outline_rounded,
+              size: 18,
+              color: hasStaff ? const Color(0xFF10B981) : Colors.grey,
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text(
+                      hasStaff ? 'سيلز المعاملة: ${staff.name}' : 'سيلز المعاملة: غير محدد (الكاشير)',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: hasStaff ? const Color(0xFF10B981) : (isDark ? Colors.white : Colors.black87),
+                      ),
+                    ),
+                    if (hasStaff && staff.commissionRate > 0) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          '${staff.commissionRate}% عمولة',
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF10B981)),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                Text(
+                  hasStaff
+                      ? 'تُحتسب مبيعات الفاتورة لصالح ${staff.name}'
+                      : 'اضغط تبديل لتحديد موظف مبيعات محدد لهذه الفاتورة',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          OutlinedButton.icon(
+            onPressed: () => QuickStaffSwitchDialog.show(context),
+            icon: Icon(
+              hasStaff ? Icons.swap_horiz_rounded : Icons.add_rounded,
+              size: 15,
+            ),
+            label: Text(
+              hasStaff ? 'تبديل' : 'تحديد',
+              style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              visualDensity: VisualDensity.compact,
+              side: BorderSide(color: AppColor.primary.withValues(alpha: 0.5)),
+            ),
+          ),
         ],
       ),
     );

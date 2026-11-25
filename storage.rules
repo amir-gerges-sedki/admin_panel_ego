@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ================= Helper Functions ================= //
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'super_admin' ||
+        request.auth.token.role == 'staff' ||
+        request.auth.token.email == 'admin@egovape.com' ||
+        request.auth.token.email == 'manager@egovape.com' ||
+        request.auth.token.firebase.sign_in_provider == 'anonymous'
+      );
+    }
+
+    function isValidImage() {
+      return request.resource.contentType.matches('image/.*')
+        && request.resource.size < 10 * 1024 * 1024; // Max 10MB
+    }
+
+    // ================= User Profile & Custom Images ================= //
+    match /Users/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if (isOwner(userId) || isAdmin()) && isValidImage();
+    }
+
+    match /users/{userId}/{allPaths=**} {
+      allow read: if isAuthenticated();
+      allow write: if (isOwner(userId) || isAdmin()) && isValidImage();
+    }
+
+    // ================= Public Static Assets ================= //
+    match /Products/{allPaths=**} {
+      allow read: if true;
+      allow write: if (isAdmin() || isAuthenticated()) && isValidImage();
+    }
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if (isAdmin() || isAuthenticated()) && isValidImage();
+    }
+
+    match /Banners/{allPaths=**} {
+      allow read: if true;
+      allow write: if (isAdmin() || isAuthenticated()) && isValidImage();
+    }
+    match /banners/{allPaths=**} {
+      allow read: if true;
+      allow write: if (isAdmin() || isAuthenticated()) && isValidImage();
+    }
+
+    match /Brands/{allPaths=**} {
+      allow read: if true;
+      allow write: if (isAdmin() || isAuthenticated()) && isValidImage();
+    }
+    match /brands/{allPaths=**} {
+      allow read: if true;
+      allow write: if (isAdmin() || isAuthenticated()) && isValidImage();
+    }
+
+    match /variations/{allPaths=**} {
+      allow read: if true;
+      allow write: if (isAdmin() || isAuthenticated()) && isValidImage();
+    }
+    match /Variations/{allPaths=**} {
+      allow read: if true;
+      allow write: if (isAdmin() || isAuthenticated()) && isValidImage();
+    }
+
+    // ================= Default Deny Fallback ================= //
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

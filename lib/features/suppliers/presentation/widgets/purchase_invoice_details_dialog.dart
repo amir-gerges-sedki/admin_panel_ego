@@ -8,6 +8,7 @@ import '../../../../core/localization/app_localizations.dart';
 import '../../data/models/purchase_invoice_model.dart';
 import '../../utils/supplier_invoice_printer.dart';
 import '../cubit/supplier_cubit.dart';
+import 'edit_purchase_invoice_dialog.dart';
 import 'record_payment_dialog.dart';
 
 class PurchaseInvoiceDetailsDialog extends StatelessWidget {
@@ -448,7 +449,23 @@ class PurchaseInvoiceDetailsDialog extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
-                      if (invoice.remainingAmount > 0)
+                      OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF0D9488),
+                          side: const BorderSide(color: Color(0xFF0D9488)),
+                        ),
+                        icon: const Icon(Icons.edit_note_rounded, size: 16),
+                        label: const Text(
+                          'تعديل الفاتورة والسداد',
+                          style: TextStyle(fontWeight: FontWeight.w700),
+                        ),
+                        onPressed: () {
+                          Navigator.pop(context);
+                          EditPurchaseInvoiceDialog.show(context, invoice: invoice);
+                        },
+                      ),
+                      if (invoice.remainingAmount > 0) ...[
+                        const SizedBox(width: 8),
                         ElevatedButton.icon(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFFF59E0B),
@@ -464,6 +481,7 @@ class PurchaseInvoiceDetailsDialog extends StatelessWidget {
                             RecordPaymentDialog.show(context, initialInvoice: invoice);
                           },
                         ),
+                      ],
                     ],
                   ),
                   ElevatedButton(

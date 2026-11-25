@@ -15,6 +15,7 @@ import '../../data/models/purchase_invoice_model.dart';
 import '../../data/models/supplier_model.dart';
 import '../../utils/supplier_invoice_printer.dart';
 import '../widgets/create_purchase_invoice_dialog.dart';
+import '../widgets/edit_purchase_invoice_dialog.dart';
 import '../widgets/purchase_invoice_details_dialog.dart';
 import '../widgets/record_payment_dialog.dart';
 import '../widgets/supplier_form_dialog.dart';
@@ -712,6 +713,11 @@ class _SuppliersScreenState extends State<SuppliersScreen>
                     icon: const Icon(Icons.visibility_outlined, size: 18, color: AppColor.primary),
                     tooltip: 'tooltip_view_details'.tr,
                     onPressed: () => PurchaseInvoiceDetailsDialog.show(context, invoice: inv),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF0D9488)),
+                    tooltip: 'تعديل الفاتورة والسداد',
+                    onPressed: () => EditPurchaseInvoiceDialog.show(context, invoice: inv),
                   ),
                   IconButton(
                     icon: const Icon(Icons.print_outlined, size: 18, color: Color(0xFF64748B)),

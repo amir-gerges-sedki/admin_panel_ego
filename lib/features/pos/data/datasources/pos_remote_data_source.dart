@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../../../core/services/firebase_service.dart';
+import '../../../../core/services/inventory_stock_manager.dart';
 import '../../../products/data/models/product_model.dart';
 import '../models/pos_sale_model.dart';
 
@@ -79,32 +80,13 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
       final docRef = _firestore.collection('Orders').doc();
       final saleId = docRef.id;
 
-      final enrichedSale = PosSaleModel(
+      final enrichedSale = sale.copyWith(
         id: saleId,
         orderNumber: sale.orderNumber.isNotEmpty
             ? sale.orderNumber
             : 'POS-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
         createdAt: DateTime.now(),
-        cashierName: sale.cashierName,
-        cashierId: sale.cashierId,
-        branchId: sale.branchId,
-        branchName: sale.branchName,
-        shiftId: sale.shiftId,
-        customerName: sale.customerName,
-        customerPhone: sale.customerPhone,
-        items: sale.items,
-        subTotal: sale.subTotal,
-        discount: sale.discount,
-        taxFee: sale.taxFee,
-        totalAmount: sale.totalAmount,
-        paidAmount: sale.paidAmount,
-        changeAmount: sale.changeAmount,
-        paymentMethod: sale.paymentMethod,
-        notes: sale.notes,
         status: 'completed',
-        pointsEarned: sale.pointsEarned,
-        pointsRedeemed: sale.pointsRedeemed,
-        pointsDiscount: sale.pointsDiscount,
       );
 
       // 1. Prepare Order Document
@@ -131,6 +113,9 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
         'pointsDiscount': enrichedSale.pointsDiscount,
         'cashierName': enrichedSale.cashierName,
         'cashierId': enrichedSale.cashierId,
+        'salesPersonId': enrichedSale.salesPersonId.isNotEmpty ? enrichedSale.salesPersonId : enrichedSale.cashierId,
+        'salesPersonName': enrichedSale.salesPersonName.isNotEmpty ? enrichedSale.salesPersonName : enrichedSale.cashierName,
+        'commissionRate': enrichedSale.commissionRate,
         'branchId': enrichedSale.branchId,
         'branchName': enrichedSale.branchName,
         'shiftId': enrichedSale.shiftId,
@@ -146,19 +131,51 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
           'productId': itm.productId,
           'title': itm.title,
           'price': itm.effectiveUnitPrice,
+          'costPrice': itm.costPrice,
           'quantity': itm.quantity,
           'selectedVariation': itm.selectedVariation,
           'sku': itm.sku,
           'brand': itm.brand,
           'image': itm.image,
           'totalItemPrice': itm.lineTotal,
+          if (itm.serialNumbers.isNotEmpty) 'serialNumbers': itm.serialNumbers,
         }).toList(),
       };
 
-      // 2. Save Order & Stock Deduction in Batch / Transaction
-      await docRef.set(orderData);
+      // 2. Prepare Stock Adjustment Items
+      final stockItems = enrichedSale.items
+          .where((i) => i.productId.isNotEmpty)
+          .map((i) => StockAdjustmentItem(
+                productId: i.productId,
+                quantity: i.quantity,
+                variationId: i.variationId,
+                sku: i.sku,
+                selectedAttributes: i.selectedVariation,
+                title: i.title,
+              ))
+          .toList();
 
-      // 2b. Customer Loyalty Points update / creation
+      // 3. Execute Atomic POS Transaction (Stock Deduction + Order Creation + POS Mirror)
+      await _firestore.runTransaction((transaction) async {
+        // A. Atomic Stock Deduction with strict stock validation
+        await InventoryStockManager.adjustStockBatchInTransaction(
+          transaction: transaction,
+          items: stockItems,
+          isRestock: false,
+          branchId: enrichedSale.branchId,
+          strictStockCheck: true,
+          firestore: _firestore,
+        );
+
+        // B. Write Order Document atomically
+        transaction.set(docRef, orderData);
+
+        // C. Write POS Sales mirror atomically
+        final posSaleRef = _firestore.collection('pos_sales').doc(saleId);
+        transaction.set(posSaleRef, enrichedSale.toJson());
+      });
+
+      // 4. Customer Loyalty Points update / creation (Async post-checkout)
       final cleanPhone = enrichedSale.customerPhone.trim().replaceAll(RegExp(r'\s+|-'), '');
       if (cleanPhone.isNotEmpty) {
         try {
@@ -234,130 +251,10 @@ class PosRemoteDataSourceImpl implements PosRemoteDataSource {
         }
       }
 
-      // Save a mirror in pos_sales for reporting
-      try {
-        await _firestore.collection('pos_sales').doc(saleId).set(enrichedSale.toJson());
-      } catch (_) {}
-
-      // 3. Deduct stock for all purchased items (including branchStock)
-      for (final itm in enrichedSale.items) {
-        if (itm.productId.isNotEmpty) {
-          await _deductStock(
-            productId: itm.productId,
-            quantity: itm.quantity,
-            selectedVariation: itm.selectedVariation,
-            variationId: itm.variationId,
-            branchId: enrichedSale.branchId,
-          );
-        }
-      }
-
       return enrichedSale;
     } catch (e) {
       debugPrint('Error submitting POS sale: $e');
       rethrow;
-    }
-  }
-
-  Future<void> _deductStock({
-    required String productId,
-    required int quantity,
-    required Map<String, String> selectedVariation,
-    String? variationId,
-    String branchId = 'main_branch',
-  }) async {
-    try {
-      final prodRef = _firestore.collection('Products').doc(productId);
-      await _firestore.runTransaction((transaction) async {
-        final snapshot = await transaction.get(prodRef);
-        if (!snapshot.exists) return;
-
-        final data = snapshot.data();
-        if (data == null) return;
-
-        final currentStock = (data['stock'] as num?)?.toInt() ?? 0;
-        final rawBranchStock = data['branchStock'] ?? data['BranchStock'] ?? {};
-        final Map<String, int> updatedBranchStock = {};
-        if (rawBranchStock is Map) {
-          rawBranchStock.forEach((k, v) {
-            if (v is num) updatedBranchStock[k.toString()] = v.toInt();
-          });
-        }
-
-        final effectiveBranchId = branchId.isNotEmpty ? branchId : 'main_branch';
-        final currentBranchQty = updatedBranchStock[effectiveBranchId] ?? currentStock;
-        updatedBranchStock[effectiveBranchId] = (currentBranchQty - quantity).clamp(0, 999999).toInt();
-
-        final rawVars = data['productVariations'] ?? data['variations'];
-        final List<Map<String, dynamic>> updatedVars = [];
-        bool variationUpdated = false;
-
-        if (rawVars is List && rawVars.isNotEmpty) {
-          for (final v in rawVars) {
-            if (v is Map) {
-              final vMap = Map<String, dynamic>.from(v);
-              bool isMatch = false;
-
-              if (variationId != null && variationId.isNotEmpty && vMap['id']?.toString() == variationId) {
-                isMatch = true;
-              } else if (selectedVariation.isNotEmpty) {
-                final vAttrs = vMap['attributeValues'] ?? vMap['attributes'] ?? {};
-                if (vAttrs is Map) {
-                  bool allMatch = true;
-                  selectedVariation.forEach((k, val) {
-                    if (vAttrs[k]?.toString().toLowerCase().trim() != val.toLowerCase().trim()) {
-                      allMatch = false;
-                    }
-                  });
-                  if (allMatch) isMatch = true;
-                }
-              }
-
-              if (isMatch && !variationUpdated) {
-                final vStock = (vMap['stock'] as num?)?.toInt() ?? 0;
-                vMap['stock'] = (vStock - quantity).clamp(0, 999999).toInt();
-
-                final vBranchRaw = vMap['branchStock'] ?? vMap['BranchStock'] ?? {};
-                final Map<String, int> vBranchStock = {};
-                if (vBranchRaw is Map) {
-                  vBranchRaw.forEach((k, val) {
-                    if (val is num) vBranchStock[k.toString()] = val.toInt();
-                  });
-                }
-                final currVBranchQty = vBranchStock[effectiveBranchId] ?? vStock;
-                vBranchStock[effectiveBranchId] = (currVBranchQty - quantity).clamp(0, 999999).toInt();
-                vMap['branchStock'] = vBranchStock;
-
-                variationUpdated = true;
-              }
-              updatedVars.add(vMap);
-            }
-          }
-        }
-
-        int newTotalStock;
-        if (updatedVars.isNotEmpty && variationUpdated) {
-          newTotalStock = updatedVars.fold<int>(
-            0,
-            (acc, v) => acc + ((v['stock'] as num?)?.toInt() ?? 0),
-          );
-        } else {
-          newTotalStock = (currentStock - quantity).clamp(0, 999999).toInt();
-        }
-
-        final updateData = <String, dynamic>{
-          'stock': newTotalStock,
-          'branchStock': updatedBranchStock,
-        };
-        if (updatedVars.isNotEmpty && variationUpdated) {
-          updateData['productVariations'] = updatedVars;
-        }
-
-        transaction.update(prodRef, updateData);
-      });
-      debugPrint('📦 [POS Stock] Successfully deducted $quantity units for product $productId at branch $branchId');
-    } catch (e) {
-      debugPrint('⚠️ [POS Stock Error] $e');
     }
   }
 }

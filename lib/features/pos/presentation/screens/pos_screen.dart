@@ -18,7 +18,9 @@ import '../widgets/pos_cart_panel.dart';
 import '../widgets/pos_checkout_dialog.dart';
 import '../widgets/pos_product_grid.dart';
 import '../widgets/pos_return_dialog.dart';
+import '../widgets/quick_staff_switch_dialog.dart';
 import '../widgets/today_movement_dialog.dart';
+import '../../../employees/data/models/employee_model.dart';
 import '../../../inventory_transfers/presentation/cubit/stock_transfer_cubit.dart';
 import '../../../inventory_transfers/presentation/cubit/stock_transfer_state.dart';
 import '../../../inventory_transfers/presentation/widgets/stock_transfer_hub_dialog.dart';
@@ -237,91 +239,94 @@ class _PosScreenState extends State<PosScreen> {
 
   /// Responsive Tab-based layout for mobile and tablet to prevent vertical squashing
   Widget _buildMobileTabletLayout(bool isDark) {
-    return BlocBuilder<PosCubit, PosState>(
-      builder: (context, state) {
-        return DefaultTabController(
-          length: 2,
-          child: Column(
-            children: [
-              Container(
-                height: 38,
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
-                ),
-                child: TabBar(
-                  indicatorSize: TabBarIndicatorSize.tab,
-                  indicator: BoxDecoration(
-                    color: AppColor.primary,
-                    borderRadius: BorderRadius.circular(7),
+    return DefaultTabController(
+      length: 2,
+      child: Column(
+        children: [
+          Container(
+            height: 38,
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: isDark ? AppColor.darkBorder : AppColor.lightBorder),
+            ),
+            child: TabBar(
+              indicatorSize: TabBarIndicatorSize.tab,
+              indicator: BoxDecoration(
+                color: AppColor.primary,
+                borderRadius: BorderRadius.circular(7),
+              ),
+              labelColor: Colors.white,
+              unselectedLabelColor: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
+              labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
+              dividerColor: Colors.transparent,
+              tabs: [
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.grid_view_rounded, size: 16),
+                      const SizedBox(width: 6),
+                      Text('pos_tab_catalog'.tr),
+                    ],
                   ),
-                  labelColor: Colors.white,
-                  unselectedLabelColor: isDark ? AppColor.textSecondaryDark : AppColor.textSecondaryLight,
-                  labelStyle: const TextStyle(fontSize: 12, fontWeight: FontWeight.w800),
-                  dividerColor: Colors.transparent,
-                  tabs: [
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.grid_view_rounded, size: 16),
-                          const SizedBox(width: 6),
-                          Text('pos_tab_catalog'.tr),
-                        ],
-                      ),
-                    ),
-                    Tab(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.shopping_cart_outlined, size: 16),
-                          const SizedBox(width: 6),
-                          Text('pos_tab_cart'.tr),
-                          if (state.hasItems) ...[
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(999),
-                              ),
-                              child: Text(
-                                '${state.totalItemsCount}',
-                                style: const TextStyle(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w900,
-                                  color: AppColor.primary,
+                ),
+                Tab(
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.shopping_cart_outlined, size: 16),
+                      const SizedBox(width: 6),
+                      Text('pos_tab_cart'.tr),
+                      BlocSelector<PosCubit, PosState, int>(
+                        selector: (s) => s.totalItemsCount,
+                        builder: (context, totalCount) {
+                          if (totalCount <= 0) return const SizedBox.shrink();
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                                child: Text(
+                                  '$totalCount',
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w900,
+                                    color: AppColor.primary,
+                                  ),
                                 ),
                               ),
-                            ),
-                          ],
-                        ],
+                            ],
+                          );
+                        },
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
-              const Expanded(
-                child: TabBarView(
-                  children: [
-                    PosProductGrid(),
-                    PosCartPanel(),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-        );
-      },
+          const Expanded(
+            child: TabBarView(
+              children: [
+                PosProductGrid(),
+                PosCartPanel(),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildTopHeader(bool isDark) {
-    return BlocBuilder<PosCubit, PosState>(
-      builder: (context, state) {
-        return LayoutBuilder(
+    return LayoutBuilder(
           builder: (context, constraints) {
             final isCompact = constraints.maxWidth < 680;
             final isVeryCompact = constraints.maxWidth < 480;
@@ -421,6 +426,8 @@ class _PosScreenState extends State<PosScreen> {
                               ),
                               const SizedBox(width: 5),
                               _buildShortcutBadge('F9', isVeryCompact ? null : 'shortcut_f9_clear'.tr, isDark, onTap: _onF9Pressed),
+                              const SizedBox(width: 8),
+                              _buildSalesPersonBadge(isDark),
                             ],
                           ),
                         );
@@ -432,8 +439,6 @@ class _PosScreenState extends State<PosScreen> {
             );
           },
         );
-      },
-    );
   }
 
   Widget _buildShortcutBadge(
@@ -507,5 +512,54 @@ class _PosScreenState extends State<PosScreen> {
       );
     }
     return badge;
+  }
+
+  Widget _buildSalesPersonBadge(bool isDark) {
+    return BlocSelector<PosCubit, PosState, EmployeeModel?>(
+      selector: (state) => state.activeSalesPerson,
+      builder: (context, activeSalesPerson) {
+        final hasSalesPerson = activeSalesPerson != null;
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: () => QuickStaffSwitchDialog.show(context),
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+              decoration: BoxDecoration(
+                color: hasSalesPerson
+                    ? const Color(0xFF10B981).withValues(alpha: 0.15)
+                    : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9)),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: hasSalesPerson
+                      ? const Color(0xFF10B981)
+                      : (isDark ? AppColor.darkBorder : AppColor.lightBorder),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    hasSalesPerson ? Icons.person_rounded : Icons.person_add_alt_1_rounded,
+                    size: 14,
+                    color: hasSalesPerson ? const Color(0xFF10B981) : (isDark ? Colors.white70 : Colors.black87),
+                  ),
+                  const SizedBox(width: 5),
+                  Text(
+                    hasSalesPerson ? 'سيلز: ${activeSalesPerson.name}' : 'تحديد سيلز الفاتورة',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w800,
+                      color: hasSalesPerson ? const Color(0xFF10B981) : (isDark ? Colors.white70 : Colors.black87),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
   }
 }

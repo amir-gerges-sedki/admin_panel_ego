@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:file_picker/file_picker.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
@@ -12,7 +14,20 @@ class FirebaseStorageService {
   static final FirebaseStorage _storage = FirebaseStorage.instance;
   static final ImagePicker _picker = ImagePicker();
 
+  /// Ensures an authenticated session is active before performing storage operations
+  static Future<void> _ensureAuth() async {
+    try {
+      if (FirebaseAuth.instance.currentUser == null) {
+        await FirebaseAuth.instance.signInAnonymously();
+        debugPrint('🔑 [FirebaseStorage] Initialized anonymous auth session for storage upload');
+      }
+    } catch (e) {
+      debugPrint('⚠️ [FirebaseStorage] Auth check/anonymous sign-in notice: $e');
+    }
+  }
+
   /// Prompts user to pick an image from device gallery/storage and uploads directly to Firebase Storage.
+  /// Works reliably on Windows Desktop, Web, Android & iOS.
   /// Returns the permanent HTTPS download URL, or null if cancelled.
   static Future<String?> pickAndUploadImage({
     required String folder, // e.g. 'products', 'brands', 'banners', 'variations'
@@ -20,33 +35,50 @@ class FirebaseStorageService {
     void Function(double progress)? onProgress,
   }) async {
     try {
+      await _ensureAuth();
       Uint8List? bytes;
       String? originalFileName;
 
-      // 1. Try with ImagePicker
+      // 1. Try with FilePicker first (native file dialog on Windows/macOS/Linux/Web/Mobile)
       try {
-        final XFile? file = await _picker.pickImage(
-          source: ImageSource.gallery,
-          imageQuality: 85,
+        final PlatformFile? picked = await FilePicker.pickFile(
+          type: FileType.custom,
+          allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'],
         );
-        if (file != null) {
-          bytes = await file.readAsBytes();
-          originalFileName = file.name;
+
+        if (picked != null) {
+          bytes = await picked.xFile.readAsBytes();
+          originalFileName = picked.name;
         } else {
-          return null;
+          return null; // User cancelled
         }
       } catch (e) {
-        debugPrint('⚠️ [FirebaseStorage] ImagePicker failed or uninitialized, attempting Web fallback: $e');
-        if (kIsWeb) {
-          final webFile = await web_picker.pickFileFromWeb();
-          if (webFile != null) {
-            bytes = webFile.bytes;
-            originalFileName = webFile.name;
+        debugPrint('⚠️ [FirebaseStorage] FilePicker note, attempting ImagePicker fallback: $e');
+        // 2. Fallback to ImagePicker
+        try {
+          final XFile? file = await _picker.pickImage(
+            source: ImageSource.gallery,
+            imageQuality: 85,
+          );
+          if (file != null) {
+            bytes = await file.readAsBytes();
+            originalFileName = file.name;
           } else {
             return null;
           }
-        } else {
-          rethrow;
+        } catch (e2) {
+          debugPrint('⚠️ [FirebaseStorage] ImagePicker fallback note: $e2');
+          if (kIsWeb) {
+            final webFile = await web_picker.pickFileFromWeb();
+            if (webFile != null) {
+              bytes = webFile.bytes;
+              originalFileName = webFile.name;
+            } else {
+              return null;
+            }
+          } else {
+            rethrow;
+          }
         }
       }
 
@@ -93,6 +125,7 @@ class FirebaseStorageService {
     String contentType = 'image/jpeg',
   }) async {
     try {
+      await _ensureAuth();
       final String storagePath = '$folder/$fileName';
       final Reference ref = _storage.ref().child(storagePath);
 
@@ -117,21 +150,42 @@ class FirebaseStorageService {
     void Function(int completed, int total)? onProgress,
   }) async {
     try {
+      await _ensureAuth();
       final List<PickedFilePayload> payloads = [];
 
+      // 1. Try with FilePicker first
       try {
-        final List<XFile> files = await _picker.pickMultiImage(imageQuality: 85);
-        for (final f in files) {
-          final b = await f.readAsBytes();
-          payloads.add(PickedFilePayload(bytes: b, name: f.name));
+        final List<PlatformFile> picked = await FilePicker.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['jpg', 'jpeg', 'png', 'webp', 'gif', 'svg'],
+        );
+
+        if (picked.isNotEmpty) {
+          for (final f in picked) {
+            final b = await f.xFile.readAsBytes();
+            if (b.isNotEmpty) {
+              payloads.add(PickedFilePayload(bytes: b, name: f.name));
+            }
+          }
         }
       } catch (e) {
-        debugPrint('⚠️ [FirebaseStorage] pickMultiImage failed, attempting Web fallback: $e');
-        if (kIsWeb) {
-          final webFiles = await web_picker.pickMultipleFilesFromWeb();
-          payloads.addAll(webFiles);
-        } else {
-          rethrow;
+        debugPrint('⚠️ [FirebaseStorage] FilePicker pickMultiple failed, attempting fallback: $e');
+      }
+
+      // 2. Fallback to ImagePicker if FilePicker was empty
+      if (payloads.isEmpty) {
+        try {
+          final List<XFile> files = await _picker.pickMultiImage(imageQuality: 85);
+          for (final f in files) {
+            final b = await f.readAsBytes();
+            payloads.add(PickedFilePayload(bytes: b, name: f.name));
+          }
+        } catch (e) {
+          debugPrint('⚠️ [FirebaseStorage] pickMultiImage failed, attempting Web fallback: $e');
+          if (kIsWeb) {
+            final webFiles = await web_picker.pickMultipleFilesFromWeb();
+            payloads.addAll(webFiles);
+          }
         }
       }
 

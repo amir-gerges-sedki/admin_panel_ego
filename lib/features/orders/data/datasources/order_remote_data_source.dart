@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 import '../../../../core/services/fcm_push_service.dart';
 import '../../../../core/services/firebase_service.dart';
+import '../../../../core/services/inventory_stock_manager.dart';
 import '../models/order_model.dart';
 
 abstract class OrderRemoteDataSource {
@@ -272,138 +273,47 @@ class OrderRemoteDataSourceImpl implements OrderRemoteDataSource {
     required bool isRestock,
     String branchId = 'main_branch',
   }) async {
+    final List<StockAdjustmentItem> items = [];
+
     for (final rawItem in rawItems) {
       if (rawItem is! Map) continue;
       final item = Map<String, dynamic>.from(rawItem);
       final productId = item['productId']?.toString().trim() ?? '';
+      if (productId.isEmpty) continue;
+
       final quantity = (item['quantity'] as num?)?.toInt() ?? 1;
       final variationId = item['variationId']?.toString().trim();
       final sku = item['sku']?.toString().trim();
       final selectedVar = (item['selectedVariation'] is Map)
           ? Map<String, dynamic>.from(item['selectedVariation'] as Map)
           : null;
+      final Map<String, String>? selectedAttrs = selectedVar?.map(
+        (k, v) => MapEntry(k.toString(), v.toString()),
+      );
 
-      if (productId.isEmpty) continue;
+      items.add(StockAdjustmentItem(
+        productId: productId,
+        quantity: quantity,
+        variationId: variationId,
+        sku: sku,
+        selectedAttributes: selectedAttrs,
+        title: item['title']?.toString(),
+      ));
+    }
 
-      try {
-        await _firestore.runTransaction((transaction) async {
-          final prodRef = FirebaseService.productsCollection.doc(productId);
-          final prodSnap = await transaction.get(prodRef);
-          if (!prodSnap.exists) return;
+    if (items.isEmpty) return;
 
-          final prodData = prodSnap.data() ?? {};
-          final currentStock = (prodData['stock'] as num?)?.toInt() ?? 0;
-
-          // Branch stock calculation
-          final rawBranchStock = prodData['branchStock'] ?? prodData['BranchStock'] ?? {};
-          final Map<String, int> updatedBranchStock = {};
-          if (rawBranchStock is Map) {
-            rawBranchStock.forEach((k, v) {
-              if (v is num) updatedBranchStock[k.toString()] = v.toInt();
-            });
-          }
-          final effectiveBranchId = branchId.isNotEmpty ? branchId : 'main_branch';
-          final currBranchQty = updatedBranchStock[effectiveBranchId] ?? currentStock;
-          final updatedBranchQty = isRestock
-              ? (currBranchQty + quantity)
-              : (currBranchQty - quantity).clamp(0, 999999).toInt();
-          updatedBranchStock[effectiveBranchId] = updatedBranchQty;
-
-          final rawVars = prodData['productVariations'];
-          final List<Map<String, dynamic>> updatedVars = [];
-          bool variationUpdated = false;
-
-          if (rawVars is List && rawVars.isNotEmpty) {
-            for (final v in rawVars) {
-              if (v is Map) {
-                final vMap = Map<String, dynamic>.from(v);
-                final vId = vMap['id']?.toString().trim();
-                final vSku = vMap['sku']?.toString().trim();
-                final vAttrs = vMap['attributeValues'] is Map
-                    ? Map<String, dynamic>.from(vMap['attributeValues'] as Map)
-                    : {};
-
-                // Match variation by ID, SKU, or attributeValues map
-                bool isMatch = false;
-                if (variationId != null && variationId.isNotEmpty && (vId == variationId || vSku == variationId)) {
-                  isMatch = true;
-                } else if (sku != null && sku.isNotEmpty && vSku == sku) {
-                  isMatch = true;
-                } else if (selectedVar != null && selectedVar.isNotEmpty) {
-                  bool allAttrsMatch = true;
-                  for (final entry in selectedVar.entries) {
-                    final k = entry.key.toString().trim().toLowerCase();
-                    final vStr = entry.value.toString().trim().toLowerCase();
-                    final attrVal = vAttrs.entries
-                        .firstWhere(
-                          (e) => e.key.toString().trim().toLowerCase() == k,
-                          orElse: () => const MapEntry('', ''),
-                        )
-                        .value
-                        .toString()
-                        .trim()
-                        .toLowerCase();
-                    if (attrVal != vStr) {
-                      allAttrsMatch = false;
-                      break;
-                    }
-                  }
-                  if (allAttrsMatch) isMatch = true;
-                }
-
-                if (isMatch && !variationUpdated) {
-                  final vStock = (vMap['stock'] as num?)?.toInt() ?? 0;
-                  final newVStock = isRestock ? (vStock + quantity) : (vStock - quantity).clamp(0, 999999).toInt();
-                  vMap['stock'] = newVStock;
-
-                  final vBranchRaw = vMap['branchStock'] ?? vMap['BranchStock'] ?? {};
-                  final Map<String, int> vBranchStock = {};
-                  if (vBranchRaw is Map) {
-                    vBranchRaw.forEach((k, val) {
-                      if (val is num) vBranchStock[k.toString()] = val.toInt();
-                    });
-                  }
-                  final currVBranchQty = vBranchStock[effectiveBranchId] ?? vStock;
-                  final updatedVBranchQty = isRestock
-                      ? (currVBranchQty + quantity)
-                      : (currVBranchQty - quantity).clamp(0, 999999).toInt();
-                  vBranchStock[effectiveBranchId] = updatedVBranchQty;
-                  vMap['branchStock'] = vBranchStock;
-
-                  variationUpdated = true;
-                }
-                updatedVars.add(vMap);
-              }
-            }
-          }
-
-          int newTotalStock;
-          if (updatedVars.isNotEmpty && variationUpdated) {
-            newTotalStock = updatedVars.fold<int>(
-              0,
-              (acc, v) => acc + ((v['stock'] as num?)?.toInt() ?? 0),
-            );
-          } else {
-            final calculated = isRestock
-                ? (currentStock + quantity)
-                : (currentStock - quantity);
-            newTotalStock = calculated.clamp(0, 999999).toInt();
-          }
-
-          final updateData = <String, dynamic>{
-            'stock': newTotalStock,
-            'branchStock': updatedBranchStock,
-          };
-          if (updatedVars.isNotEmpty && variationUpdated) {
-            updateData['productVariations'] = updatedVars;
-          }
-
-          transaction.update(prodRef, updateData);
-        });
-        debugPrint('📦 [Admin Dynamic Stock] ${isRestock ? "Restocked" : "Deducted"} $quantity units for product $productId at branch $branchId');
-      } catch (e) {
-        debugPrint('⚠️ [Admin Dynamic Stock] Error updating stock for product $productId: $e');
-      }
+    try {
+      await InventoryStockManager.executeAtomicStockAdjustment(
+        items: items,
+        isRestock: isRestock,
+        branchId: branchId,
+        strictStockCheck: false,
+        firestore: _firestore,
+      );
+      debugPrint('📦 [Admin Order Stock] Successfully ${isRestock ? "Restocked" : "Deducted"} ${items.length} items at branch $branchId');
+    } catch (e) {
+      debugPrint('⚠️ [Admin Order Stock Error] $e');
     }
   }
 

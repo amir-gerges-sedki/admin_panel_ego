@@ -242,6 +242,9 @@ class PosReceiptPrinter {
     for (int i = 0; i < sale.items.length; i++) {
       final item = sale.items[i];
       final variation = item.variationSummary;
+      final serialInfo = item.serialNumbers.isNotEmpty
+          ? '<br><small style="color: #000; font-weight: 700;">سيريال / ضمان: ${_escape(item.serialNumbers.join(', '))}</small>'
+          : '';
       final discountInfo = item.discount > 0
           ? '<br><small style="color: #475569;">خصم: -${AppFormatters.formatEGP(item.totalLineDiscount)}</small>'
           : '';
@@ -251,6 +254,7 @@ class PosReceiptPrinter {
           <td style="text-align: right; padding: 4px 0; vertical-align: top;">
             <div style="font-weight: 700; font-size: 11.5px; color: #000;">${_escape(item.fullTitle)}</div>
             ${variation.isNotEmpty ? '<div style="font-size: 10px; color: #333;">${_escape(variation)}</div>' : ''}
+            $serialInfo
             $discountInfo
           </td>
           <td style="text-align: center; padding: 4px 2px; vertical-align: top; font-weight: 700; font-size: 11.5px;">${item.quantity}</td>

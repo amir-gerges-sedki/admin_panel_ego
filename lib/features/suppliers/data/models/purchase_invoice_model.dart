@@ -31,6 +31,7 @@ class PurchaseInvoiceItemModel extends Equatable {
   final double unitCost;
   final double subtotal;
   final String notes;
+  final Map<String, int> branchAllocations;
 
   const PurchaseInvoiceItemModel({
     required this.productId,
@@ -41,6 +42,7 @@ class PurchaseInvoiceItemModel extends Equatable {
     required this.unitCost,
     required this.subtotal,
     this.notes = '',
+    this.branchAllocations = const {},
   });
 
   factory PurchaseInvoiceItemModel.fromJson(Map<String, dynamic> json) {
@@ -57,6 +59,13 @@ class PurchaseInvoiceItemModel extends Equatable {
       );
     }
 
+    Map<String, int> branchAllocations = {};
+    if (json['branchAllocations'] != null && json['branchAllocations'] is Map) {
+      (json['branchAllocations'] as Map).forEach((k, v) {
+        if (v is num) branchAllocations[k.toString()] = v.toInt();
+      });
+    }
+
     return PurchaseInvoiceItemModel(
       productId: json['productId']?.toString() ?? '',
       productTitle: json['productTitle']?.toString() ?? '',
@@ -66,6 +75,7 @@ class PurchaseInvoiceItemModel extends Equatable {
       unitCost: cost,
       subtotal: sub,
       notes: json['notes']?.toString() ?? '',
+      branchAllocations: branchAllocations,
     );
   }
 
@@ -78,6 +88,7 @@ class PurchaseInvoiceItemModel extends Equatable {
         'unitCost': unitCost,
         'subtotal': subtotal,
         'notes': notes,
+        'branchAllocations': branchAllocations,
       };
 
   PurchaseInvoiceItemModel copyWith({
@@ -89,6 +100,7 @@ class PurchaseInvoiceItemModel extends Equatable {
     double? unitCost,
     double? subtotal,
     String? notes,
+    Map<String, int>? branchAllocations,
   }) {
     return PurchaseInvoiceItemModel(
       productId: productId ?? this.productId,
@@ -99,6 +111,7 @@ class PurchaseInvoiceItemModel extends Equatable {
       unitCost: unitCost ?? this.unitCost,
       subtotal: subtotal ?? this.subtotal,
       notes: notes ?? this.notes,
+      branchAllocations: branchAllocations ?? this.branchAllocations,
     );
   }
 
@@ -112,6 +125,7 @@ class PurchaseInvoiceItemModel extends Equatable {
         unitCost,
         subtotal,
         notes,
+        branchAllocations,
       ];
 }
 

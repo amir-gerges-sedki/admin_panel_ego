@@ -5,6 +5,7 @@ import '../../../../core/constant/app_sizes.dart';
 import '../../../../core/formatters/formatters.dart';
 import '../../../../core/helper/helper_fun.dart';
 import '../../../../core/localization/app_localizations.dart';
+import '../../../../core/utils/pin_hasher.dart';
 import '../../data/models/employee_model.dart';
 import '../cubit/employee_cubit.dart';
 
@@ -36,9 +37,12 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
   late final TextEditingController _addressController;
   late final TextEditingController _emergencyContactController;
   late final TextEditingController _notesController;
+  late final TextEditingController _pinCodeController;
+  late final TextEditingController _commissionRateController;
 
   late DateTime _hireDate;
   late bool _isActive;
+  String _role = 'staff';
   bool _isSaving = false;
 
   bool get _isEdit => widget.employee != null;
@@ -57,9 +61,17 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
     _addressController = TextEditingController(text: emp?.address ?? '');
     _emergencyContactController = TextEditingController(text: emp?.emergencyContact ?? '');
     _notesController = TextEditingController(text: emp?.notes ?? '');
+    _pinCodeController = TextEditingController(text: emp?.pinCode ?? '');
+    _commissionRateController = TextEditingController(
+      text: emp != null && emp.commissionRate > 0 ? emp.commissionRate.toString() : '',
+    );
 
     _hireDate = emp?.hireDate ?? DateTime.now();
     _isActive = emp?.isActive ?? true;
+    _role = emp?.role ?? 'staff';
+
+    _baseSalaryController.addListener(() => setState(() {}));
+    _commissionRateController.addListener(() => setState(() {}));
   }
 
   @override
@@ -72,6 +84,8 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
     _addressController.dispose();
     _emergencyContactController.dispose();
     _notesController.dispose();
+    _pinCodeController.dispose();
+    _commissionRateController.dispose();
     super.dispose();
   }
 
@@ -99,6 +113,14 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
       return;
     }
 
+    final commRate = double.tryParse(_commissionRateController.text.trim()) ?? 0.0;
+
+    // Securely hash PIN if entered as plain digits
+    String effectivePin = _pinCodeController.text.trim();
+    if (effectivePin.isNotEmpty && !PinHasher.isHashed(effectivePin)) {
+      effectivePin = PinHasher.hashPin(effectivePin);
+    }
+
     setState(() => _isSaving = true);
 
     try {
@@ -117,6 +139,9 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
         emergencyContact: _emergencyContactController.text.trim(),
         notes: _notesController.text.trim(),
         createdAt: widget.employee?.createdAt ?? DateTime.now(),
+        pinCode: effectivePin,
+        role: _role,
+        commissionRate: commRate,
       );
 
       if (_isEdit) {
@@ -164,38 +189,44 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF6366F1).withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
-                        ),
-                        child: const Icon(
-                          Icons.person_add_alt_1_rounded,
-                          color: Color(0xFF6366F1),
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(width: AppSizes.sm + 4),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _isEdit ? 'edit_employee_title'.tr : 'add_employee_title'.tr,
-                            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF6366F1).withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd),
                           ),
-                          Text(
-                            'employee_form_subtitle'.tr,
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
-                            ),
+                          child: const Icon(
+                            Icons.person_add_alt_1_rounded,
+                            color: Color(0xFF6366F1),
+                            size: 24,
                           ),
-                        ],
-                      ),
-                    ],
+                        ),
+                        const SizedBox(width: AppSizes.sm + 4),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _isEdit ? 'edit_employee_title'.tr : 'add_employee_title'.tr,
+                                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Text(
+                                'employee_form_subtitle'.tr,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close_rounded),
@@ -333,6 +364,131 @@ class _EmployeeFormDialogState extends State<EmployeeFormDialog> {
                               ],
                             ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSizes.md),
+
+                      // PIN Code & Role Assignment
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'كود الدخول الشخصي PIN',
+                                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 6),
+                                TextFormField(
+                                  controller: _pinCodeController,
+                                  keyboardType: TextInputType.number,
+                                  decoration: InputDecoration(
+                                    hintText: 'مثال: 1234',
+                                    prefixIcon: const Icon(Icons.pin_rounded, size: 18),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: AppSizes.md),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'الدور والصلاحية الإدارية',
+                                  style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                ),
+                                const SizedBox(height: 6),
+                                DropdownButtonFormField<String>(
+                                  isExpanded: true,
+                                  initialValue: _role,
+                                  items: const [
+                                    DropdownMenuItem(value: 'staff', child: Text('كاشير / موظف (Staff)')),
+                                    DropdownMenuItem(value: 'admin', child: Text('مدير متجر (Store Admin)')),
+                                    DropdownMenuItem(value: 'super_admin', child: Text('سوبر أدمين (Super Admin)')),
+                                  ],
+                                  onChanged: (val) {
+                                    if (val != null) setState(() => _role = val);
+                                  },
+                                  decoration: InputDecoration(
+                                    prefixIcon: const Icon(Icons.admin_panel_settings_outlined, size: 18),
+                                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSizes.md),
+
+                      // Commission Rate (optional override)
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'نسبة عمولة مخصصة (اختياري)',
+                                      style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    TextFormField(
+                                      controller: _commissionRateController,
+                                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                      decoration: InputDecoration(
+                                        hintText: '0 = النسبة العامة من الإعدادات',
+                                        suffixText: '%',
+                                        prefixIcon: const Icon(Icons.percent_rounded, size: 18, color: Color(0xFF6366F1)),
+                                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppSizes.borderRadiusSm)),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: AppSizes.sm),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 22),
+                                child: Wrap(
+                                  spacing: 4,
+                                  children: [0.0, 2.5, 5.0].map((rate) {
+                                    final isSelected = (double.tryParse(_commissionRateController.text.trim()) ?? 0.0) == rate;
+                                    return ActionChip(
+                                      label: Text(rate == 0 ? 'عامة' : '$rate%'),
+                                      backgroundColor: isSelected ? const Color(0xFF6366F1) : (isDark ? AppColor.darkSubCard : Colors.white),
+                                      labelStyle: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                        color: isSelected ? Colors.white : (isDark ? Colors.white : Colors.black87),
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _commissionRateController.text = rate == 0.0 ? '0' : rate.toString();
+                                        });
+                                      },
+                                    );
+                                  }).toList(),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Builder(builder: (context) {
+                            final comm = double.tryParse(_commissionRateController.text.trim()) ?? 0.0;
+                            const sampleSales = 100000.0;
+                            final sampleBonus = sampleSales * (comm / 100.0);
+                            return Text(
+                              'مثال توضيحي: مبيعات 100,000 ج.م ← مكافأة: ${AppFormatters.formatEGP(sampleBonus)}',
+                              style: TextStyle(fontSize: 11, color: isDark ? AppColor.textMutedDark : AppColor.textMutedLight),
+                            );
+                          }),
                         ],
                       ),
                       const SizedBox(height: AppSizes.md),

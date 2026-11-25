@@ -143,11 +143,13 @@ class _CustomDataTableState extends State<CustomDataTable> {
             padding: const EdgeInsets.symmetric(horizontal: AppSizes.md, vertical: 12),
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final isCompact = constraints.maxWidth < 680;
+                final hasFilters = widget.filterWidget != null;
+                final hasTrailing = widget.trailingHeaderAction != null;
+                final isCompact = constraints.maxWidth < ((hasFilters && hasTrailing) ? 1250 : (hasFilters || hasTrailing ? 900 : 680));
 
                 final searchWidget = widget.onSearchChanged != null
                     ? SizedBox(
-                        width: isCompact ? null : (constraints.maxWidth > 950 ? 220 : 170),
+                        width: isCompact ? (constraints.maxWidth < 450 ? double.infinity : 220) : (constraints.maxWidth > 950 ? 220 : 170),
                         height: 36,
                         child: TextField(
                           controller: _searchController,
@@ -206,19 +208,15 @@ class _CustomDataTableState extends State<CustomDataTable> {
                       )
                     : null;
 
-                final actions = Row(
-                  mainAxisSize: isCompact ? MainAxisSize.max : MainAxisSize.min,
+                final actions = Wrap(
+                  spacing: AppSizes.sm,
+                  runSpacing: AppSizes.xs,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  alignment: isCompact ? WrapAlignment.start : WrapAlignment.end,
                   children: [
-                    if (searchWidget != null)
-                      isCompact ? Expanded(child: searchWidget) : searchWidget,
-                    if (widget.filterWidget != null) ...[
-                      const SizedBox(width: AppSizes.sm),
-                      widget.filterWidget!,
-                    ],
-                    if (widget.trailingHeaderAction != null) ...[
-                      const SizedBox(width: AppSizes.sm),
-                      widget.trailingHeaderAction!,
-                    ],
+                    ?searchWidget,
+                    ?widget.filterWidget,
+                    ?widget.trailingHeaderAction,
                   ],
                 );
 
@@ -289,7 +287,9 @@ class _CustomDataTableState extends State<CustomDataTable> {
                       ),
                     ),
                     const SizedBox(width: AppSizes.md),
-                    actions,
+                    Flexible(
+                      child: actions,
+                    ),
                   ],
                 );
               },

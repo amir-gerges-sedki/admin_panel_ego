@@ -1,8 +1,12 @@
 import 'dart:async';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../../../core/di/injection_container.dart';
+import '../../../settings/data/repositories/settings_repository.dart';
 import '../../../customers/data/models/customer_model.dart';
 import '../../../customers/data/repositories/customer_repository.dart';
+import '../../../employees/data/models/employee_model.dart';
+import '../../../employees/data/repositories/employees_repository.dart';
 import 'package:admin_panel_ego/features/customers/domain/services/loyalty_service.dart';
 import '../../../products/data/models/product_model.dart';
 import '../../data/models/pos_cart_item_model.dart';
@@ -14,17 +18,28 @@ import 'pos_state.dart';
 class PosCubit extends Cubit<PosState> {
   final PosRepository _repository;
   final CustomerRepository _customerRepository;
+  final EmployeesRepository? _employeesRepository;
+  final SettingsRepository? _settingsRepository;
+  double _storeDefaultCommissionRate = 2.5;
   StreamSubscription<List<ProductModel>>? _productsSubscription;
+  StreamSubscription<List<EmployeeModel>>? _staffSubscription;
   Timer? _customerSearchDebounce;
 
-  PosCubit({PosRepository? repository, CustomerRepository? customerRepository})
-      : _repository = repository ?? PosRepositoryImpl(),
+  final Map<String, int> _pinFailedAttempts = {};
+  final Map<String, DateTime> _pinLockoutUntil = {};
+
+  PosCubit({
+    PosRepository? repository,
+    CustomerRepository? customerRepository,
+    this._employeesRepository,
+    this._settingsRepository,
+  })  : _repository = repository ?? PosRepositoryImpl(),
         _customerRepository = customerRepository ?? CustomerRepositoryImpl(),
         super(const PosState()) {
     init();
   }
 
-  /// Initializes real-time product synchronization from repository
+  /// Initializes real-time product synchronization and available staff
   Future<void> init() async {
     // 1. Immediate fetch from repository to populate catalog instantly
     try {
@@ -38,7 +53,7 @@ class PosCubit extends Cubit<PosState> {
       }
     } catch (_) {}
 
-    // 2. Real-time stream subscription
+    // 2. Real-time stream subscription for products
     _productsSubscription?.cancel();
     _productsSubscription = _repository.getProductsStream().listen(
       (products) {
@@ -52,6 +67,114 @@ class PosCubit extends Cubit<PosState> {
         emit(state.copyWith(errorMessage: e.toString()));
       },
     );
+
+    // 3. Load and watch active staff members
+    loadAvailableStaff();
+
+    // 4. Load store default sales commission rate from settings
+    try {
+      final sRepo = _settingsRepository ??
+          (sl.isRegistered<SettingsRepository>()
+              ? sl<SettingsRepository>()
+              : SettingsRepositoryImpl());
+      final s = await sRepo.getSettings();
+      _storeDefaultCommissionRate = s.defaultSalesCommissionRate;
+    } catch (_) {}
+  }
+
+  /// Loads and subscribes to active staff members
+  void loadAvailableStaff() async {
+    EmployeesRepository? repo = _employeesRepository;
+    if (repo == null) {
+      try {
+        repo = EmployeesRepositoryImpl();
+      } catch (_) {
+        return;
+      }
+    }
+
+    try {
+      final staffList = await repo.getEmployees();
+      final activeStaff = staffList.where((e) => e.isActive).toList();
+      emit(state.copyWith(availableStaff: activeStaff));
+    } catch (_) {}
+
+    _staffSubscription?.cancel();
+    try {
+      _staffSubscription = repo.watchEmployees().listen((staffList) {
+        final activeStaff = staffList.where((e) => e.isActive).toList();
+        emit(state.copyWith(availableStaff: activeStaff));
+      });
+    } catch (_) {}
+  }
+
+  /// Check if a staff member is currently locked out due to failed attempts
+  bool isStaffLockedOut(String staffId) {
+    final lockout = _pinLockoutUntil[staffId];
+    if (lockout == null) return false;
+    if (DateTime.now().isAfter(lockout)) {
+      _pinLockoutUntil.remove(staffId);
+      _pinFailedAttempts.remove(staffId);
+      return false;
+    }
+    return true;
+  }
+
+  /// Remaining seconds of lockout for a staff member
+  int remainingLockoutSeconds(String staffId) {
+    final lockout = _pinLockoutUntil[staffId];
+    if (lockout == null) return 0;
+    final diff = lockout.difference(DateTime.now()).inSeconds;
+    return diff > 0 ? diff : 0;
+  }
+
+  /// Fast PIN verification and active salesperson switching
+  Future<({bool success, String? error})> switchSalesPersonWithPin({
+    required EmployeeModel staff,
+    required String pin,
+  }) async {
+    final cleanPin = pin.trim();
+    if (cleanPin.isEmpty) {
+      return (success: false, error: 'يرجى إدخال كود PIN الخاص بالموظف');
+    }
+
+    if (isStaffLockedOut(staff.id)) {
+      final secs = remainingLockoutSeconds(staff.id);
+      return (
+        success: false,
+        error: 'تم حظر المحاولات مؤقتاً لتكرار الخطأ. يرجى المحاولة بعد $secs ثانية.'
+      );
+    }
+
+    final isValid = staff.verifyPin(cleanPin);
+    if (isValid) {
+      _pinFailedAttempts.remove(staff.id);
+      _pinLockoutUntil.remove(staff.id);
+      emit(state.copyWith(activeSalesPerson: staff));
+      return (success: true, error: null);
+    } else {
+      final currentAttempts = (_pinFailedAttempts[staff.id] ?? 0) + 1;
+      _pinFailedAttempts[staff.id] = currentAttempts;
+
+      if (currentAttempts >= 5) {
+        _pinLockoutUntil[staff.id] = DateTime.now().add(const Duration(minutes: 5));
+        return (
+          success: false,
+          error: 'تم إدخال كود PIN غير صحيح 5 مرات! تم إيقاف المحاولات مؤقتاً لمدة 5 دقائق.'
+        );
+      } else {
+        final remaining = 5 - currentAttempts;
+        return (
+          success: false,
+          error: 'كود PIN غير صحيح! المتبقي $remaining محاولات قبل الإيقاف المؤقت.'
+        );
+      }
+    }
+  }
+
+  /// Manually clears the active salesperson
+  void clearActiveSalesPerson() {
+    emit(state.copyWith(clearActiveSalesPerson: true));
   }
 
   /// Filters product catalog by keyword and category
@@ -298,6 +421,14 @@ class PosCubit extends Cubit<PosState> {
     emit(state.copyWith(cartItems: items));
   }
 
+  /// Updates serial numbers (for hardware, devices, warranties)
+  void updateItemSerialNumbers(int index, List<String> serialNumbers) {
+    if (index < 0 || index >= state.cartItems.length) return;
+    final items = List<PosCartItemModel>.from(state.cartItems);
+    items[index] = items[index].copyWith(serialNumbers: serialNumbers);
+    emit(state.copyWith(cartItems: items));
+  }
+
   /// Removes an item from the cart
   void removeItem(int index) {
     if (index < 0 || index >= state.cartItems.length) return;
@@ -457,6 +588,9 @@ class PosCubit extends Cubit<PosState> {
   Future<bool> completeSale({
     String cashierName = 'Store Staff',
     String cashierId = '',
+    String? salesPersonId,
+    String? salesPersonName,
+    double? commissionRate,
     String branchId = 'main_branch',
     String branchName = 'Main Branch',
     String shiftId = '',
@@ -474,12 +608,30 @@ class PosCubit extends Cubit<PosState> {
           ? (state.paidAmount > 0 ? state.paidAmount : state.grandTotal)
           : state.grandTotal;
 
+      final effectiveSalesPersonId = salesPersonId ??
+          (state.activeSalesPerson?.id.isNotEmpty == true
+              ? state.activeSalesPerson!.id
+              : cashierId);
+
+      final effectiveSalesPersonName = salesPersonName ??
+          (state.activeSalesPerson?.name.isNotEmpty == true
+              ? state.activeSalesPerson!.name
+              : cashierName);
+
+      final effectiveCommissionRate = commissionRate ??
+          ((state.activeSalesPerson != null && state.activeSalesPerson!.commissionRate > 0)
+              ? state.activeSalesPerson!.commissionRate
+              : _storeDefaultCommissionRate);
+
       final sale = PosSaleModel(
         id: '',
         orderNumber: 'POS-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
         createdAt: DateTime.now(),
         cashierName: cashierName,
         cashierId: cashierId,
+        salesPersonId: effectiveSalesPersonId,
+        salesPersonName: effectiveSalesPersonName,
+        commissionRate: effectiveCommissionRate,
         branchId: branchId,
         branchName: branchName,
         shiftId: shiftId,
@@ -544,6 +696,7 @@ class PosCubit extends Cubit<PosState> {
   @override
   Future<void> close() {
     _productsSubscription?.cancel();
+    _staffSubscription?.cancel();
     _customerSearchDebounce?.cancel();
     return super.close();
   }

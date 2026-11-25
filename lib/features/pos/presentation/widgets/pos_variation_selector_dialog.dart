@@ -340,6 +340,8 @@ class _PosVariationSelectorDialogState extends State<PosVariationSelectorDialog>
                                         variation.image,
                                         width: 36,
                                         height: 36,
+                                        cacheWidth: 100,
+                                        cacheHeight: 100,
                                         fit: BoxFit.cover,
                                         errorBuilder: (_, _, _) => const SizedBox.shrink(),
                                       ),

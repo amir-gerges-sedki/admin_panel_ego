@@ -20,7 +20,11 @@ abstract class PurchaseInvoiceDataSource {
     bool autoUpdateStock = true,
   });
 
-  Future<void> updatePurchaseInvoice(PurchaseInvoiceModel invoice);
+  Future<void> updatePurchaseInvoice(
+    PurchaseInvoiceModel invoice, {
+    double oldPaidAmount = 0.0,
+    double oldTotalAmount = 0.0,
+  });
   Future<void> deletePurchaseInvoice(String invoiceId);
 }
 
@@ -141,17 +145,37 @@ class PurchaseInvoiceDataSourceImpl implements PurchaseInvoiceDataSource {
       if (autoUpdateStock && invoice.stockReceived && invoice.items.isNotEmpty) {
         for (final item in invoice.items) {
           if (item.productId.isEmpty || item.quantity <= 0) continue;
-          await _applyItemRestock(
-            productId: item.productId,
-            variationSku: item.variationSku,
-            quantity: item.quantity,
-            unitCost: item.unitCost,
-            supplierName: invoice.supplierName,
-            invoiceNumber: invoice.invoiceNumber,
-            invoiceNotes: invoice.notes,
-            targetBranchId: invoice.targetBranchId,
-            targetBranchName: invoice.targetBranchName,
-          );
+          if (item.branchAllocations.isNotEmpty) {
+            for (final entry in item.branchAllocations.entries) {
+              final bId = entry.key;
+              final bQty = entry.value;
+              if (bQty > 0) {
+                await _applyItemRestock(
+                  productId: item.productId,
+                  variationSku: item.variationSku,
+                  quantity: bQty,
+                  unitCost: item.unitCost,
+                  supplierName: invoice.supplierName,
+                  invoiceNumber: invoice.invoiceNumber,
+                  invoiceNotes: invoice.notes,
+                  targetBranchId: bId,
+                  targetBranchName: bId,
+                );
+              }
+            }
+          } else {
+            await _applyItemRestock(
+              productId: item.productId,
+              variationSku: item.variationSku,
+              quantity: item.quantity,
+              unitCost: item.unitCost,
+              supplierName: invoice.supplierName,
+              invoiceNumber: invoice.invoiceNumber,
+              invoiceNotes: invoice.notes,
+              targetBranchId: invoice.targetBranchId,
+              targetBranchName: invoice.targetBranchName,
+            );
+          }
         }
       }
 
@@ -163,12 +187,38 @@ class PurchaseInvoiceDataSourceImpl implements PurchaseInvoiceDataSource {
   }
 
   @override
-  Future<void> updatePurchaseInvoice(PurchaseInvoiceModel invoice) async {
+  Future<void> updatePurchaseInvoice(
+    PurchaseInvoiceModel invoice, {
+    double oldPaidAmount = 0.0,
+    double oldTotalAmount = 0.0,
+  }) async {
     try {
+      final batch = _firestore.batch();
       final docRef = _invoicesCollection.doc(invoice.id);
       final json = invoice.toJson();
       json['updatedAt'] = FieldValue.serverTimestamp();
-      await docRef.update(json);
+      batch.update(docRef, json);
+
+      // Adjust supplier balance if amounts changed
+      if (invoice.supplierId.isNotEmpty && (oldPaidAmount != invoice.paidAmount || oldTotalAmount != invoice.totalAmount)) {
+        final paidDiff = invoice.paidAmount - oldPaidAmount;
+        final totalDiff = invoice.totalAmount - oldTotalAmount;
+        final remainingDiff = invoice.remainingAmount - (oldTotalAmount - oldPaidAmount).clamp(0.0, double.infinity);
+
+        final supplierRef = _firestore.collection('suppliers').doc(invoice.supplierId);
+        batch.set(
+          supplierRef,
+          {
+            if (totalDiff != 0) 'totalPurchases': FieldValue.increment(totalDiff),
+            if (paidDiff != 0) 'totalPaid': FieldValue.increment(paidDiff),
+            if (remainingDiff != 0) 'balanceDue': FieldValue.increment(remainingDiff),
+            'updatedAt': FieldValue.serverTimestamp(),
+          },
+          SetOptions(merge: true),
+        );
+      }
+
+      await batch.commit();
     } catch (e) {
       debugPrint('Firestore updatePurchaseInvoice error: $e');
       rethrow;
@@ -232,6 +282,7 @@ class PurchaseInvoiceDataSourceImpl implements PurchaseInvoiceDataSource {
             return v.copyWith(
               stock: updatedVStock,
               branchStock: vBranchStock,
+              costPrice: unitCost > 0 ? unitCost : v.costPrice,
             );
           }
           return v;
@@ -246,6 +297,9 @@ class PurchaseInvoiceDataSourceImpl implements PurchaseInvoiceDataSource {
         'branchStock': updatedBranchStock,
         'updatedAt': FieldValue.serverTimestamp(),
       };
+      if (unitCost > 0) {
+        updateMap['costPrice'] = unitCost;
+      }
       if (updatedVariations.isNotEmpty) {
         updateMap['productVariations'] =
             updatedVariations.map((v) => v.toJson()).toList();

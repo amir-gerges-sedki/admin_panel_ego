@@ -39,6 +39,7 @@ import '../../../products/presentation/screens/products_screen.dart';
 import '../../../roles/domain/models/admin_role.dart';
 import '../../../roles/presentation/cubit/auth_role_cubit.dart';
 import '../../../roles/presentation/screens/roles_management_screen.dart';
+import '../../../roles/presentation/screens/staff_pin_lock_screen.dart';
 import '../../../settings/presentation/screens/settings_screen.dart';
 import '../../../suppliers/presentation/cubit/supplier_cubit.dart';
 import '../../../suppliers/presentation/screens/suppliers_screen.dart';
@@ -163,6 +164,10 @@ class _AdminMainShellState extends State<AdminMainShell> {
 
     return BlocBuilder<AuthRoleCubit, AuthRoleState>(
       builder: (context, authState) {
+        if (!authState.isAuthenticated) {
+          return const StaffPinLockScreen();
+        }
+
         // Ensure the active tab is permitted for the current role
         final currentPerm = _tabPermissions[_selectedTabIndex];
         final isCurrentTabAllowed = currentPerm != null && authState.hasPermission(currentPerm);

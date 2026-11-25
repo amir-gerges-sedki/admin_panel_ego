@@ -111,7 +111,11 @@ class MockPurchaseInvoiceDataSource implements PurchaseInvoiceDataSource {
   }
 
   @override
-  Future<void> updatePurchaseInvoice(PurchaseInvoiceModel invoice) async {
+  Future<void> updatePurchaseInvoice(
+    PurchaseInvoiceModel invoice, {
+    double oldPaidAmount = 0.0,
+    double oldTotalAmount = 0.0,
+  }) async {
     final idx = invoices.indexWhere((i) => i.id == invoice.id);
     if (idx != -1) {
       invoices[idx] = invoice;

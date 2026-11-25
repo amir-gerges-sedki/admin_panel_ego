@@ -200,7 +200,8 @@ Future<void> initDependencies() async {
           ));
 
   // Auth & Roles State (Lazy Singleton)
-  sl.registerLazySingleton<AuthRoleCubit>(() => AuthRoleCubit(sl<RolesRepository>()));
+  sl.registerLazySingleton<AuthRoleCubit>(
+      () => AuthRoleCubit(sl<RolesRepository>(), sl<EmployeesRepository>()));
 
   // Feature Cubits (Lazy singletons / factories for Admin Panel Shell)
   sl.registerFactory<DashboardCubit>(() => DashboardCubit(sl<DashboardRepository>()));

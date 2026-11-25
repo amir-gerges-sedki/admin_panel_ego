@@ -10,7 +10,11 @@ abstract class PurchaseInvoiceRepository {
     PurchaseInvoiceModel invoice, {
     bool autoUpdateStock = true,
   });
-  Future<void> updatePurchaseInvoice(PurchaseInvoiceModel invoice);
+  Future<void> updatePurchaseInvoice(
+    PurchaseInvoiceModel invoice, {
+    double oldPaidAmount = 0.0,
+    double oldTotalAmount = 0.0,
+  });
   Future<void> deletePurchaseInvoice(String invoiceId);
 }
 
@@ -40,8 +44,16 @@ class PurchaseInvoiceRepositoryImpl implements PurchaseInvoiceRepository {
       );
 
   @override
-  Future<void> updatePurchaseInvoice(PurchaseInvoiceModel invoice) =>
-      dataSource.updatePurchaseInvoice(invoice);
+  Future<void> updatePurchaseInvoice(
+    PurchaseInvoiceModel invoice, {
+    double oldPaidAmount = 0.0,
+    double oldTotalAmount = 0.0,
+  }) =>
+      dataSource.updatePurchaseInvoice(
+        invoice,
+        oldPaidAmount: oldPaidAmount,
+        oldTotalAmount: oldTotalAmount,
+      );
 
   @override
   Future<void> deletePurchaseInvoice(String invoiceId) =>

@@ -11,6 +11,7 @@ abstract class EmployeesRepository {
   // Employees
   Stream<List<EmployeeModel>> watchEmployees();
   Future<List<EmployeeModel>> getEmployees();
+  Future<EmployeeModel?> findEmployeeByPin(String pin);
   Future<void> addEmployee(EmployeeModel employee);
   Future<void> updateEmployee(EmployeeModel employee);
   Future<void> deleteEmployee(String id);
@@ -30,6 +31,11 @@ abstract class EmployeesRepository {
     bool recordToExpenses = true,
   });
   Future<void> deletePayrollSlip(PayrollSlipModel slip);
+
+  // Staff Monthly Sales & Orders
+  Stream<Map<String, double>> watchMonthlySales(String monthPeriod);
+  Stream<Map<String, int>> watchMonthlyOrdersCount(String monthPeriod);
+  Future<Map<String, double>> getMonthlySales(String monthPeriod);
 }
 
 class EmployeesRepositoryImpl implements EmployeesRepository {
@@ -52,6 +58,23 @@ class EmployeesRepositoryImpl implements EmployeesRepository {
 
   @override
   Future<List<EmployeeModel>> getEmployees() => remoteDataSource.getEmployees();
+
+  @override
+  Future<EmployeeModel?> findEmployeeByPin(String pin) async {
+    final clean = pin.trim();
+    if (clean.isEmpty) return null;
+    final direct = await remoteDataSource.findEmployeeByPin(clean);
+    if (direct != null) return direct;
+
+    // Fallback: check loaded active employees
+    final all = await getEmployees();
+    for (final emp in all) {
+      if (emp.isActive && emp.verifyPin(clean)) {
+        return emp;
+      }
+    }
+    return null;
+  }
 
   @override
   Future<void> addEmployee(EmployeeModel employee) => remoteDataSource.addEmployee(employee);
@@ -162,4 +185,18 @@ class EmployeesRepositoryImpl implements EmployeesRepository {
       rethrow;
     }
   }
+
+  // --- Staff Monthly Sales & Orders ---
+
+  @override
+  Stream<Map<String, double>> watchMonthlySales(String monthPeriod) =>
+      remoteDataSource.watchMonthlySales(monthPeriod);
+
+  @override
+  Stream<Map<String, int>> watchMonthlyOrdersCount(String monthPeriod) =>
+      remoteDataSource.watchMonthlyOrdersCount(monthPeriod);
+
+  @override
+  Future<Map<String, double>> getMonthlySales(String monthPeriod) =>
+      remoteDataSource.getMonthlySales(monthPeriod);
 }

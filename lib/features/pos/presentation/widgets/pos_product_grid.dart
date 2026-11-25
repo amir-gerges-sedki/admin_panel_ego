@@ -48,6 +48,11 @@ class _PosProductGridState extends State<PosProductGrid> {
         );
 
         return BlocBuilder<PosCubit, PosState>(
+          buildWhen: (prev, curr) =>
+              prev.filteredProducts != curr.filteredProducts ||
+              prev.allProducts != curr.allProducts ||
+              prev.selectedCategory != curr.selectedCategory ||
+              prev.searchQuery != curr.searchQuery,
           builder: (context, state) {
             // Retrieve flattened variation items matching active search & category
             var catalogItems = state.filteredCatalogItems;
@@ -574,6 +579,8 @@ class _PosProductGridState extends State<PosProductGrid> {
                                 borderRadius: BorderRadius.circular(5),
                                 child: Image.network(
                                   item.thumbnail,
+                                  cacheWidth: 80,
+                                  cacheHeight: 80,
                                   fit: BoxFit.cover,
                                   errorBuilder: (_, _, _) => _buildFallbackIcon(
                                     item.categoryType,

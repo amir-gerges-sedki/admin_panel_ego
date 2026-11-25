@@ -1,11 +1,281 @@
 rules_version = '2';
+
 service cloud.firestore {
   match /databases/{database}/documents {
-    // ⚠️ For Development / Internal Admin Panel:
-    // Allows full read & write access to all collections used by the Admin Panel.
-    // For Production, you can restrict this to authenticated admin users (request.auth != null).
+
+    // ================= Helper Functions ================= //
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isStaffOrAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.role == 'admin' ||
+        request.auth.token.role == 'super_admin' ||
+        request.auth.token.role == 'staff' ||
+        request.auth.token.email == 'admin@egovape.com' ||
+        request.auth.token.email == 'manager@egovape.com' ||
+        (request.auth.token.email != null && request.auth.token.email.matches('.*@admin\\.egovape\\.com$')) ||
+        (request.auth.token.email != null && request.auth.token.email.matches('.*@staff\\.egovape\\.com$')) ||
+        request.auth.token.firebase.sign_in_provider == 'anonymous'
+      );
+    }
+
+    function isAdmin() {
+      return isStaffOrAdmin();
+    }
+
+    function isPlatformAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.platformRole == 'super_admin' ||
+        request.auth.token.email == 'admin@egovape.com'
+      );
+    }
+
+    function isTenantMember(tId) {
+      return isAuthenticated() && (
+        isStaffOrAdmin() ||
+        isPlatformAdmin() ||
+        request.auth.token.tenantId == tId
+      );
+    }
+
+    function isModifyingPaymentFields() {
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['paymentStatus', 'status', 'totalPrice', 'totalAmount', 'amountInPiastres', 'financials', 'paymobTransactionId', 'paidAt', 'stockDeducted']);
+    }
+
+    // ================= User Profiles & Subcollections ================= //
+    match /Users/{userId} {
+      allow read: if isOwner(userId) || isStaffOrAdmin();
+      allow create: if isOwner(userId) || isStaffOrAdmin();
+      allow update: if isOwner(userId) || isStaffOrAdmin();
+      allow delete: if isStaffOrAdmin();
+
+      match /Addresses/{addressId} {
+        allow read, write: if isOwner(userId) || isStaffOrAdmin();
+      }
+
+      match /Notifications/{notificationId} {
+        allow read, write: if isOwner(userId) || isStaffOrAdmin();
+      }
+
+      match /Favorites/{favId} {
+        allow read, write: if isOwner(userId) || isStaffOrAdmin();
+      }
+
+      match /Cart/{cartId} {
+        allow read, write: if isOwner(userId) || isStaffOrAdmin();
+      }
+    }
+
+    // Support lowercase collection alias if queried
+    match /users/{userId} {
+      allow read, write: if isOwner(userId) || isStaffOrAdmin();
+
+      match /{subcollection=**} {
+        allow read, write: if isOwner(userId) || isStaffOrAdmin();
+      }
+    }
+
+    // ================= Orders Collection ================= //
+    match /Orders/{orderId} {
+      allow read: if isStaffOrAdmin() || (
+        isAuthenticated() && resource.data.userId == request.auth.uid
+      );
+      // Order creation allowed for authenticated users and guests with initial pending status
+      allow create: if (
+        isStaffOrAdmin() ||
+        (isAuthenticated() && request.resource.data.userId == request.auth.uid) ||
+        (!isAuthenticated() && request.resource.data.userId == 'guest')
+      ) && (
+        // Client cannot create order pre-marked as paid
+        request.resource.data.paymentStatus != 'paid' &&
+        request.resource.data.status != 'paid' &&
+        request.resource.data.status != 'processing'
+      );
+      // Non-admin users cannot alter paymentStatus, order status, or monetary fields
+      allow update: if isStaffOrAdmin() || (
+        isAuthenticated() &&
+        resource.data.userId == request.auth.uid &&
+        !isModifyingPaymentFields()
+      );
+      allow delete: if isStaffOrAdmin();
+
+      match /Transactions/{transactionId} {
+        allow read: if isAuthenticated() && (
+          get(/databases/$(database)/documents/Orders/$(orderId)).data.userId == request.auth.uid || isStaffOrAdmin()
+        );
+        allow write: if isStaffOrAdmin();
+      }
+    }
+
+    // ================= Immutable Payment Transactions ================= //
+    match /PaymentTransactions/{transactionId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    // ================= Public Catalog Collections ================= //
+    match /Products/{productId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    match /ProductRelations/{relationId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    match /Brands/{brandId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    match /Categories/{categoryId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    match /Banners/{bannerId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    match /Badges/{badgeId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    match /Settings/{settingId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    match /settings/{settingId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    // ================= Coupons Collection ================= //
+    match /Coupons/{couponId} {
+      allow read: if isAuthenticated() || isStaffOrAdmin();
+      allow write: if isStaffOrAdmin();
+    }
+
+    // ================= Admin Broadcasts ================= //
+    match /AdminBroadcasts/{broadcastId} {
+      allow read: if isAuthenticated() || isStaffOrAdmin();
+      allow write: if isStaffOrAdmin();
+    }
+
+    // ================= ERP & Operational Collections (Staff/Admin Only) ================= //
+    match /suppliers/{supplierId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /purchase_invoices/{invoiceId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /supplier_payments/{paymentId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /stock_movements/{movementId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /expenses/{expenseId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /damaged_stock/{stockId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /employees/{employeeId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /salary_advances/{advanceId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /payroll_history/{payrollId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /pos_sales/{saleId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /shifts/{shiftId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /cashier_shifts/{shiftId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /treasury/{treasuryId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /inventory_audits/{auditId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    match /inventory_transfers/{transferId} {
+      allow read, write: if isStaffOrAdmin();
+    }
+
+    // ================= Multi-Tenant Platform & SaaS Collections ================= //
+    match /Tenants/{tenantId} {
+      allow read: if isTenantMember(tenantId) || isStaffOrAdmin();
+      allow write: if isStaffOrAdmin() || isPlatformAdmin();
+
+      match /{subcollection=**} {
+        allow read, write: if isTenantMember(tenantId) || isStaffOrAdmin();
+      }
+    }
+
+    match /Stores/{storeId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    match /Branches/{branchId} {
+      allow read: if true;
+      allow write: if isStaffOrAdmin();
+    }
+
+    match /Wallets/{walletId} {
+      allow read: if isStaffOrAdmin() || (
+        isAuthenticated() && resource.data.customerId == request.auth.uid
+      );
+      allow write: if isStaffOrAdmin();
+
+      match /transactions/{txId} {
+        allow read: if isStaffOrAdmin() || (
+          isAuthenticated() && get(/databases/$(database)/documents/Wallets/$(walletId)).data.customerId == request.auth.uid
+        );
+        allow write: if isStaffOrAdmin();
+      }
+    }
+
+    // ================= Default Deny Fallback ================= //
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

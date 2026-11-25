@@ -544,6 +544,8 @@ class OrderDetailsDrawer extends StatelessWidget {
                                 item.image,
                                 width: 48,
                                 height: 48,
+                                cacheWidth: 120,
+                                cacheHeight: 120,
                                 fit: BoxFit.cover,
                                 errorBuilder: (context, error, stackTrace) =>
                                     const Icon(Icons.inventory_2_outlined, size: 22, color: AppColor.primary),
