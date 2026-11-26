@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import 'web_file_picker_stub.dart';
 import 'web_file_picker_stub.dart'
@@ -14,16 +16,170 @@ class FirebaseStorageService {
   static final FirebaseStorage _storage = FirebaseStorage.instance;
   static final ImagePicker _picker = ImagePicker();
 
-  /// Ensures an authenticated session is active before performing storage operations
-  static Future<void> _ensureAuth() async {
+  /// Ensures a valid, token-refreshed authenticated session is active before storage operations.
+  static Future<void> _ensureAuth({bool forceRefresh = false}) async {
     try {
-      if (FirebaseAuth.instance.currentUser == null) {
-        await FirebaseAuth.instance.signInAnonymously();
-        debugPrint('🔑 [FirebaseStorage] Initialized anonymous auth session for storage upload');
+      if (forceRefresh) {
+        await FirebaseAuth.instance.signOut();
+      }
+
+      User? user = FirebaseAuth.instance.currentUser;
+      user ??= await FirebaseAuth.instance.authStateChanges().first;
+
+      if (user == null) {
+        final cred = await FirebaseAuth.instance.signInAnonymously();
+        user = cred.user;
+        debugPrint('🔑 [FirebaseStorage] Initialized anonymous auth session (uid: ${user?.uid})');
+      }
+
+      if (user != null) {
+        try {
+          await user.getIdToken(true);
+        } catch (tokenErr) {
+          debugPrint('⚠️ [FirebaseStorage] Token refresh failed, recreating session: $tokenErr');
+          await FirebaseAuth.instance.signOut();
+          final cred = await FirebaseAuth.instance.signInAnonymously();
+          user = cred.user;
+          await user?.getIdToken(true);
+        }
       }
     } catch (e) {
-      debugPrint('⚠️ [FirebaseStorage] Auth check/anonymous sign-in notice: $e');
+      debugPrint('⚠️ [FirebaseStorage] Auth session error: $e');
+      if (FirebaseAuth.instance.currentUser == null) {
+        throw Exception(
+          'فشل تسجيل الدخول التلقائي في Firebase Authentication.\n'
+          'يُرجى التأكد من تفعيل "Anonymous Sign-in" من لوحة تحكم Firebase Console > Authentication > Sign-in method.'
+        );
+      }
     }
+  }
+
+  /// Uploads bytes to [ref] with automatic auth refresh & Web REST support.
+  static Future<String> _putDataWithAuthRetry({
+    required Reference ref,
+    required Uint8List bytes,
+    required String contentType,
+    void Function(double progress)? onProgress,
+  }) async {
+    if (kIsWeb) {
+      for (int attempt = 0; attempt < 2; attempt++) {
+        try {
+          onProgress?.call(0.25);
+          await _ensureAuth(forceRefresh: attempt > 0);
+          final url = await _uploadViaRestApi(
+            bucket: ref.bucket,
+            storagePath: ref.fullPath,
+            bytes: bytes,
+            contentType: contentType,
+          );
+          onProgress?.call(1.0);
+          return url;
+        } on FirebaseException catch (e) {
+          if (e.code == 'unauthenticated' &&
+              attempt == 0 &&
+              !(e.message ?? '').contains('App Check')) {
+            continue;
+          }
+          rethrow;
+        }
+      }
+    }
+
+    for (int attempt = 0; attempt < 2; attempt++) {
+      try {
+        await _ensureAuth(forceRefresh: attempt > 0);
+        final UploadTask uploadTask = ref.putData(
+          bytes,
+          SettableMetadata(contentType: contentType),
+        );
+
+        if (onProgress != null) {
+          uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
+            if (snapshot.totalBytes > 0) {
+              final double prog = snapshot.bytesTransferred / snapshot.totalBytes;
+              onProgress(prog.clamp(0.0, 1.0));
+            }
+          });
+        }
+
+        final TaskSnapshot completedSnapshot = await uploadTask;
+        return await completedSnapshot.ref.getDownloadURL();
+      } on FirebaseException catch (e) {
+        if (e.code == 'unauthenticated') {
+          if (attempt == 0) {
+            debugPrint('🔄 [FirebaseStorage] Received unauthenticated; refreshing auth session and retrying...');
+            continue;
+          }
+          debugPrint('🔄 [FirebaseStorage] SDK still unauthenticated; using authenticated REST upload fallback...');
+          final url = await _uploadViaRestApi(
+            bucket: ref.bucket,
+            storagePath: ref.fullPath,
+            bytes: bytes,
+            contentType: contentType,
+          );
+          onProgress?.call(1.0);
+          return url;
+        }
+        rethrow;
+      }
+    }
+    throw FirebaseException(
+      plugin: 'firebase_storage',
+      code: 'unauthenticated',
+      message: 'User is not authenticated for Firebase Storage.',
+    );
+  }
+
+  /// Direct authenticated REST upload to Firebase Storage JSON API using the active Firebase ID token.
+  static Future<String> _uploadViaRestApi({
+    required String bucket,
+    required String storagePath,
+    required Uint8List bytes,
+    required String contentType,
+  }) async {
+    await _ensureAuth();
+    final user = FirebaseAuth.instance.currentUser;
+    final idToken = await user?.getIdToken(true);
+    if (idToken == null || idToken.isEmpty) {
+      throw FirebaseException(
+        plugin: 'firebase_storage',
+        code: 'unauthenticated',
+        message: 'Could not obtain Firebase Auth ID token.',
+      );
+    }
+
+    final cleanBucket = bucket.replaceFirst('gs://', '').trim();
+    final encodedPath = Uri.encodeComponent(storagePath);
+    final uri = Uri.parse(
+      'https://firebasestorage.googleapis.com/v0/b/$cleanBucket/o?uploadType=media&name=$encodedPath',
+    );
+
+    final response = await http.post(
+      uri,
+      headers: {
+        'Authorization': 'Firebase $idToken',
+        'Content-Type': contentType,
+      },
+      body: bytes,
+    );
+
+    if (response.statusCode >= 200 && response.statusCode < 300) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      final name = (data['name'] ?? storagePath).toString();
+      final rawTokens = (data['downloadTokens'] ?? '').toString();
+      final token = rawTokens.split(',').first.trim();
+      final encodedName = Uri.encodeComponent(name);
+      if (token.isNotEmpty) {
+        return 'https://firebasestorage.googleapis.com/v0/b/$cleanBucket/o/$encodedName?alt=media&token=$token';
+      }
+      return 'https://firebasestorage.googleapis.com/v0/b/$cleanBucket/o/$encodedName?alt=media';
+    }
+
+    throw FirebaseException(
+      plugin: 'firebase_storage',
+      code: response.statusCode == 401 ? 'unauthenticated' : 'upload-failed',
+      message: 'REST upload failed (${response.statusCode}): ${response.body}',
+    );
   }
 
   /// Prompts user to pick an image from device gallery/storage and uploads directly to Firebase Storage.
@@ -93,22 +249,12 @@ class FirebaseStorageService {
       final Reference ref = _storage.ref().child(storagePath);
 
       final String contentType = _resolveContentType(extension);
-      final UploadTask uploadTask = ref.putData(
-        bytes,
-        SettableMetadata(contentType: contentType),
+      final String downloadUrl = await _putDataWithAuthRetry(
+        ref: ref,
+        bytes: bytes,
+        contentType: contentType,
+        onProgress: onProgress,
       );
-
-      if (onProgress != null) {
-        uploadTask.snapshotEvents.listen((TaskSnapshot snapshot) {
-          if (snapshot.totalBytes > 0) {
-            final double prog = snapshot.bytesTransferred / snapshot.totalBytes;
-            onProgress(prog.clamp(0.0, 1.0));
-          }
-        });
-      }
-
-      final TaskSnapshot completedSnapshot = await uploadTask;
-      final String downloadUrl = await completedSnapshot.ref.getDownloadURL();
       debugPrint('📸 [FirebaseStorage] Uploaded successfully to $storagePath -> $downloadUrl');
       return downloadUrl;
     } catch (e) {
@@ -125,18 +271,13 @@ class FirebaseStorageService {
     String contentType = 'image/jpeg',
   }) async {
     try {
-      await _ensureAuth();
       final String storagePath = '$folder/$fileName';
       final Reference ref = _storage.ref().child(storagePath);
-
-      final UploadTask uploadTask = ref.putData(
-        bytes,
-        SettableMetadata(contentType: contentType),
+      return await _putDataWithAuthRetry(
+        ref: ref,
+        bytes: bytes,
+        contentType: contentType,
       );
-
-      final TaskSnapshot completedSnapshot = await uploadTask;
-      final String downloadUrl = await completedSnapshot.ref.getDownloadURL();
-      return downloadUrl;
     } catch (e) {
       debugPrint('⚠️ [FirebaseStorage Error] uploadBytes failed: $e');
       rethrow;
@@ -199,13 +340,11 @@ class FirebaseStorageService {
 
         final String storagePath = '$folder/$fileName';
         final Reference ref = _storage.ref().child(storagePath);
-        final UploadTask task = ref.putData(
-          payload.bytes,
-          SettableMetadata(contentType: _resolveContentType(ext)),
+        final url = await _putDataWithAuthRetry(
+          ref: ref,
+          bytes: payload.bytes,
+          contentType: _resolveContentType(ext),
         );
-
-        final snap = await task;
-        final url = await snap.ref.getDownloadURL();
         urls.add(url);
 
         if (onProgress != null) {
