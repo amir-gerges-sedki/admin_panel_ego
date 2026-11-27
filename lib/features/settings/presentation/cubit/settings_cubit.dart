@@ -28,7 +28,7 @@ class SettingsCubit extends Cubit<SettingsState> {
       _syncLoyalty(settings);
       emit(SettingsLoaded(settings));
     } catch (e) {
-      emit(SettingsError(e.toString()));
+      rethrow;
     }
   }
 

@@ -216,7 +216,9 @@ class _AdminMainShellState extends State<AdminMainShell> {
                 int pendingOrdersCount = 0;
                 if (orderState is OrderLoaded) {
                   pendingOrdersCount = orderState.orders
-                      .where((o) => o.status.toLowerCase() == 'pending')
+                      .where((o) =>
+                          o.status.toLowerCase() == 'pending' ||
+                          o.status.toLowerCase() == 'processing')
                       .length;
                 }
 

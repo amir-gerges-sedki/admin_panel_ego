@@ -26,6 +26,7 @@ class _GovernoratesDeliveryCardState extends State<GovernoratesDeliveryCard> {
   late List<GovernorateDeliveryModel> _govList;
   final _govSearchController = TextEditingController();
   String _govSearchQuery = '';
+  int _bulkRevision = 0;
 
   @override
   void initState() {
@@ -216,19 +217,23 @@ class _GovernoratesDeliveryCardState extends State<GovernoratesDeliveryCard> {
                           .map((g) => g.copyWith(isAvailable: true))
                           .toList();
                     });
+                    _notifyChanged();
                   } else if (action == 'disable_all') {
                     setState(() {
                       _govList = _govList
                           .map((g) => g.copyWith(isAvailable: false))
                           .toList();
                     });
+                    _notifyChanged();
                   } else if (action == 'set_bulk_fee') {
                     _showBulkPriceDialog(context);
                   } else if (action == 'reset_defaults') {
                     setState(() {
                       _govList =
                           GovernorateDeliveryModel.defaultGovernorates();
+                      _bulkRevision++;
                     });
+                    _notifyChanged();
                   }
                 },
                 itemBuilder: (context) => [
@@ -499,7 +504,10 @@ class _GovernoratesDeliveryCardState extends State<GovernoratesDeliveryCard> {
             width: 110,
             height: 34,
             child: TextFormField(
-              initialValue: gov.deliveryFee.toInt().toString(),
+              key: ValueKey('${gov.id}_$_bulkRevision'),
+              initialValue: gov.deliveryFee == gov.deliveryFee.toInt()
+                  ? gov.deliveryFee.toInt().toString()
+                  : gov.deliveryFee.toString(),
               enabled: gov.isAvailable == true,
               keyboardType: TextInputType.number,
               textAlign: TextAlign.center,
@@ -546,10 +554,12 @@ class _GovernoratesDeliveryCardState extends State<GovernoratesDeliveryCard> {
                 ),
               ),
               onChanged: (v) {
-                final fee = double.tryParse(v.trim());
+                final trimmed = v.trim();
+                final fee = trimmed.isEmpty ? 0.0 : double.tryParse(trimmed);
                 if (fee != null && fee >= 0 && originalIndex >= 0) {
                   _govList[originalIndex] =
                       _govList[originalIndex].copyWith(deliveryFee: fee);
+                  _notifyChanged();
                 }
               },
             ),
@@ -652,7 +662,9 @@ class _GovernoratesDeliveryCardState extends State<GovernoratesDeliveryCard> {
                   _govList = _govList
                       .map((g) => g.copyWith(deliveryFee: fee))
                       .toList();
+                  _bulkRevision++;
                 });
+                _notifyChanged();
                 Navigator.pop(dialogCtx);
                 HelperFun.successSnackbar(
                   'success'.tr,

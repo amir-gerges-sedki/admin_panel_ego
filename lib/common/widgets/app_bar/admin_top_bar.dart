@@ -594,7 +594,9 @@ class _AdminTopBarState extends State<AdminTopBar> {
                   int pendingCount = 0;
                   if (orderState is OrderLoaded) {
                     pendingCount = orderState.orders
-                        .where((o) => o.status.toLowerCase() == 'pending')
+                        .where((o) =>
+                            o.status.toLowerCase() == 'pending' ||
+                            o.status.toLowerCase() == 'processing')
                         .length;
                   }
 

@@ -299,7 +299,9 @@ class _AppsLauncherDialogState extends State<AppsLauncherDialog> {
             int pendingOrders = 0;
             if (orderState is OrderLoaded) {
               pendingOrders = orderState.orders
-                  .where((o) => o.status.toLowerCase() == 'pending')
+                  .where((o) =>
+                      o.status.toLowerCase() == 'pending' ||
+                      o.status.toLowerCase() == 'processing')
                   .length;
             }
 

@@ -352,22 +352,34 @@ class _DualImagePickerFieldState extends State<DualImagePickerField> {
               : hasImage
                   ? ClipRRect(
                       borderRadius: BorderRadius.circular(AppSizes.borderRadiusMd - 1.5),
-                      child: Image.network(
-                        _currentImageUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.broken_image_rounded, size: 28, color: AppColor.error),
-                            const SizedBox(height: 4),
-                            Text(
-                              'invalid_image_url'.tr,
-                              style: const TextStyle(fontSize: 9.5, color: AppColor.error),
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        ),
-                      ),
+                      child: () {
+                        final cachedBytes =
+                            FirebaseStorageService.getCachedBytes(_currentImageUrl);
+                        if (cachedBytes != null) {
+                          return Image.memory(
+                            cachedBytes,
+                            fit: BoxFit.cover,
+                            width: widget.previewWidth,
+                            height: widget.previewHeight,
+                          );
+                        }
+                        return Image.network(
+                          _currentImageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              const Icon(Icons.broken_image_rounded, size: 28, color: AppColor.error),
+                              const SizedBox(height: 4),
+                              Text(
+                                'invalid_image_url'.tr,
+                                style: const TextStyle(fontSize: 9.5, color: AppColor.error),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        );
+                      }(),
                     )
                   : Column(
                       mainAxisAlignment: MainAxisAlignment.center,

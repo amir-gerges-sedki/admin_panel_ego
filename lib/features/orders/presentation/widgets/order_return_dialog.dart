@@ -66,7 +66,36 @@ class _OrderReturnDialogState extends State<OrderReturnDialog> {
     super.dispose();
   }
 
-  double _calculateSelectedTotal() {
+  double get _orderRawItemsTotal {
+    double total = 0.0;
+    for (final item in widget.order.items) {
+      total += item.price * item.quantity;
+    }
+    return total;
+  }
+
+  double get _effectiveOrderDiscount {
+    if (widget.order.discount > 0) return widget.order.discount;
+    final rawTotal = _orderRawItemsTotal;
+    if (widget.order.totalAmount > 0 && rawTotal > 0) {
+      final expectedWithoutDiscount =
+          rawTotal + widget.order.shippingCost + widget.order.taxFee;
+      if (expectedWithoutDiscount > widget.order.totalAmount + 0.01) {
+        return expectedWithoutDiscount - widget.order.totalAmount;
+      }
+    }
+    return 0.0;
+  }
+
+  double get _discountRatio {
+    final rawTotal = _orderRawItemsTotal;
+    final discount = _effectiveOrderDiscount;
+    if (rawTotal <= 0 || discount <= 0) return 1.0;
+    final netPaidItems = (rawTotal - discount).clamp(0.0, rawTotal);
+    return netPaidItems / rawTotal;
+  }
+
+  double _calculateSelectedRawTotal() {
     double total = 0.0;
     for (int i = 0; i < widget.order.items.length; i++) {
       if (_selectedItems[i] == true) {
@@ -75,6 +104,16 @@ class _OrderReturnDialogState extends State<OrderReturnDialog> {
       }
     }
     return total;
+  }
+
+  double _calculateSelectedTotal() {
+    final rawSelected = _calculateSelectedRawTotal();
+    if (_effectiveOrderDiscount <= 0) return rawSelected;
+    if (_isFullReturn()) {
+      final rawTotal = _orderRawItemsTotal;
+      return (rawTotal - _effectiveOrderDiscount).clamp(0.0, rawTotal);
+    }
+    return double.parse((rawSelected * _discountRatio).toStringAsFixed(2));
   }
 
   void _recalculateDefaultRefund() {
@@ -117,7 +156,9 @@ class _OrderReturnDialogState extends State<OrderReturnDialog> {
         'price': item.price,
         'quantity': returnQty,
         'selectedVariation': item.selectedVariation,
-        'totalRefund': item.price * returnQty,
+        'totalRefund': double.parse(
+          (item.price * returnQty * _discountRatio).toStringAsFixed(2),
+        ),
       });
     }
 
@@ -477,6 +518,17 @@ class _OrderReturnDialogState extends State<OrderReturnDialog> {
                         'selected_items_total'.trParams({'amount': AppFormatters.formatEGP(calculatedTotal)}),
                         style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700),
                       ),
+                      if (_effectiveOrderDiscount > 0)
+                        Text(
+                          widget.order.couponCode.isNotEmpty
+                              ? 'بعد خصم (${widget.order.couponCode}): -${AppFormatters.formatEGP(_effectiveOrderDiscount)}'
+                              : 'بعد تطبيق خصم الطلب: -${AppFormatters.formatEGP(_effectiveOrderDiscount)}',
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            color: Color(0xFF10B981),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                       Text(
                         _isFullReturn() ? 'full_return_type'.tr : 'partial_return_type'.tr,
                         style: TextStyle(

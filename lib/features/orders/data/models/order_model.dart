@@ -958,7 +958,12 @@ class OrderModel extends Equatable {
       json['taxFee'] ?? json['TaxFee'] ?? json['tax'] ?? json['Tax'] ?? json['vat'] ?? json['VAT'],
     );
 
-    final discount = _parseDouble(
+    final rawFinancials = json['financials'];
+    final Map<String, dynamic>? financialsMap = rawFinancials is Map
+        ? Map<String, dynamic>.from(rawFinancials)
+        : null;
+
+    double discount = _parseDouble(
       json['discount'] ??
           json['Discount'] ??
           json['discountAmount'] ??
@@ -966,6 +971,12 @@ class OrderModel extends Equatable {
           json['couponDiscount'] ??
           json['promoDiscount'],
     );
+    if (discount == 0.0 && financialsMap != null) {
+      final discPiastres = _parseDouble(financialsMap['discountPiastres']);
+      if (discPiastres > 0) {
+        discount = discPiastres / 100.0;
+      }
+    }
 
     // Auto-infer delivery fee if it wasn't explicitly saved as a field but total exceeds subtotal
     if (parsedShippingCost == 0.0 && total > 0.0) {
@@ -979,11 +990,30 @@ class OrderModel extends Equatable {
       }
     }
 
-    final couponCode = json['couponCode']?.toString() ??
-        json['coupon']?.toString() ??
-        json['promoCode']?.toString() ??
-        json['voucher']?.toString() ??
-        '';
+    // Auto-infer discount if it wasn't explicitly saved but total is less than subtotal + shipping + tax
+    if (discount == 0.0 && total > 0.0) {
+      final baseSub = finalSubTotal > 0.0 ? finalSubTotal : itemsSum;
+      if (baseSub > 0.0) {
+        final expectedWithoutDiscount = baseSub + parsedShippingCost + taxFee;
+        if (expectedWithoutDiscount > total + 0.01) {
+          discount = expectedWithoutDiscount - total;
+        }
+      }
+    }
+
+    final rawExtraFields = json['extraFields'];
+    final Map<String, dynamic>? extraFieldsMap = rawExtraFields is Map
+        ? Map<String, dynamic>.from(rawExtraFields)
+        : null;
+
+    final couponCode = (json['couponCode'] ??
+            json['CouponCode'] ??
+            json['coupon'] ??
+            json['promoCode'] ??
+            json['voucher'] ??
+            extraFieldsMap?['couponCode'] ??
+            '')
+        .toString();
 
     // If no items in array, check for single product top-level fields
     if (parsedItems.isEmpty) {

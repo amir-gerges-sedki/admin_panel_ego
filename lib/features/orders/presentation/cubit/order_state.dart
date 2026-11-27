@@ -31,7 +31,12 @@ class OrderLoaded extends OrderState {
   int get totalCount => orders.length;
   int get onlineCount => orders.where((o) => o.isOnlineOrder).length;
   int get posCount => orders.where((o) => o.isPosSale).length;
-  int get pendingOnlineCount => orders.where((o) => o.isOnlineOrder && o.status.toLowerCase() == 'pending').length;
+  int get pendingOnlineCount => orders
+      .where((o) =>
+          o.isOnlineOrder &&
+          (o.status.toLowerCase() == 'pending' ||
+              o.status.toLowerCase() == 'processing'))
+      .length;
   int get returnedCount => orders.where((o) => o.isReturned).length;
 
   const OrderLoaded({

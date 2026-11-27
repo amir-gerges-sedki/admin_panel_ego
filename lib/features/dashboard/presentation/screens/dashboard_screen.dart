@@ -47,7 +47,9 @@ class DashboardScreen extends StatelessWidget {
               final List<OrderModel> orders =
                   orderState is OrderLoaded ? orderState.orders : <OrderModel>[];
               final int pendingOrdersCount = orders
-                  .where((o) => o.status.toLowerCase() == 'pending')
+                  .where((o) =>
+                      o.status.toLowerCase() == 'pending' ||
+                      o.status.toLowerCase() == 'processing')
                   .length;
 
               return SingleChildScrollView(

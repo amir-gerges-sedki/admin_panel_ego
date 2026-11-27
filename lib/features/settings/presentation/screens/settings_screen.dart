@@ -144,7 +144,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _save(BuildContext context) async {
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      HelperFun.errorSnackbar(
+        title: 'error'.tr,
+        message: 'يرجى مراجعة الحقول المطلوبة قبل الحفظ',
+      );
+      return;
+    }
 
     setState(() => _isSaving = true);
     final updated = StoreSettingsModel(
@@ -182,6 +188,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await context.read<SettingsCubit>().saveSettings(updated);
       if (mounted) {
         HelperFun.successSnackbar('success'.tr, 'store_settings_saved'.tr);
+      }
+    } catch (e) {
+      if (mounted) {
+        HelperFun.errorSnackbar(
+          title: 'error'.tr,
+          message: 'فشل حفظ الإعدادات: $e',
+        );
       }
     } finally {
       if (mounted) {

@@ -15,6 +15,10 @@ export 'web_file_picker_stub.dart' show PickedFilePayload;
 class FirebaseStorageService {
   static final FirebaseStorage _storage = FirebaseStorage.instance;
   static final ImagePicker _picker = ImagePicker();
+  static final Map<String, Uint8List> _uploadedBytesCache = {};
+
+  /// Returns cached bytes for a URL uploaded during this session (avoids Web CORS preview issues).
+  static Uint8List? getCachedBytes(String url) => _uploadedBytesCache[url.trim()];
 
   /// Ensures a valid, token-refreshed authenticated session is active before storage operations.
   static Future<void> _ensureAuth({bool forceRefresh = false}) async {
@@ -255,6 +259,7 @@ class FirebaseStorageService {
         contentType: contentType,
         onProgress: onProgress,
       );
+      _uploadedBytesCache[downloadUrl] = bytes;
       debugPrint('📸 [FirebaseStorage] Uploaded successfully to $storagePath -> $downloadUrl');
       return downloadUrl;
     } catch (e) {
